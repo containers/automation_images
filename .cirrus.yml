@@ -1,0 +1,24 @@
+---
+
+# Main collection of env. vars to set for all tasks and scripts.
+env:
+    ####
+    #### Global variables used for all tasks
+    ####
+    # Name of the ultimate destination branch for this CI run, PR or post-merge.
+    DEST_BRANCH: "master"
+    # Shell used to execute all script commands
+    CIRRUS_SHELL: "/bin/bash"
+    # No need to go crazy, but grab enough to cover most PRs
+    CIRRUS_CLONE_DEPTH: 50
+
+# Default runtime environment
+container:
+    # Ref: https://cirrus-ci.org/guide/docker-builder-vm/#dockerfile-as-a-ci-environment
+    dockerfile: ci/Containerfile
+    cpu: 1
+    memory: 1G
+
+task:
+    name: stub
+    script: /bin/true
