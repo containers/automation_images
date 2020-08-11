@@ -2,9 +2,6 @@
 
 # Main collection of env. vars to set for all tasks and scripts.
 env:
-    ####
-    #### Global variables used for all tasks
-    ####
     # Name of the ultimate destination branch for this CI run, PR or post-merge.
     DEST_BRANCH: "master"
     # Shell used to execute all script commands
@@ -20,5 +17,15 @@ container:
     memory: 1G
 
 task:
-    name: stub
-    script: /bin/true
+    name: &stub_name stub
+    alias: *stub_name
+    clone_script: &noop_clone mkdir -p "${CIRRUS_WORKING_DIR}"  # source is not needed
+    script: &noop_script /bin/true
+
+task:
+    name: &success_name success
+    alias: *success_name
+    depends_on:
+        - *stub_name
+    clone_script: *noop_clone
+    script: *noop_script

@@ -1,0 +1,55 @@
+---
+
+# Format Ref: https://doc.mergify.io/configuration.html
+# Validate locally with:
+# curl -F 'data=@.mergify.yml' https://gh.mergify.io/validate
+
+pull_request_rules:
+    - name: 'automatic labeling of work-in-progress PRs by title'
+      # All conditions must match for action to occur
+      conditions:
+          - 'title~=.*WIP.*'
+          - '-label=WIP'
+      actions: &add_wip
+          label:
+              add:
+                  - 'WIP'
+          dismiss_reviews:
+            changes_requested: false
+
+    - name: 'automatic labeling of work-in-progress PRs by body'
+      conditions:
+          - 'body~=.*WIP.*'
+          - '-label=WIP'
+      actions: *add_wip
+
+    - name: 'automatic work-in-progress label removal'
+      conditions:
+          - 'label=WIP'
+          - '-title~=.*WIP.*'
+          - '-body~=.*WIP.*'
+      actions:
+          label:
+              remove:
+                  - 'WIP'
+
+    # N/B: This will _NEVER_ fire if this file is also modified by the same PR
+    - name: 'automatic merge when Cirrus-CI Successful'
+      conditions:
+          - '-merged'  # not merged
+          - '-draft'   # not a draft
+          - '-locked'  # not locked
+          - '-label=WIP'  # Will NOT match a PR labeled during this run
+          - '-title~=.*WIP'  # Don't merge with WIP label still applied
+          - '-body~=.*WIP'   # "
+          - '-title~=.*CI.*SKIP'  # Cirrus-CI feature
+          - '-title~=.*SKIP.*CI'  # "
+          - 'status-success=success'  # defined in .cirrus.yml
+          - '#approved-reviews-by>=1'
+      actions:
+          label:
+              remove:
+                  - 'WIP'
+          merge:
+            strict: 'smart+fasttrack'
+            strict_method: 'merge'
