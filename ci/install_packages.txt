@@ -1,0 +1,16 @@
+bash-completion
+buildah
+bzip2
+coreutils
+curl
+findutils
+gawk
+jq
+rootfiles
+rsync
+sed
+tar
+unzip
+vim
+xz
+zip

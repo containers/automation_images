@@ -1,0 +1,21 @@
+# This dockerfile defines the environment for Cirrus-CI when
+# running simple checks and tests. It may also be utilized
+# for development/debugging of those tests locally.
+
+ARG FEDORA_RELEASE=latest
+FROM registry.fedoraproject.org/fedora:${FEDORA_RELEASE}
+MAINTAINER https://github.com/containers/automation_images
+
+ADD /ci/install* /root/
+RUN bash /root/install_packages.sh
+
+ARG PACKER_VERSION=1.4.5
+ARG PACKER_OS=linux
+ARG PACKER_ARCH=amd64
+
+RUN cd /usr/local/sbin && \
+    curl --location --fail --silent --show-error --url \
+        https://releases.hashicorp.com/packer/${PACKER_VERSION}/packer_${PACKER_VERSION}_${PACKER_OS}_${PACKER_ARCH}.zip \
+        -o packer.zip && \
+    unzip packer.zip && \
+    rm -f packer.zip
