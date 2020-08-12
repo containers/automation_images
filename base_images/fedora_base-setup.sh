@@ -1,27 +1,31 @@
 #!/bin/bash
 
-# N/B: This script is not intended to be run by humans.  It is used to configure the
-# fedora base image for importing, so that it will boot in GCE
+# This script is intended to be run by packer, inside a a Fedora VM.
+# It's purpose is to configure the VM for importing into google cloud,
+# so that it will boot in GCE and be accessable for further use.
 
-set -e
+set -eo pipefail
 
-# Load in library (copied by packer, before this script was run)
-source $GOSRC/$SCRIPT_BASE/lib.sh
+SCRIPT_FILEPATH=$(realpath "$0")
+SCRIPT_DIRPATH=$(dirname "$SCRIPT_FILEPATH")
+REPO_DIRPATH=$(realpath "$SCRIPT_DIRPATH/../")
 
-echo "Updating packages"
+# Run as quickly as possible after boot
+/bin/bash $REPO_DIRPATH/systemd_banish.sh
+
+# shellcheck source=./lib.sh
+source "$REPO_DIRPATH/lib.sh"
+
+set -x  # simpler than echo'ing each operation
+
 dnf -y update
-
-echo "Installing necessary packages and google services"
 dnf -y install rng-tools google-compute-engine-tools google-compute-engine-oslogin ethtool
-
-echo "Enabling services"
 systemctl enable rngd
 
 # There is a race that can happen on boot between the GCE services configuring
 # the VM, and cloud-init trying to do similar activities.  Use a customized
 # unit file to make sure cloud-init starts after the google-compute-* services.
-echo "Setting cloud-init service to start after google-network-daemon.service"
-cp -v $GOSRC/$PACKER_BASE/cloud-init/fedora/cloud-init.service /etc/systemd/system/
+cp -v $SCRIPT_DIRPATH/fedora-cloud-init.service /etc/systemd/system/
 
 # ref: https://cloud.google.com/compute/docs/startupscript
 # The mechanism used by Cirrus-CI to execute tasks on the system is through an
@@ -36,9 +40,4 @@ sed -r -e \
     "s/Type=oneshot/Type=oneshot\nSELinuxContext=$METADATA_SERVICE_CTX/" \
     /lib/$METADATA_SERVICE_PATH > /etc/$METADATA_SERVICE_PATH
 
-# Ensure there are no disruptive periodic services enabled by default in image
-systemd_banish
-
-rh_finalize
-
-echo "SUCCESS!"
+finalize

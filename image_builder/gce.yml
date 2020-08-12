@@ -1,0 +1,55 @@
+---
+
+variables:
+    # GCE Project ID where images will be produced
+    GCP_PROJECT_ID: "libpod-218412"
+    # Pre-existing google storage bucket w/ very short lifecycle enabled
+    XFERBUCKET: "packer-import"
+    # Required path to service account credentials file
+    GAC_FILEPATH:
+    # Naming suffix for images to prevent clashes (default to timestamp)
+    # N/B: There are length/character limitations in GCE for image names
+    IMG_SFX: '{{ timestamp }}'
+
+# Don't leak sensitive values in error messages / output
+sensitive-variables:
+    - 'GAC_FILEPATH'
+
+builders:
+    - name: 'image-builder'
+      type: 'googlecompute'
+      source_image_project_id: 'centos-cloud'
+      source_image_family: 'centos-8'
+      image_name: '{{build_name}}-{{user `IMG_SFX`}}'  # output image name
+      image_family: '{{build_name}}'  # output family name for image
+      project_id: '{{user `GCP_PROJECT_ID`}}'
+      account_file: '{{user `GAC_FILEPATH`}}'
+      zone: 'us-central1-a'
+      disk_size: 20
+      disable_default_service_account: true  # deny unnecessary access to GCE
+      ssh_username: packer  # arbitrary, packer will create & setup
+      # Required to enable nested-virtualization when using this image (later)
+      image_licenses: ["projects/vm-options/global/licenses/enable-vmx"]
+
+provisioners:
+    - type: 'shell'
+      inline:
+        - 'set -e'
+        - 'mkdir -p /tmp/automation_images'
+
+    - type: 'file'
+      source: '{{ pwd }}/'
+      destination: '/tmp/automation_images/'
+
+    - type: 'shell'
+      inline:
+        - 'set -e'
+        - '/bin/bash /tmp/automation_images/image_builder/setup.sh'
+
+post-processors:
+    # Must be double-nested to guarantee execution order
+    - - type: 'manifest'
+        output: 'image_builder/manifest.json'
+        strip_path: true
+        custom_data:
+            IMG_SFX: '{{ user `IMG_SFX` }}'

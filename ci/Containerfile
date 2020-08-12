@@ -1,21 +1,18 @@
 # This dockerfile defines the environment for Cirrus-CI when
-# running simple checks and tests. It may also be utilized
-# for development/debugging of those tests locally.
+# running automated checks and tests. It may also be used
+# for development/debugging or manually building most
+# Makefile targets.
 
-ARG FEDORA_RELEASE=latest
+ARG FEDORA_RELEASE=32
 FROM registry.fedoraproject.org/fedora:${FEDORA_RELEASE}
-MAINTAINER https://github.com/containers/automation_images
+MAINTAINER https://github.com/containers/automation_images/ci
 
-ADD /ci/install* /root/
-RUN bash /root/install_packages.sh
-
-ARG PACKER_VERSION=1.4.5
-ARG PACKER_OS=linux
-ARG PACKER_ARCH=amd64
-
-RUN cd /usr/local/sbin && \
-    curl --location --fail --silent --show-error --url \
-        https://releases.hashicorp.com/packer/${PACKER_VERSION}/packer_${PACKER_VERSION}_${PACKER_OS}_${PACKER_ARCH}.zip \
-        -o packer.zip && \
-    unzip packer.zip && \
-    rm -f packer.zip
+ENV CIRRUS_WORKING_DIR=/tmp/automation_images \
+    PACKER_INSTALL_DIR=/usr/local/bin \
+    VERSION=1
+ADD ./ci/install* "$CIRRUS_WORKING_DIR/ci/"
+WORKDIR "$CIRRUS_WORKING_DIR/"
+RUN bash ./ci/install_packages.sh
+# Overwrite prior add, allows build cache to skip install_packages.sh when possible
+ADD ./* "$CIRRUS_WORKING_DIR/"
+RUN make install_packer PACKER_INSTALL_DIR="$PACKER_INSTALL_DIR"
