@@ -1,0 +1,63 @@
+{
+  "variables": {
+    "GCP_PROJECT_ID": "libpod-218412",
+    "XFERBUCKET": "packer-import",
+    "GAC_FILEPATH": null,
+    "IMG_SFX": "{{ timestamp }}"
+  },
+  "sensitive-variables": [
+    "GAC_FILEPATH"
+  ],
+  "builders": [
+    {
+      "name": "image-builder",
+      "type": "googlecompute",
+      "source_image_project_id": "centos-cloud",
+      "source_image_family": "centos-8",
+      "image_name": "{{build_name}}-{{user `IMG_SFX`}}",
+      "image_family": "{{build_name}}",
+      "project_id": "{{user `GCP_PROJECT_ID`}}",
+      "account_file": "{{user `GAC_FILEPATH`}}",
+      "zone": "us-central1-a",
+      "disk_size": 20,
+      "disable_default_service_account": true,
+      "ssh_username": "packer",
+      "image_licenses": [
+        "projects/vm-options/global/licenses/enable-vmx"
+      ]
+    }
+  ],
+  "provisioners": [
+    {
+      "type": "shell",
+      "inline": [
+        "set -e",
+        "mkdir -p /tmp/packer"
+      ]
+    },
+    {
+      "type": "file",
+      "source": "{{ pwd }}/",
+      "destination": "/tmp/packer/"
+    },
+    {
+      "type": "shell",
+      "inline": [
+        "set -e",
+        "/bin/bash /tmp/packer/image_builder-setup.sh"
+      ]
+    }
+  ],
+  "post-processors": [
+    [
+      {
+        "type": "manifest",
+        "output": "{{ pwd }}/../image-builder_manifest.json",
+        "strip_path": true,
+        "custom_data": {
+          "common_IMG_SFX": "{{ user `IMG_SFX` }}"
+        }
+      }
+    ]
+  ]
+}

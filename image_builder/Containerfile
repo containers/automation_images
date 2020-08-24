@@ -1,0 +1,19 @@
+# This dockerfile mimics locally, the environment used for
+# making base_images.  It's intended to be created and used
+# by the relevant target in the Makefile at the root of this
+# repository.
+
+ARG CENTOS_RELEASE=8
+FROM centos:${CENTOS_RELEASE}
+MAINTAINER https://github.com/containers/automation_images/image_builder
+
+ENV AI_PATH=/usr/src/automation_images \
+    PACKER_INSTALL_DIR=/usr/local/bin \
+    CONTAINER=1
+ADD /image_builder/install* "$AI_PATH/image_builder/"
+ADD /image_builder/google-cloud-sdk.repo /etc/yum.repos.d/
+ADD /lib.sh "$AI_PATH/"
+WORKDIR "$AI_PATH/"
+RUN bash ./image_builder/install_packages.sh
+ADD ./* "$AI_PATH/"
+RUN make install_packer PACKER_INSTALL_DIR="$PACKER_INSTALL_DIR"

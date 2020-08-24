@@ -3,8 +3,7 @@
 # All of these are required
 variables:
     BUILT_IMAGE_SUFFIX: '{{env `BUILT_IMAGE_SUFFIX`}}'
-    GOPATH: '{{env `GOPATH`}}'
-    GOSRC: '{{env `GOSRC`}}'
+    SRC: /var/tmp/src
     PACKER_BASE: '{{env `PACKER_BASE`}}'
     SCRIPT_BASE: '{{env `SCRIPT_BASE`}}'
 
@@ -67,20 +66,17 @@ provisioners:
       inline:
         - 'set -ex'
         # The 'file' provisioner item (below) will create the final component
-        - 'mkdir -vp $(dirname {{user `GOSRC`}})'
+        - 'mkdir -vp $(dirname {{user `SRC`}})'
 
     - type: 'file'
-      source: '{{user `GOSRC`}}'
-      destination: '{{user `GOSRC`}}'
+      source: '{{user `SRC`}}'
+      destination: '{{user `SRC`}}'
 
     - type: 'shell'
-      script: '{{user `GOSRC`}}/{{user `PACKER_BASE`}}/{{split build_name "-" 0}}_setup.sh'
+      script: '{{user `SRC`}}/packer/{{split build_name "-" 0}}_setup.sh'
       environment_vars:
           - 'PACKER_BUILDER_NAME={{build_name}}'
-          - 'GOPATH={{user `GOPATH`}}'
-          - 'GOSRC={{user `GOSRC`}}'
-          - 'PACKER_BASE={{user `PACKER_BASE`}}'
-          - 'SCRIPT_BASE={{user `SCRIPT_BASE`}}'
+          - 'SRC='{{user `SRC`}}'
 
 post-processors:
     - type: 'manifest'  # writes packer-manifest.json

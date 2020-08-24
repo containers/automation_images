@@ -11,7 +11,7 @@ fi
 
 cat <<EOF > user-data
 #cloud-config
-timezone: US/Eastern
+timezone: US/Central
 growpart:
     mode: auto
 disable_root: false
