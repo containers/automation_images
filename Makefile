@@ -171,7 +171,7 @@ $(_TEMPDIR)/image_builder_debug.tar: $(_TEMPDIR) $(_TEMPDIR)/var_cache_dnf image
 
 # This needs to run in a virt/nested-virt capible environment
 base_images: base_images/manifest.json
-base_images/manifest.json: base_images/gce.json $(_TEMPDIR)/cidata.iso $(_TEMPDIR)/cidata.ssh $(PACKER_INSTALL_DIR)/packer  ## Create, prepare, and import base-level images into GCE.  Optionally, set PACKER_BUILDS=<csv> to select builder(s).
+base_images/manifest.json: base_images/gce.json base_images/fedora_base-setup.sh $(_TEMPDIR)/cidata.iso $(_TEMPDIR)/cidata.ssh $(PACKER_INSTALL_DIR)/packer  ## Create, prepare, and import base-level images into GCE.  Optionally, set PACKER_BUILDS=<csv> to select builder(s).
 	$(eval override _GAC_FILEPATH := $(call err_if_empty,GAC_FILEPATH))
 	$(call packer_build,$<)
 

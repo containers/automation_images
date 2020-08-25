@@ -79,32 +79,29 @@ builders:
     - &imgcopy
       name: 'ubuntu'
       type: 'googlecompute'
-      image_name: '{{user `UBUNTU_BASE_IMAGE`}}'
+      image_name: '{{user `UBUNTU_BASE_IMAGE`}}-{{user `IMG_SFX`}}'
       image_family: '{{build_name}}-base'
       source_image: '{{user `UBUNTU_BASE_IMAGE`}}'
       source_image_project_id: 'ubuntu-os-cloud'
       project_id: '{{user `GCP_PROJECT_ID`}}'
       # Can't use env. var for this, googlecompute-import only supports filepath
       account_file: '{{user `GAC_FILEPATH`}}'
-      startup_script_file: "{{ pwd }}/systemd_banish.sh"
       zone: 'us-central1-a'
       disk_size: 20
-      communicator: 'none'
+      ssh_username: 'packer'  # arbitrary, packer will create & setup
 
     - <<: *imgcopy
       name: 'prior-ubuntu'
-      image_name: '{{user `PRIOR_UBUNTU_BASE_IMAGE`}}'
+      image_name: '{{user `PRIOR_UBUNTU_BASE_IMAGE`}}-{{user `IMG_SFX`}}'
       source_image: '{{user `PRIOR_UBUNTU_BASE_IMAGE`}}'
 
 provisioners:  # Ubuntu images come bundled with GCE integrations provisioned
     - type: 'shell'
-      only: ['fedora', 'prior-fedora']
       inline:
         - 'set -e'
         - 'mkdir -p /tmp/automation_images'
 
     - type: 'file'
-      only: ['fedora', 'prior-fedora']
       source: '{{ pwd }}/'
       destination: '/tmp/automation_images/'
 
@@ -113,6 +110,12 @@ provisioners:  # Ubuntu images come bundled with GCE integrations provisioned
       inline:
         - 'set -e'
         - '/bin/bash /tmp/automation_images/base_images/fedora_base-setup.sh'
+
+    - only: ['ubuntu', 'prior-ubuntu']
+      type: 'shell'
+      inline:
+        - 'set -e'
+        - '/bin/bash /tmp/automation_images/base_images/ubuntu_base-setup.sh'
 
 post-processors:
     # Must be double-nested to guarantee execution order
