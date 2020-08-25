@@ -137,7 +137,7 @@ post-processors:
         image_description: 'Based on {{user `PRIOR_FEDORA_IMAGE_URL`}}'
         image_family: '{{build_name}}-base'
       - type: 'manifest'
-        output: 'base_images/manifest.json'
+        output: 'base_images/manifest.json'  # Collected by Cirrus-CI
         strip_path: true
         custom_data:
             IMG_SFX: '{{ user `IMG_SFX` }}'

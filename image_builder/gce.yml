@@ -49,7 +49,7 @@ provisioners:
 post-processors:
     # Must be double-nested to guarantee execution order
     - - type: 'manifest'
-        output: 'image_builder/manifest.json'
+        output: 'image_builder/manifest.json'  # Collected by Cirrus-CI
         strip_path: true
         custom_data:
             IMG_SFX: '{{ user `IMG_SFX` }}'

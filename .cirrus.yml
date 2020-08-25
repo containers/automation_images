@@ -33,7 +33,7 @@ task:
         changesInclude('ci/make_image_builder.sh',
                        'lib.sh',
                        'Makefile',
-                       'image_builder/**/*')
+                       'image_builder/*')
     container:
       dockerfile: "image_builder/Containerfile"
       cpu: 2
@@ -42,6 +42,9 @@ task:
         IMG_SFX: "${CIRRUS_BUILD_ID}"  # Same for all tasks of _this_ build
         GAC_JSON: ENCRYPTED[7fba7fb26ab568ae39f799ab58a476123206576b0135b3d1019117c6d682391370c801e149f29324ff4b50133012aed9]
     script: "ci/make_image_builder.sh"
+    manifest_artifacts:
+        path: image_builder/manifest.json
+        type: application/json
 
 
 task:
@@ -53,9 +56,9 @@ task:
         changesInclude('ci/make_image_builder.sh',
                        'lib.sh',
                        'Makefile',
-                       'image_builder/**/*',
+                       'image_builder/*',
                        'ci/make_base_images.sh',
-                       'base_images/**/*')
+                       'base_images/*')
     gce_instance:
         image_project: "libpod-218412"
         image_family: "image-builder"  # Latest image produced by image_builder task
@@ -86,6 +89,9 @@ task:
         IMG_SFX: "${CIRRUS_BUILD_ID}"
         GAC_JSON: ENCRYPTED[7fba7fb26ab568ae39f799ab58a476123206576b0135b3d1019117c6d682391370c801e149f29324ff4b50133012aed9]
     script: "ci/make_base_images.sh"
+    manifest_artifacts:
+        path: base_images/manifest.json
+        type: application/json
 
 # TODO:
 # 1. Use VM:image-builder-image to build cache-images from base-images
