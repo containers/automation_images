@@ -17,14 +17,20 @@ OS_RELEASE_ID="$(source /etc/os-release; echo $ID)"
 
 SRC=$(realpath $(dirname "${BASH_SOURCE[0]}")/../)
 CUSTOM_CLOUD_CONFIG_DEFAULTS="$SCRIPT_DIRPATH/cloud-init/$OS_RELEASE_ID/cloud.cfg.d"
+# Avoid getting stuck waiting for user input
+[[ "$OS_RELEASE_ID" != "ubuntu" ]] || \
+    export DEBIAN_FRONTEND="noninteractive"
+
 # This location is checked by automation in other repos, please do not change.
 PACKAGE_DOWNLOAD_DIR=/var/cache/download
 
 # TODO: Lock down to specific version number for stability
-# TODO: Not used yet
 INSTALL_AUTOMATION_VERSION="latest"
 
-die() { echo "ERROR: ${1:-No error message provided}"; exit 1; }
+# After install, automation common library function will define
+if [[ $(type -t die) != 'function' ]]; then
+    die() { echo "ERROR: ${1:-No error message provided}"; exit 1; }
+fi
 
 custom_cloud_init() {
     if [[ -d "$CUSTOM_CLOUD_CONFIG_DEFAULTS" ]]
