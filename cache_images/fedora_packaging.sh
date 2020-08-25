@@ -7,35 +7,28 @@
 
 set -e
 
+SCRIPT_FILEPATH=$(realpath "$0")
+SCRIPT_DIRPATH=$(dirname "$SCRIPT_FILEPATH")
+REPO_DIRPATH=$(realpath "$SCRIPT_DIRPATH/../")
+
+# shellcheck source=./lib.sh
+source "$REPO_DIRPATH/lib.sh"
+
 echo "Updating/Installing repos and packages for $OS_REL_VER"
-
-source $GOSRC/$SCRIPT_BASE/lib.sh
-
-req_env_var GOSRC SCRIPT_BASE BIGTO INSTALL_AUTOMATION_VERSION FEDORA_BASE_IMAGE PRIOR_FEDORA_BASE_IMAGE
-
-# Pre-req. to install automation tooing
-$LILTO $SUDO dnf install -y git
-
-# Install common automation tooling (i.e. ooe.sh)
-curl --silent --show-error --location \
-     --url "https://raw.githubusercontent.com/containers/automation/master/bin/install_automation.sh" | \
-     $SUDO env INSTALL_PREFIX=/usr/share /bin/bash -s - "$INSTALL_AUTOMATION_VERSION"
-# Reload installed environment right now (happens automatically in a new process)
-source /usr/share/automation/environment
 
 # Set this to 1 to NOT enable updates-testing repository
 DISABLE_UPDATES_TESTING=${DISABLE_UPDATES_TESTING:0}
 
 # Do not enable updates-testing on the previous Fedora release
 if ((DISABLE_UPDATES_TESTING!=0)); then
-    warn "Enabling updates-testing repository for image based on $FEDORA_BASE_IMAGE"
-    $LILTO $SUDO ooe.sh dnf install -y 'dnf-command(config-manager)'
-    $LILTO $SUDO ooe.sh dnf config-manager --set-enabled updates-testing
+    warn "Enabling updates-testing repository for $OS_REL_VER"
+    lilto ooe.sh $SUDO dnf install -y 'dnf-command(config-manager)'
+    lilto ooe.sh $SUDO dnf config-manager --set-enabled updates-testing
 else
-    warn "NOT enabling updates-testing repository for image based on $PRIOR_FEDORA_BASE_IMAGE"
+    warn "NOT enabling updates-testing repository for $OS_REL_VER"
 fi
 
-$BIGTO ooe.sh $SUDO dnf update -y
+bigto ooe.sh $SUDO dnf update -y
 
 # Fedora, as of 31, uses cgroups v2 by default. runc does not support
 # cgroups v2, only crun does. (As of 2020-07-30 runc support is
@@ -159,36 +152,25 @@ DOWNLOAD_PACKAGES=(\
     parallel
 )
 
-echo "Installing general build/test dependencies for Fedora '$OS_RELEASE_VER'"
-$BIGTO ooe.sh $SUDO dnf install -y ${INSTALL_PACKAGES[@]}
-
-# AD-HOC CODE FOR SPECIAL-CASE SITUATIONS!
-# On 2020-07-23 we needed this code to upgrade crun on f31, a build
-# that is not yet in stable. Since CI:IMG PRs are a two-step process,
-# the key part is that we UN-COMMENT-THIS-OUT during the first step,
-# then re-comment it on the second (once we have the built images).
-# That way this will be dead code in future CI:IMG PRs but will
-# serve as an example for anyone in a similar future situation.
-#   $BIGTO ooe.sh $SUDO dnf --enablerepo=updates-testing -y upgrade crun
+echo "Installing general build/test dependencies"
+bigto ooe.sh $SUDO dnf install -y "${INSTALL_PACKAGES[@]}"
 
 [[ ${#REMOVE_PACKAGES[@]} -eq 0 ]] || \
-    $LILTO ooe.sh $SUDO dnf erase -y "${REMOVE_PACKAGES[@]}"
+    lilto ooe.sh $SUDO dnf erase -y "${REMOVE_PACKAGES[@]}"
 
 if [[ ${#DOWNLOAD_PACKAGES[@]} -gt 0 ]]; then
     echo "Downloading packages for optional installation at runtime, as needed."
     # Required for cri-o
-    ooe.sh $SUDO dnf -y module enable cri-o:$(get_kubernetes_version)
+    ooe.sh ooe.sh $SUDO dnf -y module enable cri-o:$(get_kubernetes_version)
     $SUDO mkdir -p "$PACKAGE_DOWNLOAD_DIR"
     cd "$PACKAGE_DOWNLOAD_DIR"
-    $LILTO ooe.sh $SUDO dnf download -y --resolve "${DOWNLOAD_PACKAGES[@]}"
+    lilto ooe.sh $SUDO dnf download -y --resolve "${DOWNLOAD_PACKAGES[@]}"
 fi
 
-echo "Installing runtime tooling"
-# Save some runtime by having these already available
-cd $GOSRC
-# Required since initially go was not installed
-source $GOSRC/$SCRIPT_BASE/lib.sh
-echo "Go environment has been setup:"
-go env
-$SUDO make install.tools
-$SUDO $GOSRC/hack/install_catatonit.sh
+echo "Configuring Go environment"
+mkdir -p /var/tmp/go
+export GOPATH=/var/tmp/go
+eval $(go env | tee /dev/stderr)
+export PATH="$GOPATH/bin:$PATH"
+# shellcheck source=./podman_tooling.sh
+source $SCRIPT_DIRPATH/podman_tooling.sh

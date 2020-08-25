@@ -88,6 +88,10 @@ builders:
       account_file: '{{user `GAC_FILEPATH`}}'
       zone: 'us-central1-a'
       disk_size: 20
+      # Identify the instance
+      labels:
+        sfx: '{{user `IMG_SFX`}}'
+        src: '{{user `UBUNTU_BASE_IMAGE`}}'
       ssh_username: 'packer'  # arbitrary, packer will create & setup
 
     - <<: *imgcopy

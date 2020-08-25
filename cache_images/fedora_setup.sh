@@ -5,30 +5,30 @@
 
 set -e
 
-# Load in library (copied by packer, before this script was run)
-source $GOSRC/$SCRIPT_BASE/lib.sh
+SCRIPT_FILEPATH=$(realpath "$0")
+SCRIPT_DIRPATH=$(dirname "$SCRIPT_FILEPATH")
+REPO_DIRPATH=$(realpath "$SCRIPT_DIRPATH/../")
 
-req_env_var SCRIPT_BASE PACKER_BASE INSTALL_AUTOMATION_VERSION PACKER_BUILDER_NAME GOSRC FEDORA_BASE_IMAGE OS_RELEASE_ID OS_RELEASE_VER
+# Run as quickly as possible after boot
+/bin/bash $REPO_DIRPATH/systemd_banish.sh
 
-workaround_bfq_bug
+# shellcheck source=./lib.sh
+source "$REPO_DIRPATH/lib.sh"
 
 # Do not enable updates-testing on the previous Fedora release
-if [[ "$PRIOR_FEDORA_BASE_IMAGE" =~ "${OS_RELEASE_ID}-cloud-base-${OS_RELEASE_VER}" ]]; then
+# (packer defines this envar)
+# shellcheck disable=SC2154
+if [[ "$PACKER_BUILD_NAME" =~ prior ]]; then
     DISABLE_UPDATES_TESTING=1
 else
     DISABLE_UPDATES_TESTING=0
 fi
 
-bash $PACKER_BASE/fedora_packaging.sh
-# Load installed environment right now (happens automatically in a new process)
-source /usr/share/automation/environment
+bash $SCRIPT_DIRPATH/fedora_packaging.sh
 
 echo "Enabling cgroup management from containers"
-ooe.sh sudo setsebool container_manage_cgroup true
+ooe.sh $SUDO setsebool container_manage_cgroup true
 
-# Ensure there are no disruptive periodic services enabled by default in image
-systemd_banish
-
-rh_finalize
+finalize
 
 echo "SUCCESS!"

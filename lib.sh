@@ -8,12 +8,9 @@
 SCRIPT_FILEPATH=$(realpath "$0")
 SCRIPT_DIRPATH=$(dirname "$SCRIPT_FILEPATH")
 
-SUDO=""
-[[ "$UID" -eq 0 ]] || \
-    SUDO="sudo"
-
 OS_RELEASE_VER="$(source /etc/os-release; echo $VERSION_ID | cut -d '.' -f 1)"
 OS_RELEASE_ID="$(source /etc/os-release; echo $ID)"
+OS_REL_VER="$OS_RELEASE_ID-$OS_RELEASE_VER"
 
 SRC=$(realpath $(dirname "${BASH_SOURCE[0]}")/../)
 CUSTOM_CLOUD_CONFIG_DEFAULTS="$SCRIPT_DIRPATH/cloud-init/$OS_RELEASE_ID/cloud.cfg.d"
@@ -27,8 +24,28 @@ PACKAGE_DOWNLOAD_DIR=/var/cache/download
 # TODO: Lock down to specific version number for stability
 INSTALL_AUTOMATION_VERSION="latest"
 
-# After install, automation common library function will define
-if [[ $(type -t die) != 'function' ]]; then
+SUDO=""
+if [[ "$UID" -ne 0 ]]; then
+    SUDO="sudo"
+    [[ "$OS_RELEASE_ID" != "ubuntu" ]] || \
+        SUDO="$SUDO env DEBIAN_FRONTEND=noninteractive"
+fi
+
+if [[ -d "/usr/share/automation" ]]; then
+    # Since we're not a login-shell, this doesn't always automatically load
+    # (via other means, pointing at this file)
+    source /usr/share/automation/environment
+    for libname in defaults anchors console_output utils; do
+        #shellcheck disable=SC1090,SC2154
+        source $AUTOMATION_LIB_PATH/$libname.sh
+    done
+
+    # Shortcuts to common retry/timeout calls
+    lilto() { err_retry 8 1000 "" "$@"; }  # just over 4 minutes max
+    bigto() { err_retry 7 5670 "" "$@"; }  # 12 minutes max
+else  # Automation common library not installed yet
+    echo "Warning: Automation library not found. Assuming it's not yet installed" \
+        > /dev/stderr
     die() { echo "ERROR: ${1:-No error message provided}"; exit 1; }
 fi
 
@@ -58,6 +75,13 @@ set_gac_filepath(){
     unset GAC_JSON;
 }
 
+get_kubernetes_version() {
+    # TODO: Look up the kube RPM/DEB version installed, or in $PACKAGE_DOWNLOAD_DIR
+    #       and retrieve the major-minor version directly.
+    local KUBERNETES_VERSION="1.15"
+    echo "$KUBERNETES_VERSION"
+}
+
 # Warning: DO NOT USE these functions willy-nilly!
 # They are only intended to be called by other setup scripts, as the very
 # last step during the build process.  They're purpose is to "reset" the
@@ -65,6 +89,7 @@ set_gac_filepath(){
 # generating new ssh host keys, resizing partitions, etc.)
 common_finalize() {
     cd /
+    $SUDO cloud-init clean --logs
     $SUDO rm -rf $SCRIPT_DIRPATH
     $SUDO rm -rf /var/lib/cloud/instanc*
     $SUDO rm -rf /root/.ssh/*
@@ -73,6 +98,7 @@ common_finalize() {
     $SUDO rm -rf /home/*
     $SUDO rm -rf /tmp/*
     $SUDO rm -rf /tmp/.??*
+    echo -n "" | $SUDO tee /etc/machine-id
     $SUDO sync
     $SUDO fstrim -av
 }

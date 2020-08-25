@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# This script is intended to be run by packer, inside a a Fedora VM.
+# This script is intended to be run by packer, inside an Ubuntu VM.
 # It's purpose is to configure the VM for importing into google cloud,
 # so that it will boot in GCE and be accessable for further use.
 
@@ -18,15 +18,14 @@ source "$REPO_DIRPATH/lib.sh"
 
 set -x  # simpler than echo'ing each operation
 $SUDO apt-get -qq -y update
-if [[ "$OS_RELEASE_ID" -lt 20 ]]; then
-    # Gets stuck on upgrade, even with DEBIAN_FRONTEND="noninteractive"
-    $SUDO apt-mark hold 'openssh-server'
-fi
+$SUDO apt-get -qq -y upgrade apt dpkg
 $SUDO apt-get -qq -y upgrade
-if [[ "$OS_RELEASE_ID" -lt 20 ]]; then
-    $SUDO apt-mark unhold 'openssh-server'
-fi
-$SUDO apt-get -qq -y install software-properties-common git curl
+$SUDO apt-get -qq -y install coreutils software-properties-common git curl openssh-server openssh-client
+
+# Point sh at bash, system-wide.  This will slow boot-time but improve
+# compatibility / usefullness of all automated scripting (which is bash-centric)
+$SUDO DEBCONF_DB_OVERRIDE='File{'$SCRIPT_DIRPATH/no_dash.dat'}' \
+    dpkg-reconfigure dash
 
 # Install common automation tooling (i.e. ooe.sh)
 curl --silent --show-error --location \
