@@ -15,8 +15,7 @@ pull_request_rules:
           - '-title~=.*CI.*SKIP'  # Cirrus-CI feature
           - '-title~=.*SKIP.*CI'  # "
           - 'status-success=success'  # defined in .cirrus.yml
-          # Temporarily disabled during repository bootstrapping
-          # - '#approved-reviews-by>=1'
+          - '#approved-reviews-by>=1'
       actions:
           merge:
             strict: 'smart+fasttrack'
