@@ -22,6 +22,9 @@ builders:
       name: 'ubuntu'
       type: 'googlecompute'
       source_image_family: '{{ build_name }}-base'  # Coordinated w/ base_images
+      # N/B: This implies base images always built with same IMG_SFX.
+      # Alt: Only specify family for 'latest' image: Possible race w/ concurrent bulds
+      source_image: '{{ build_name }}-b{{user `IMG_SFX`}}'
       # Prefix IMG_SFX with "c" so this is never confused with a base_image name
       image_name: '{{ build_name }}-c{{user `IMG_SFX`}}'
       image_family: '{{ build_name }}-cache'
@@ -32,7 +35,7 @@ builders:
       disable_default_service_account: true
       labels:  # For the VM
         sfx: '{{user `IMG_SFX`}}'
-        src: '{{ build_name }}'
+        src: '{{ build_name }}-b{{user `IMG_SFX` }}'
       ssh_username: packer  # arbitrary, packer will create & setup
       ssh_pty: 'true'
 

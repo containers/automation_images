@@ -20,7 +20,6 @@ timeout_in: 60m
 task:
     name: "Validate"
     alias: "validate"
-    only_if: "changesInclude('**/*.sh')"
     timeout_in: 5m
     container: &ci_container
         # Ref: https://cirrus-ci.org/guide/docker-builder-vm/#dockerfile-as-a-ci-environment
@@ -38,11 +37,6 @@ task:
     alias: "image_builder"
     depends_on:
         - validate
-    only_if: >-
-        $CIRRUS_CHANGE_TITLE =~ '.*CI:BUILDER.*' ||
-        $CIRRUS_BRANCH == 'master' ||
-        changesInclude('ci/make_image_builder.sh',
-                       'image_builder/*')
     # Packer needs time to clean up partially created VM images
     auto_cancellation: $CI != "true"
     timeout_in: 30m
@@ -60,11 +54,6 @@ task:
     alias: "base_images"
     depends_on:
         - image_builder
-    only_if: >-
-        $CIRRUS_CHANGE_TITLE =~ '.*CI:BASE.*' ||
-        $CIRRUS_BRANCH == 'master' ||
-        changesInclude('ci/make_base_images.sh',
-                       'base_images/*')
     # Packer needs time to clean up partially created VM images
     auto_cancellation: $CI != "true"
     timeout_in: 30m
@@ -104,11 +93,6 @@ task:
     alias: "cache_images"
     depends_on:
         - base_images
-    only_if: >-
-        $CIRRUS_CHANGE_TITLE =~ '.*CI:CACHE.*' ||
-        $CIRRUS_BRANCH == 'master' ||
-        changesInclude('ci/make_cache_images.sh',
-                       'cache_images/*')
     # Packer needs time to clean up partially created VM images
     auto_cancellation: $CI != "true"
     timeout_in: 40m
