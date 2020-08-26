@@ -13,7 +13,7 @@ suitability for use by other *containers* org. repos.
    Pull requests will be merged automatically when they:**
 
    * Are not marked as a draft (*see below*)
-   * Have at least one approving github review.
+   * Have at least ***one*** approving github review.
    * Pass the 'success' test
 
 3. Pull requests that are not ready for review, must be marked as *draft*.
@@ -27,10 +27,15 @@ suitability for use by other *containers* org. repos.
      link located in the upper-right of the pull-request page, under
      'Reviewers'.
 
-4. This repo. follows the [fork & pull
+6. When ready for review, somebody besides the author must click the green
+   *Review changes* button within the PR.  Assuming the review is (eventually)
+   marked as 'approved', and the PR is not a *draft*, it will automatically
+   merge when all CI tests pass.
+
+5. This repo. follows the [fork & pull
    model](https://docs.github.com/en/github/collaborating-with-issues-and-pull-requests/creating-a-pull-request-from-a-fork)
 
-5. Strict-merging is enabled to guarantee the tip of the base branch has
+6. Strict-merging is enabled to guarantee the tip of the base branch has
    always been checked by automation.  All pull requests must be kept up
    to date with the base branch.  The [Mergify bot can help with
    this.](https://doc.mergify.io/commands.html#commands)
