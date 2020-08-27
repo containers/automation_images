@@ -8,6 +8,9 @@ env:
     CIRRUS_SHELL: "/bin/bash"
     # No need to go crazy, but grab enough to cover most PRs
     CIRRUS_CLONE_DEPTH: 50
+    IMG_SFX: "${CIRRUS_BUILD_ID}"  # Same for all tasks of _this_ build
+    # Imgae create/import credentials (N/B: must NOT == gcp_credentials)
+    GAC_JSON: ENCRYPTED[7fba7fb26ab568ae39f799ab58a476123206576b0135b3d1019117c6d682391370c801e149f29324ff4b50133012aed9]
 
 
 gcp_credentials: ENCRYPTED[823fdbc2fee3c27fa054ba1e9cfca084829b5e71572f1703a28e0746b1a924ee5860193f931adce197d40bf89e7027fe]
@@ -17,7 +20,6 @@ timeout_in: 60m
 task:
     name: "Validate"
     alias: "validate"
-    only_if: "changesInclude('**/*.sh')"
     timeout_in: 5m
     container: &ci_container
         # Ref: https://cirrus-ci.org/guide/docker-builder-vm/#dockerfile-as-a-ci-environment
@@ -33,11 +35,8 @@ task:
 task:
     name: "Image-builder image"
     alias: "image_builder"
-    only_if: >-
-        $CIRRUS_CHANGE_TITLE =~ '.*CI:BUILDER.*' ||
-        $CIRRUS_BRANCH == 'master' ||
-        changesInclude('ci/make_image_builder.sh',
-                       'image_builder/*')
+    depends_on:
+        - validate
     # Packer needs time to clean up partially created VM images
     auto_cancellation: $CI != "true"
     timeout_in: 30m
@@ -45,9 +44,6 @@ task:
       dockerfile: "image_builder/Containerfile"
       cpu: 2
       memory: "2G"
-    env:
-        IMG_SFX: "${CIRRUS_BUILD_ID}"  # Same for all tasks of _this_ build
-        GAC_JSON: ENCRYPTED[7fba7fb26ab568ae39f799ab58a476123206576b0135b3d1019117c6d682391370c801e149f29324ff4b50133012aed9]
     script: "ci/make_image_builder.sh"
     manifest_artifacts:
         path: image_builder/manifest.json
@@ -57,16 +53,11 @@ task:
 task:
     alias: "base_images"
     depends_on:
-        - validate
         - image_builder
-    only_if: >-
-        $CIRRUS_CHANGE_TITLE =~ '.*CI:BASE.*' ||
-        $CIRRUS_BRANCH == 'master' ||
-        changesInclude('ci/make_base_images.sh',
-                       'base_images/*')
     # Packer needs time to clean up partially created VM images
     auto_cancellation: $CI != "true"
     timeout_in: 30m
+    # Cannot use a container for this task, virt required for fedora image conversion
     gce_instance:
         image_project: "libpod-218412"
         image_family: "image-builder"  # Latest image produced by image_builder task
@@ -93,17 +84,40 @@ task:
         - <<: *base_image
           env:
             PACKER_BUILDS: "prior-ubuntu"
-    env:
-        IMG_SFX: "${CIRRUS_BUILD_ID}"
-        GAC_JSON: ENCRYPTED[7fba7fb26ab568ae39f799ab58a476123206576b0135b3d1019117c6d682391370c801e149f29324ff4b50133012aed9]
     script: "ci/make_base_images.sh"
     manifest_artifacts:
         path: base_images/manifest.json
         type: application/json
 
-# TODO:
-# 1. Use VM:image-builder-image to build cache-images from base-images
-# 2. Matrix: Use VMs:cache-images to run some smoke-testing script
+task:
+    alias: "cache_images"
+    depends_on:
+        - base_images
+    # Packer needs time to clean up partially created VM images
+    auto_cancellation: $CI != "true"
+    timeout_in: 40m
+    container:
+      dockerfile: "image_builder/Containerfile"
+      cpu: 2
+      memory: "2G"
+    script: "ci/make_cache_images.sh"
+    matrix:
+        - &cache_image
+          name: "${PACKER_BUILDS} Cache Image"
+          env:
+            PACKER_BUILDS: "fedora"
+        - <<: *cache_image
+          env:
+            PACKER_BUILDS: "prior-fedora"
+        - <<: *cache_image
+          env:
+            PACKER_BUILDS: "ubuntu"
+        - <<: *cache_image
+          env:
+            PACKER_BUILDS: "prior-ubuntu"
+    manifest_artifacts:
+        path: cache_images/manifest.json
+        type: application/json
 
 task:
     name: &success_name success
@@ -112,6 +126,7 @@ task:
         - validate
         - image_builder
         - base_images
+        - cache_images
     container:
         <<: *ci_container
     clone_script: mkdir -p "${CIRRUS_WORKING_DIR}"  # source is not needed

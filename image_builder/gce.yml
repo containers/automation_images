@@ -26,6 +26,9 @@ builders:
       account_file: '{{user `GAC_FILEPATH`}}'
       zone: 'us-central1-a'
       disk_size: 20
+      labels:  # For the VM
+        sfx: '{{user `IMG_SFX`}}'
+        src: 'centos-8'
       disable_default_service_account: true  # deny unnecessary access to GCE
       ssh_username: packer  # arbitrary, packer will create & setup
       # Required to enable nested-virtualization when using this image (later)

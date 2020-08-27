@@ -1,82 +1,81 @@
 ---
 
-# All of these are required
 variables:
-    BUILT_IMAGE_SUFFIX: '{{env `BUILT_IMAGE_SUFFIX`}}'
-    SRC: /var/tmp/src
-    PACKER_BASE: '{{env `PACKER_BASE`}}'
-    SCRIPT_BASE: '{{env `SCRIPT_BASE`}}'
+    # GCE Project ID where images will be produced
+    GCP_PROJECT_ID: "libpod-218412"
+    # Required path to service account credentials file
+    GAC_FILEPATH:
+    # For produced images
+    IMG_SFX: '{{ timestamp }}'
 
-    # Base-image names are required.  Using image family-names breaks parallelism
-    UBUNTU_BASE_IMAGE: '{{env `UBUNTU_BASE_IMAGE`}}'
-    PRIOR_UBUNTU_BASE_IMAGE: '{{env `PRIOR_UBUNTU_BASE_IMAGE`}}'
-    FEDORA_BASE_IMAGE: '{{env `FEDORA_BASE_IMAGE`}}'
-    PRIOR_FEDORA_BASE_IMAGE: '{{env `PRIOR_FEDORA_BASE_IMAGE`}}'
-
-    # Protected credentials, decrypted by Cirrus at runtime
-    GCE_SSH_USERNAME: '{{env `GCE_SSH_USERNAME`}}'
-    GCP_PROJECT_ID: '{{env `GCP_PROJECT_ID`}}'
-    SERVICE_ACCOUNT: '{{env `SERVICE_ACCOUNT`}}'
-    GOOGLE_APPLICATION_CREDENTIALS: '{{env `GOOGLE_APPLICATION_CREDENTIALS`}}'
+    UBUNTU_BASE_NAME: "ubuntu-2004-focal-v20200506"
+    PRIOR_UBUNTU_BASE_NAME: "ubuntu-1910-eoan-v20200211"
+    FEDORA_BASE_NAME: "fedora-cloud-base-32-1-6"
+    PRIOR_FEDORA_BASE_NAME: "fedora-cloud-base-31-1-9"
 
 # Don't leak sensitive values in error messages / output
 sensitive-variables:
-    - 'GCE_SSH_USERNAME'
-    - 'GCP_PROJECT_ID'
-    - 'SERVICE_ACCOUNT'
+    - 'GAC_FILEPATH'
 
-# What images to produce in which cloud
 builders:
-    #  v----- is a YAML anchor, allows referencing this object by name (below)
     - &gce_hosted_image
-      name: 'ubuntu-20'
+      name: 'ubuntu'
       type: 'googlecompute'
-      image_name: '{{build_name}}{{user `BUILT_IMAGE_SUFFIX`}}'
-      image_family: '{{build_name}}-cache'
-      source_image: '{{user `UBUNTU_BASE_IMAGE`}}'  # precedence over family
-      source_image_family: 'ubuntu-base'  # for ref. only
-      disk_size: 20  # REQUIRED: Runtime allocation > this value
+      source_image_family: '{{ build_name }}-base'  # Coordinated w/ base_images
+      # N/B: This implies base images always built with same IMG_SFX.
+      # Alt: Only specify family for 'latest' image: Possible race w/ concurrent bulds
+      source_image: '{{ build_name }}-b{{user `IMG_SFX`}}'
+      # Prefix IMG_SFX with "c" so this is never confused with a base_image name
+      image_name: '{{ build_name }}-c{{user `IMG_SFX`}}'
+      image_family: '{{ build_name }}-cache'
       project_id: '{{user `GCP_PROJECT_ID`}}'
-      service_account_email: '{{user `SERVICE_ACCOUNT`}}'
-      communicator: 'ssh'
-      ssh_username: '{{user `GCE_SSH_USERNAME`}}'
-      ssh_pty: 'true'
-      # The only supported zone in Cirrus-CI, as of addition of this comment
+      account_file: '{{user `GAC_FILEPATH`}}'
       zone: 'us-central1-a'
+      disk_size: 20  # REQUIRED: Runtime allocation > this value
+      disable_default_service_account: true
+      labels:  # For the VM
+        sfx: '{{user `IMG_SFX`}}'
+        src: '{{ build_name }}-b{{user `IMG_SFX` }}'
+      ssh_username: packer  # arbitrary, packer will create & setup
+      ssh_pty: 'true'
 
-    #      v----- is a YAML alias, allows partial re-use of the anchor object
     - <<: *gce_hosted_image
-      name: 'ubuntu-19'
-      source_image: '{{user `PRIOR_UBUNTU_BASE_IMAGE`}}'
+      name: 'prior-ubuntu'  # setup script derrived from string before "-"
       source_image_family: 'prior-ubuntu-base'
 
     - <<: *gce_hosted_image
-      name: 'fedora-32'
-      source_image: '{{user `FEDORA_BASE_IMAGE`}}'
+      name: 'fedora'
       source_image_family: 'fedora-base'
 
     - <<: *gce_hosted_image
-      name: 'fedora-31'
-      source_image: '{{user `PRIOR_FEDORA_BASE_IMAGE`}}'
+      name: 'prior-fedora'
       source_image_family: 'prior-fedora-base'
 
-# The brains of the operation, making actual modifications to the base-image.
 provisioners:
     - type: 'shell'
       inline:
-        - 'set -ex'
-        # The 'file' provisioner item (below) will create the final component
-        - 'mkdir -vp $(dirname {{user `SRC`}})'
+        - 'set -e'
+        - 'mkdir -p /tmp/automation_images'
 
     - type: 'file'
-      source: '{{user `SRC`}}'
-      destination: '{{user `SRC`}}'
+      source: '{{ pwd }}/'
+      destination: "/tmp/automation_images"
 
-    - type: 'shell'
-      script: '{{user `SRC`}}/packer/{{split build_name "-" 0}}_setup.sh'
-      environment_vars:
-          - 'PACKER_BUILDER_NAME={{build_name}}'
-          - 'SRC='{{user `SRC`}}'
+    - only: ['fedora', 'prior-fedora']
+      type: 'shell'
+      inline:
+        - 'set -e'
+        - '/bin/bash /tmp/automation_images/cache_images/fedora_setup.sh'
+
+    - only: ['ubuntu', 'prior-ubuntu']
+      type: 'shell'
+      inline:
+        - 'set -e'
+        - '/bin/bash /tmp/automation_images/cache_images/ubuntu_setup.sh'
 
 post-processors:
-    - type: 'manifest'  # writes packer-manifest.json
+    - - type: 'manifest'  # writes packer-manifest.json
+        output: 'cache_images/manifest.json'
+        strip_path: true
+        custom_data:
+            IMG_SFX: '{{ user `IMG_SFX` }}'

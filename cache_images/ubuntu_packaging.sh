@@ -7,28 +7,20 @@
 
 set -e
 
+SCRIPT_FILEPATH=$(realpath "$0")
+SCRIPT_DIRPATH=$(dirname "$SCRIPT_FILEPATH")
+REPO_DIRPATH=$(realpath "$SCRIPT_DIRPATH/../")
+
+# shellcheck source=./lib.sh
+source "$REPO_DIRPATH/lib.sh"
+
 echo "Updating/Installing repos and packages for $OS_REL_VER"
 
-source $GOSRC/$SCRIPT_BASE/lib.sh
+lilto ooe.sh $SUDO apt-get -qq -y update
+bigto ooe.sh $SUDO apt-get -qq -y upgrade
 
-req_env_var GOSRC SCRIPT_BASE BIGTO SUDOAPTGET INSTALL_AUTOMATION_VERSION
-
-echo "Updating/configuring package repositories."
-$BIGTO $SUDOAPTGET update
-
-echo "Installing deps to add third-party repositories and automation tooling"
-$LILTO $SUDOAPTGET install software-properties-common git curl
-
-# Install common automation tooling (i.e. ooe.sh)
-curl --silent --show-error --location \
-     --url "https://raw.githubusercontent.com/containers/automation/master/bin/install_automation.sh" | \
-     $SUDO env INSTALL_PREFIX=/usr/share /bin/bash -s - "$INSTALL_AUTOMATION_VERSION"
-# Reload installed environment right now (happens automatically in a new process)
-source /usr/share/automation/environment
-
-$LILTO ooe.sh $SUDOAPTADD ppa:criu/ppa
-
-echo "Configuring/Instaling deps from Open build server"
+echo "Configuring additional package repositories"
+lilto ooe.sh $SUDO add-apt-repository --yes ppa:criu/ppa
 VERSION_ID=$(source /etc/os-release; echo $VERSION_ID)
 echo "deb http://download.opensuse.org/repositories/devel:/kubic:/libcontainers:/stable/xUbuntu_$VERSION_ID/ /" \
     | ooe.sh $SUDO tee /etc/apt/sources.list.d/devel:kubic:libcontainers:stable.list
@@ -125,7 +117,7 @@ INSTALL_PACKAGES=(\
     zlib1g-dev
 )
 DOWNLOAD_PACKAGES=(\
-    cri-o-$(get_kubernetes_version)
+    "cri-o-$(get_kubernetes_version)"
     cri-tools
     parallel
 )
@@ -143,19 +135,15 @@ else
     )
 fi
 
-# Do this at the last possible moment to avoid dpkg lock conflicts
-echo "Upgrading all packages"
-$BIGTO ooe.sh $SUDOAPTGET upgrade
-
-echo "Installing general testing and system dependencies"
+echo "Installing general build/testing dependencies"
 # Necessary to update cache of newly added repos
-$LILTO ooe.sh $SUDOAPTGET update
-$BIGTO ooe.sh $SUDOAPTGET install "${INSTALL_PACKAGES[@]}"
+lilto ooe.sh $SUDO apt-get -qq -y update
+bigto ooe.sh $SUDO apt-get -qq -y install "${INSTALL_PACKAGES[@]}"
 
 if [[ ${#DOWNLOAD_PACKAGES[@]} -gt 0 ]]; then
     echo "Downloading packages for optional installation at runtime, as needed."
     $SUDO ln -s /var/cache/apt/archives "$PACKAGE_DOWNLOAD_DIR"
-    $LILTO ooe.sh $SUDOAPTGET install --download-only "${DOWNLOAD_PACKAGES[@]}"
+    bigto ooe.sh $SUDO apt-get -qq -y install --download-only "${DOWNLOAD_PACKAGES[@]}"
 fi
 
 echo "Configuring Go environment"
@@ -163,13 +151,11 @@ echo "Configuring Go environment"
 # on Ubuntu.  Being primarily localized by env. vars and defaults, dropping
 # a symlink is the appropriate way to "install" a specific version system-wide.
 $SUDO ln -sf /usr/lib/go-1.14/bin/go /usr/bin/go
-# Initially go was not installed
-cd $GOSRC
-source $SCRIPT_BASE/lib.sh
-echo "Go environment has been setup:"
-go env
 
-echo "Building/Installing runtime tooling"
-$SUDO hack/install_catatonit.sh
-$SUDO make install.libseccomp.sudo
-$SUDO make install.tools GO_BUILD='go build'  # -mod=vendor breaks this
+export GOPATH=/var/tmp/go
+mkdir -p "$GOPATH"
+eval $(go env | tee /dev/stderr)
+export PATH="$GOPATH/bin:$PATH"
+
+# shellcheck source=./podman_tooling.sh
+source $SCRIPT_DIRPATH/podman_tooling.sh

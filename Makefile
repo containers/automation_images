@@ -80,6 +80,7 @@ ci_debug: $(_TEMPDIR)/ci_debug.tar ## Build and enter container for local develo
 	/usr/bin/podman run -it --rm \
 		--security-opt label=disable -v $$PWD:$$PWD -w $$PWD \
 		-v $(_TEMPDIR):$(_TEMPDIR):Z -v $(_GAC_FILEPATH):$(_GAC_FILEPATH):Z \
+		-e PACKER_INSTALL_DIR=/usr/local/bin \
 		-e GAC_FILEPATH=$(GAC_FILEPATH) -e TEMPDIR=$(_TEMPDIR) \
 		docker-archive:$<
 
@@ -105,19 +106,21 @@ $(_TEMPDIR)/var_cache_dnf: $(_TEMPDIR)
 $(_TEMPDIR)/packer.zip: $(_TEMPDIR)
 	curl -L --silent --show-error "$(_PACKER_URL)" -o "$@"
 
-$(PACKER_INSTALL_DIR)/packer: | $(_TEMPDIR)/packer.zip
+$(PACKER_INSTALL_DIR)/packer:
+	make $(_TEMPDIR)/packer.zip TEMPDIR=$(_TEMPDIR)
 	mkdir -p $(PACKER_INSTALL_DIR)
 	cd $(PACKER_INSTALL_DIR) && unzip -o "$(_TEMPDIR)/packer.zip"
 	touch $(PACKER_INSTALL_DIR)/packer
 	$(PACKER_INSTALL_DIR)/packer --version
 
 .PHONY: install_packer
-install_packer: $(PACKER_INSTALL_DIR)/packer  ## Download and install packer in \$PACKER_INSTALL_DIR
+install_packer: $(PACKER_INSTALL_DIR)/packer  ## Download and install packer in $PACKER_INSTALL_DIR
 
 %.json: %.yml
 	python3 -c 'import json,yaml; json.dump( yaml.safe_load(open("$<").read()), open("$@","w"), indent=2);'
 
 $(_TEMPDIR)/cidata.ssh: $(_TEMPDIR)
+	-rm -f "$@"
 	ssh-keygen -f $@ -P "" -q
 
 $(_TEMPDIR)/cidata.ssh.pub: $(_TEMPDIR) $(_TEMPDIR)/cidata.ssh
@@ -153,16 +156,17 @@ image_builder/manifest.json: image_builder/gce.json image_builder/setup.sh lib.s
 	$(eval override _GAC_FILEPATH := $(call err_if_empty,GAC_FILEPATH))
 	$(call packer_build,$<)
 
-# TODO: Make this work.  Currently when qemu-kvm starts up, it complains
-# tries and fails to read files from my home directory on the host (outside
-# the container).
+# TODO: Document: Unless we assume $PWD is under the uses home-dir, accessing
+# sometimes necessary files like $HOME/.gitconfig or $HOME/.ssh won't work if
+# the container were to only volume-mount $PWD.
 .PHONY: image_builder_debug
 image_builder_debug: $(_TEMPDIR)/image_builder_debug.tar ## Build and enter container for local development/debugging of targets requiring packer + virtualization
 	$(eval override _GAC_FILEPATH := $(call err_if_empty,GAC_FILEPATH))
 	/usr/bin/podman run -it --rm \
-		--security-opt label=disable -v $$PWD:$$PWD -w $$PWD \
+		--security-opt label=disable -v $$HOME:$$HOME -w $$PWD \
 		-v $(_TEMPDIR):$(_TEMPDIR):Z -v $(_GAC_FILEPATH):$(_GAC_FILEPATH):Z \
 		-v /dev/kvm:/dev/kvm \
+		-e PACKER_INSTALL_DIR=/usr/local/bin \
 		-e GAC_FILEPATH=$(GAC_FILEPATH) -e TEMPDIR=$(_TEMPDIR) \
 		docker-archive:$<
 
@@ -172,6 +176,11 @@ $(_TEMPDIR)/image_builder_debug.tar: $(_TEMPDIR) $(_TEMPDIR)/var_cache_dnf image
 # This needs to run in a virt/nested-virt capible environment
 base_images: base_images/manifest.json
 base_images/manifest.json: base_images/gce.json base_images/fedora_base-setup.sh $(_TEMPDIR)/cidata.iso $(_TEMPDIR)/cidata.ssh $(PACKER_INSTALL_DIR)/packer  ## Create, prepare, and import base-level images into GCE.  Optionally, set PACKER_BUILDS=<csv> to select builder(s).
+	$(eval override _GAC_FILEPATH := $(call err_if_empty,GAC_FILEPATH))
+	$(call packer_build,$<)
+
+cache_images: cache_images/manifest.json
+cache_images/manifest.json: cache_images/gce.json $(wildcard cache_images/*.sh) $(PACKER_INSTALL_DIR)/packer  ## Create, prepare, and import top-level images into GCE.  Optionally, set PACKER_BUILDS=<csv> to select builder(s).
 	$(eval override _GAC_FILEPATH := $(call err_if_empty,GAC_FILEPATH))
 	$(call packer_build,$<)
 

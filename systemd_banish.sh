@@ -31,3 +31,13 @@ do
         $SUDO systemctl mask $unit.timer
     ) &> /dev/null
 done
+
+# Sigh, for Ubuntu the above isn't enough.  There are also periodic apt jobs.
+EAAD="/etc/apt/apt.conf.d"
+PERIODIC_APT_RE='^(APT::Periodic::.+")1"\;'
+if [[ -d "$EAAD" ]]; then
+    echo "Disabling all periodic packaging activity"
+    for filename in $($SUDO ls -1 $EAAD); do \
+        echo "Checking/Patching $filename"
+        $SUDO sed -i -r -e "s/$PERIODIC_APT_RE/"'\10"\;/' "$EAAD/$filename"; done
+fi

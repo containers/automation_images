@@ -79,7 +79,8 @@ builders:
     - &imgcopy
       name: 'ubuntu'
       type: 'googlecompute'
-      image_name: '{{user `UBUNTU_BASE_IMAGE`}}-{{user `IMG_SFX`}}'
+      # Prefix IMG_SFX with "b" so this is never confused with a cache_image name
+      image_name: 'ubuntu-b{{user `IMG_SFX`}}'
       image_family: '{{build_name}}-base'
       source_image: '{{user `UBUNTU_BASE_IMAGE`}}'
       source_image_project_id: 'ubuntu-os-cloud'
@@ -88,11 +89,15 @@ builders:
       account_file: '{{user `GAC_FILEPATH`}}'
       zone: 'us-central1-a'
       disk_size: 20
+      # Identify the instance
+      labels:
+        sfx: '{{user `IMG_SFX`}}'
+        src: '{{user `UBUNTU_BASE_IMAGE`}}'
       ssh_username: 'packer'  # arbitrary, packer will create & setup
 
     - <<: *imgcopy
       name: 'prior-ubuntu'
-      image_name: '{{user `PRIOR_UBUNTU_BASE_IMAGE`}}-{{user `IMG_SFX`}}'
+      image_name: 'prior-ubuntu-b{{user `IMG_SFX`}}'
       source_image: '{{user `PRIOR_UBUNTU_BASE_IMAGE`}}'
 
 provisioners:  # Ubuntu images come bundled with GCE integrations provisioned
@@ -131,12 +136,12 @@ post-processors:
         account_file: '{{user `GAC_FILEPATH`}}'
         bucket: '{{user `XFERBUCKET`}}'
         gcs_object_name: '{{build_name}}-{{user `IMG_SFX`}}.tar.gz'
-        image_name: "{{user `FEDORA_BASE_IMAGE_NAME`}}-{{user `IMG_SFX`}}"
+        image_name: "fedora-b{{user `IMG_SFX`}}"
         image_description: 'Based on {{user `FEDORA_IMAGE_URL`}}'
         image_family: '{{build_name}}-base'
       - <<: *gcp_import
         only: ['prior-fedora']
-        image_name: "{{user `PRIOR_FEDORA_BASE_IMAGE_NAME`}}-{{user `IMG_SFX`}}"
+        image_name: "prior-fedora-b{{user `IMG_SFX`}}"
         image_description: 'Based on {{user `PRIOR_FEDORA_IMAGE_URL`}}'
         image_family: '{{build_name}}-base'
       - type: 'manifest'
