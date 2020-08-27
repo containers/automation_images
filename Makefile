@@ -151,6 +151,7 @@ define packer_build
 			$(1)
 endef
 
+.PHONY: image_builder
 image_builder: image_builder/manifest.json
 image_builder/manifest.json: image_builder/gce.json image_builder/setup.sh lib.sh systemd_banish.sh $(PACKER_INSTALL_DIR)/packer ## Create image-building image and import into GCE (needed for making 'base_images'
 	$(eval override _GAC_FILEPATH := $(call err_if_empty,GAC_FILEPATH))
@@ -174,16 +175,32 @@ image_builder_debug: $(_TEMPDIR)/image_builder_debug.tar ## Build and enter cont
 $(_TEMPDIR)/image_builder_debug.tar: $(_TEMPDIR) $(_TEMPDIR)/var_cache_dnf image_builder/Containerfile image_builder/install_packages.txt ci/install_packages.sh lib.sh
 	$(call podman_build,$@,image_builder_debug,image_builder)
 
+.PHONY: base_images
 # This needs to run in a virt/nested-virt capible environment
 base_images: base_images/manifest.json
 base_images/manifest.json: base_images/gce.json base_images/fedora_base-setup.sh $(_TEMPDIR)/cidata.iso $(_TEMPDIR)/cidata.ssh $(PACKER_INSTALL_DIR)/packer  ## Create, prepare, and import base-level images into GCE.  Optionally, set PACKER_BUILDS=<csv> to select builder(s).
 	$(eval override _GAC_FILEPATH := $(call err_if_empty,GAC_FILEPATH))
 	$(call packer_build,$<)
 
+.PHONY: cache_images
 cache_images: cache_images/manifest.json
 cache_images/manifest.json: cache_images/gce.json $(wildcard cache_images/*.sh) $(PACKER_INSTALL_DIR)/packer  ## Create, prepare, and import top-level images into GCE.  Optionally, set PACKER_BUILDS=<csv> to select builder(s).
 	$(eval override _GAC_FILEPATH := $(call err_if_empty,GAC_FILEPATH))
 	$(call packer_build,$<)
+
+.PHONY: fedora_podman
+fedora_podman: $(_TEMPDIR)/fedora_podman.tar ## Build Fedora podman development containers
+.PHONY: ubuntu-podman
+ubuntu_podman: $(_TEMPDIR)/ubuntu_podman.tar ## Build Ubuntu podman development containers
+
+$(_TEMPDIR)/%_podman.tar: podman/Containerfile podman/setup.sh $(wildcard base_images/*.sh) $(wildcard cache_images/*.sh) $(_TEMPDIR) $(_TEMPDIR)/var_cache_dnf
+	podman build -t $*_podman:$(call err_if_empty,IMG_SFX) \
+		--build-arg=BASE_IMAGE=$* \
+		-v $(_TEMPDIR)/var_cache_dnf:/var/cache/dnf:Z \
+		-v $(_TEMPDIR)/var_cache_dnf:/var/cache/apt:Z \
+		-f podman/Containerfile .
+	rm -f $@
+	podman save --quiet -o $@ $*_podman:$(IMG_SFX)
 
 .PHONY: clean
 clean: ## Remove all generated files referenced in this Makefile

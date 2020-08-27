@@ -1,0 +1,34 @@
+# This container image is utilized by podman automation for building
+# and testing podman inside a container environment.
+
+# N/B: The build-context for this container should be the top-level
+# repository root.  i.e. NOT the `podman` subdirectory where this
+# file is located.
+
+# Also supported: BASE_IMAGE=ubuntu
+ARG BASE_IMAGE=fedora
+ARG BASE_TAG=latest
+FROM ${BASE_IMAGE}:${BASE_TAG}
+
+ENV AI_PATH=/usr/src/automation_images \
+    CONTAINER=1
+
+# Only add needed files to avoid invalidating build cache
+ADD /lib.sh "$AI_PATH/"
+ADD /podman/* "$AI_PATH/podman/"
+ADD /base_images/* "$AI_PATH/base_images/"
+ADD /cache_images/* "$AI_PATH/cache_images/"
+ADD /systemd_banish.sh "$AI_PATH/"
+WORKDIR "$AI_PATH"
+RUN bash ./podman/setup.sh
+
+#### For runtime use...
+
+# The podman source to be tested must be volume-mounted in, and its
+# directory location reflected in or by overriding the $GOSRC env.
+# var. value at runtime.
+
+ENV GOPATH=/var/tmp/go
+ENV GOSRC=$GOPATH/src/github.com/containers/podman
+RUN mkdir -p "$GOSRC"
+WORKDIR "$GOSRC"

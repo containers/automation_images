@@ -49,7 +49,8 @@ documentation](https://www.packer.io/docs).
    build and then import base-level VM image for supported platforms
    (Fedora or Ubuntu; as of this writing).  In other words, convert
    generic distribution provided VM Images, into a form capable of being
-   booted as *GCE VMs*.
+   booted as *GCE VMs*.  In parallel, build Fedora and Ubuntu container
+   images and push them to ``quay.io/libpod/<name>_podman``
 
 3. Boot a *GCE VM* from each image produced in step 2.  Execute necessary
    scripts to customize image for use by containers-project automation.
@@ -76,10 +77,11 @@ in multiple repositories :D
 4. After you make your changes, push to a PR.  Shell-script changes will be
    automatically validated, and then VM image building will begin.
 
-5. After a successful build, the name of each output image will share a common
-   suffix.  To discover this suffix, find and click one of the
-   `View more details on Cirrus CI` links at the bottom of the *Checks* tab.
-   Any **Cirrus-CI** task will do, it doesn't matter which you pick.
+5. After a successful build, the name of each output VM and container image
+   will share a common suffix.  To discover this suffix, find and click one
+   of the `View more details on Cirrus CI` links at the bottom of the
+   *Checks* tab. Any **Cirrus-CI** task will do, it doesn't matter which
+   you pick.
 
 6. Toward the top of the page, is a button with an arrow, that reads
    *VIEW ALL TASKS*.  Click this button.
@@ -102,3 +104,17 @@ in multiple repositories :D
 8. After all the PRs are merged, you're done.  You may now attend to the little
    dog begging you for a walk for the last hour.  Hurry!  Little-dogs, do not
    have big-dog bladders!
+
+
+## Container images
+
+In parallel with other tasks, several instances of the image-builder VM are
+also used to create container images.  In particular, a Fedora and Ubuntu
+image are created which more-or-less duplicate the setup of the VM
+Cache-images.  They are then automatically pushed to:
+
+* https://quay.io/repository/libpod/ubuntu_podman
+* https://quay.io/repository/libpod/fedora_podman
+
+Note: The tags for these images are identical to the suffix attached to
+the VM images, and serve the same purpose.

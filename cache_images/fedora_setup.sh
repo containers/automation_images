@@ -26,8 +26,9 @@ fi
 
 bash $SCRIPT_DIRPATH/fedora_packaging.sh
 
-msg "Enabling cgroup management from containers"
-ooe.sh $SUDO setsebool -P container_manage_cgroup true
+echo "Enabling cgroup management from containers"
+((CONTAINER)) || \
+    ooe.sh $SUDO setsebool -P container_manage_cgroup true
 
 custom_cloud_init
 
