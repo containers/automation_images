@@ -19,15 +19,15 @@ source "$REPO_DIRPATH/lib.sh"
 # (packer defines this envar)
 # shellcheck disable=SC2154
 if [[ "$PACKER_BUILD_NAME" =~ prior ]]; then
-    DISABLE_UPDATES_TESTING=1
+    ENABLE_UPDATES_TESTING=0
 else
-    DISABLE_UPDATES_TESTING=0
+    ENABLE_UPDATES_TESTING=1
 fi
 
 bash $SCRIPT_DIRPATH/fedora_packaging.sh
 
 echo "Enabling cgroup management from containers"
-ooe.sh $SUDO setsebool container_manage_cgroup true
+ooe.sh $SUDO setsebool -P container_manage_cgroup true
 
 finalize
 

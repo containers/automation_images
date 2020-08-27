@@ -17,10 +17,8 @@ source "$REPO_DIRPATH/lib.sh"
 echo "Updating/Installing repos and packages for $OS_REL_VER"
 
 # Set this to 1 to NOT enable updates-testing repository
-DISABLE_UPDATES_TESTING=${DISABLE_UPDATES_TESTING:0}
-
-# Do not enable updates-testing on the previous Fedora release
-if ((DISABLE_UPDATES_TESTING!=0)); then
+ENABLE_UPDATES_TESTING=${ENABLE_UPDATES_TESTING:-1}
+if ((ENABLE_UPDATES_TESTING)); then
     warn "Enabling updates-testing repository for $OS_REL_VER"
     lilto ooe.sh $SUDO dnf install -y 'dnf-command(config-manager)'
     lilto ooe.sh $SUDO dnf config-manager --set-enabled updates-testing
@@ -155,21 +153,22 @@ DOWNLOAD_PACKAGES=(\
 echo "Installing general build/test dependencies"
 bigto ooe.sh $SUDO dnf install -y "${INSTALL_PACKAGES[@]}"
 
-[[ ${#REMOVE_PACKAGES[@]} -eq 0 ]] || \
+if [[ ${#REMOVE_PACKAGES[@]} -gt 0 ]]; then
     lilto ooe.sh $SUDO dnf erase -y "${REMOVE_PACKAGES[@]}"
+fi
 
 if [[ ${#DOWNLOAD_PACKAGES[@]} -gt 0 ]]; then
     echo "Downloading packages for optional installation at runtime, as needed."
     # Required for cri-o
-    ooe.sh ooe.sh $SUDO dnf -y module enable cri-o:$(get_kubernetes_version)
+    ooe.sh $SUDO dnf -y module enable cri-o:$(get_kubernetes_version)
     $SUDO mkdir -p "$PACKAGE_DOWNLOAD_DIR"
     cd "$PACKAGE_DOWNLOAD_DIR"
     lilto ooe.sh $SUDO dnf download -y --resolve "${DOWNLOAD_PACKAGES[@]}"
 fi
 
 echo "Configuring Go environment"
-mkdir -p /var/tmp/go
 export GOPATH=/var/tmp/go
+mkdir -p "$GOPATH"
 eval $(go env | tee /dev/stderr)
 export PATH="$GOPATH/bin:$PATH"
 # shellcheck source=./podman_tooling.sh

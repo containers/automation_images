@@ -86,17 +86,18 @@ in multiple repositories :D
 
 7. Look at the URL in your browser, it will use the form
    `https://cirrus-ci.com/build/<big number>`.  Copy-paste (or otherwise
-   record in stone) the *big number*, you'll need it for the next step.
+   record in stone) the **big number**, you'll need it for the next step.
 
 6. Go over to whatever other containers/repository needed the image update.
-   Open the `.cirrus.yml` file, and paste the *big number* in place of the
-   value next to `_BUILT_IMAGE_SUFFIX:`.  Open up a PR with this change,
-   and push it.
+   Open the `.cirrus.yml` file, and paste the **big number** *prefixed by the
+   letter 'c'*, in place of the value next to `_BUILT_IMAGE_SUFFIX:`.  For
+   example, if the url was `http://.../12345` you would paste in `c12345`
+   as the value for `_BUILT_IMAGE_SUFFIX:`.
 
-7. Once all other PR's tests pass and your satisfied with the image changes,
-   ask somebody to review/approve the *automation_images* PR so it can merge.
-   If you're feeling generous, perhaps provide cross-links between the two
-   PRs for future reference.
+7. Open up a PR with this change, and push it.  Once all tests pass and your
+   satisfied with the image changes, ask somebody to review/approve both
+   PRs for merging.  If you're feeling generous, perhaps provide cross-links
+   between the two PRs in comments, for future reference.
 
 8. After all the PRs are merged, you're done.  You may now attend to the little
    dog begging you for a walk for the last hour.  Hurry!  Little-dogs, do not

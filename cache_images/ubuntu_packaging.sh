@@ -152,8 +152,8 @@ echo "Configuring Go environment"
 # a symlink is the appropriate way to "install" a specific version system-wide.
 $SUDO ln -sf /usr/lib/go-1.14/bin/go /usr/bin/go
 
-mkdir -p /var/tmp/go
 export GOPATH=/var/tmp/go
+mkdir -p "$GOPATH"
 eval $(go env | tee /dev/stderr)
 export PATH="$GOPATH/bin:$PATH"
 
