@@ -38,6 +38,8 @@ task:
 task:
     name: "Image-builder image"
     alias: "image_builder"
+    # Usable images are produced from PRs, not merges.
+    only_if: $CIRRUS_PR =~ '.+'
     depends_on:
         - validate
     # Packer needs time to clean up partially created VM images
@@ -89,6 +91,7 @@ task:
 
 task:
     alias: "base_images"
+    only_if: $CIRRUS_PR =~ '.+'
     depends_on:
         - image_builder
     # Packer needs time to clean up partially created VM images
@@ -122,6 +125,7 @@ task:
 
 task:
     alias: "cache_images"
+    only_if: $CIRRUS_PR =~ '.+'
     depends_on:
         - base_images
     # Packer needs time to clean up partially created VM images

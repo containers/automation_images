@@ -117,7 +117,7 @@ $(PACKER_INSTALL_DIR)/packer:
 install_packer: $(PACKER_INSTALL_DIR)/packer  ## Download and install packer in $PACKER_INSTALL_DIR
 
 %.json: %.yml
-	python3 -c 'import json,yaml; json.dump( yaml.safe_load(open("$<").read()), open("$@","w"), indent=2);'
+	python3 -c 'import json,yaml; json.dump( yaml.safe_load(open("$<").read()), open("$@","w"), indent=2 );'
 
 $(_TEMPDIR)/cidata.ssh: $(_TEMPDIR)
 	-rm -f "$@"

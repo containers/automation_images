@@ -69,6 +69,8 @@ set_gac_filepath(){
         die "Unexpected \$CI=$CI and/or \$CIRRUS_CI=$CIRRUS_CI"
     elif ((${#GAC_JSON}<=0)); then
         die "Required (secret) \$GAC_JSON value appears to be empty"
+    elif grep -iq "ENCRYPTED" <<<"$GAC_JSON"; then
+        die "Decrpytion of \$GAC_JSON failed."
     fi
     set +x;
     GAC_FILEPATH=$(mktemp -p '' '.XXXXXXXX.')
