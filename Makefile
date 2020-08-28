@@ -156,9 +156,10 @@ image_builder/manifest.json: image_builder/gce.json image_builder/setup.sh lib.s
 	$(eval override _GAC_FILEPATH := $(call err_if_empty,GAC_FILEPATH))
 	$(call packer_build,$<)
 
-# TODO: Document: Unless we assume $PWD is under the uses home-dir, accessing
-# sometimes necessary files like $HOME/.gitconfig or $HOME/.ssh won't work if
-# the container were to only volume-mount $PWD.
+# Note: We assume this repo is checked out somewhere under the caller's
+# home-dir for bind-mounting purposes.  Otherwise possibly necessary
+# files/directories like $HOME/.gitconfig or $HOME/.ssh/ won't be available
+# from inside the debugging container.
 .PHONY: image_builder_debug
 image_builder_debug: $(_TEMPDIR)/image_builder_debug.tar ## Build and enter container for local development/debugging of targets requiring packer + virtualization
 	$(eval override _GAC_FILEPATH := $(call err_if_empty,GAC_FILEPATH))

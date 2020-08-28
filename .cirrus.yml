@@ -9,7 +9,8 @@ env:
     # No need to go crazy, but grab enough to cover most PRs
     CIRRUS_CLONE_DEPTH: 50
     IMG_SFX: "${CIRRUS_BUILD_ID}"  # Same for all tasks of _this_ build
-    # Imgae create/import credentials (N/B: must NOT == gcp_credentials)
+    # Google Application Credentials (JSON) with access to create
+    # VMs, images, and manage google-storage objects.
     GAC_JSON: ENCRYPTED[7fba7fb26ab568ae39f799ab58a476123206576b0135b3d1019117c6d682391370c801e149f29324ff4b50133012aed9]
 
 
