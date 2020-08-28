@@ -23,6 +23,8 @@ ooe.sh $SUDO sed -re "$SEDCMD" -i /etc/default/grub.d/*
 ooe.sh $SUDO sed -re "$SEDCMD" -i /etc/default/grub
 ooe.sh $SUDO update-grub
 
+custom_cloud_init
+
 finalize
 
 echo "SUCCESS!"
