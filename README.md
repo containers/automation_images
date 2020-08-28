@@ -21,7 +21,7 @@ suitability for use by other *containers* org. repos.
    * Have at least ***one*** approving github review.
    * Pass the 'success' test
 
-4. Strict-merging is enabled, therefor all pull requests must be kept up
+4. Strict-merging is enabled, therefore all pull requests must be kept up
    to date with the base branch.  The [Mergify bot can help with
    this.](https://doc.mergify.io/commands.html#commands)
 
