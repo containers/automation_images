@@ -16,10 +16,24 @@ REPO_DIRPATH=$(realpath "$SCRIPT_DIRPATH/../")
 # shellcheck source=./lib.sh
 source "$REPO_DIRPATH/lib.sh"
 
+# When installing during a container-build, installing anything
+# selinux-related will seriously screw up the rest of your day
+# with rpm debugging.
+# Ref: https://github.com/rpm-software-management/rpm/commit/8cbe8baf9c3ff4754369bcd29441df14ecc6889d
+declare -a PKGS
+PKGS=(rng-tools git coreutils)
+XSELINUX=
+if ((CONTAINER)); then
+    XSELINUX="--exclude=selinux*"
+else
+    PKGS+=(google-compute-engine-tools google-compute-engine-oslogin)
+fi
+
 set -x  # simpler than echo'ing each operation
 
-dnf -y update
-dnf -y install rng-tools google-compute-engine-tools google-compute-engine-oslogin ethtool git coreutils
+dnf -y update $XSELINUX
+dnf -y install $XSELINUX "${PKGS[@]}"
+
 systemctl enable rngd
 
 # Install common automation tooling (i.e. ooe.sh)
@@ -32,17 +46,19 @@ curl --silent --show-error --location \
 # unit file to make sure cloud-init starts after the google-compute-* services.
 cp -v $SCRIPT_DIRPATH/fedora-cloud-init.service /etc/systemd/system/
 
-# ref: https://cloud.google.com/compute/docs/startupscript
-# The mechanism used by Cirrus-CI to execute tasks on the system is through an
-# "agent" process launched as a GCP startup-script (from the metadata service).
-# This agent is responsible for cloning the repository and executing all task
-# scripts and other operations.  Therefor, on SELinux-enforcing systems, the
-# service must be labeled properly to ensure it's child processes can
-# run with the proper contexts.
-METADATA_SERVICE_CTX=unconfined_u:unconfined_r:unconfined_t:s0
-METADATA_SERVICE_PATH=systemd/system/google-startup-scripts.service
-sed -r -e \
-    "s/Type=oneshot/Type=oneshot\nSELinuxContext=$METADATA_SERVICE_CTX/" \
-    /lib/$METADATA_SERVICE_PATH > /etc/$METADATA_SERVICE_PATH
+if ! ((CONTAINER)); then
+    # ref: https://cloud.google.com/compute/docs/startupscript
+    # The mechanism used by Cirrus-CI to execute tasks on the system is through an
+    # "agent" process launched as a GCP startup-script (from the metadata service).
+    # This agent is responsible for cloning the repository and executing all task
+    # scripts and other operations.  Therefor, on SELinux-enforcing systems, the
+    # service must be labeled properly to ensure it's child processes can
+    # run with the proper contexts.
+    METADATA_SERVICE_CTX=unconfined_u:unconfined_r:unconfined_t:s0
+    METADATA_SERVICE_PATH=systemd/system/google-startup-scripts.service
+    sed -r -e \
+        "s/Type=oneshot/Type=oneshot\nSELinuxContext=$METADATA_SERVICE_CTX/" \
+        /lib/$METADATA_SERVICE_PATH > /etc/$METADATA_SERVICE_PATH
+fi
 
 finalize

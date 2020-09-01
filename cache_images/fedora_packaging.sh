@@ -47,7 +47,6 @@ INSTALL_PACKAGES=(\
     buildah
     bzip2
     conmon
-    container-selinux
     containernetworking-plugins
     containers-common
     criu
@@ -84,7 +83,6 @@ INSTALL_PACKAGES=(\
     libcap-devel
     libffi-devel
     libgpg-error-devel
-    libguestfs-tools
     libmsi1
     libnet
     libnet-devel
@@ -108,7 +106,6 @@ INSTALL_PACKAGES=(\
     pandoc
     pkgconfig
     podman
-    policycoreutils
     procps-ng
     protobuf
     protobuf-c
@@ -127,7 +124,6 @@ INSTALL_PACKAGES=(\
     rpcbind
     rsync
     sed
-    selinux-policy-devel
     skopeo
     skopeo-containers
     slirp4netns
@@ -141,6 +137,21 @@ INSTALL_PACKAGES=(\
     zip
     zlib-devel
 )
+
+# When installing during a container-build, having this present
+# will seriously screw up future dnf operations in very non-obvious ways.
+if ! ((CONTAINER)); then
+    INSTALL_PACKAGES+=( \
+        container-selinux
+        libguestfs-tools
+        selinux-policy-devel
+        policycoreutils
+    )
+else
+    EXARG="--exclude=selinux*"
+fi
+
+
 DOWNLOAD_PACKAGES=(\
     "cri-o-$(get_kubernetes_version)*"
     cri-tools
@@ -151,7 +162,7 @@ DOWNLOAD_PACKAGES=(\
 )
 
 echo "Installing general build/test dependencies"
-bigto ooe.sh $SUDO dnf install -y "${INSTALL_PACKAGES[@]}"
+bigto ooe.sh $SUDO dnf install -y $EXARG "${INSTALL_PACKAGES[@]}"
 
 if [[ ${#REMOVE_PACKAGES[@]} -gt 0 ]]; then
     lilto ooe.sh $SUDO dnf erase -y "${REMOVE_PACKAGES[@]}"

@@ -17,18 +17,12 @@ source "$REPO_DIRPATH/lib.sh"
 [[ -r "$INST_PKGS_FP" ]] || \
     die "Expecting to find a copy of the file $INST_PKGS_FP"
 
-EXCLUDE=""
-# SELinux policy inside container image causes hard to debug packaging problems
-if (("${CONTAINER:-0}")); then
-    EXCLUDE="--exclude selinux-policy-targeted"
-fi
-
 set -x
     dnf update -y
     dnf -y install epel-release
     dnf mark remove $(rpm -qa | grep -Ev '(gpg-pubkey)|(dnf)|(sudo)')
 
-    dnf install -y $EXCLUDE $(<"$INST_PKGS_FP")
+    dnf install -y $(<"$INST_PKGS_FP")
 set +x
 
 # Only for containers do we care about saving every ounce of disk-space

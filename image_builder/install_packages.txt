@@ -11,6 +11,7 @@ libvirt-client
 libvirt-daemon
 make
 openssh
+podman
 python3
 python3-pyyaml
 qemu-img

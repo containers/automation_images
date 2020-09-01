@@ -8,9 +8,11 @@ env:
     CIRRUS_SHELL: "/bin/bash"
     # No need to go crazy, but grab enough to cover most PRs
     CIRRUS_CLONE_DEPTH: 50
-    IMG_SFX: "${CIRRUS_BUILD_ID}"  # Same for all tasks of _this_ build
+    # Unique suffix label to use for all images produced by _this_ run (build)
+    IMG_SFX: "${CIRRUS_BUILD_ID}"
     # Google Application Credentials (JSON) with access to create
-    # VMs, images, and manage google-storage objects.
+    # Note: Actual authZ specified by service-account roles.
+    # Ref: https://cloud.google.com/compute/docs/access/service-accounts?&_ga=2.102552833.-1670000616.1540407237#accesscopesiam
     GAC_JSON: ENCRYPTED[7fba7fb26ab568ae39f799ab58a476123206576b0135b3d1019117c6d682391370c801e149f29324ff4b50133012aed9]
 
 
@@ -52,6 +54,40 @@ task:
 
 
 task:
+    alias: "podman_containers"
+    depends_on:
+        - image_builder
+    timeout_in: 30m
+    gce_instance: &ibi_vm
+        image_project: "libpod-218412"
+        image_name: "image-builder-${IMG_SFX}"
+        zone: "us-central1-a"
+        disk: 200  # Must be 200, negatively affects performance otherwise.
+    matrix:
+        - name: &name "Build ${DISTRO_NAME}_podman container"
+          env:
+            DISTRO_NAME: 'fedora'
+            # Add a 'c' to the tag for consistency with VM Image names
+            DEST_FQIN: 'quay.io/libpod/fedora_podman:c$IMG_SFX'
+        - name: *name
+          env:
+            DISTRO_NAME: 'ubuntu'
+            DEST_FQIN: 'quay.io/libpod/ubuntu_podman:c$IMG_SFX'
+    env:
+        TEMPDIR: '$CIRRUS_WORKING_DIR'
+        _LOGIN_CMD: ENCRYPTED[d15806d68c90cf74faca59bc4f81ada269538092b8449c7d8cd4cf44cd8d58a7482d2b249a9da06508f32f9e4075dc18]
+    script:
+        - 'make ${DISTRO_NAME}_podman'
+        - ' ${_LOGIN_CMD}'  # Keep this out of command-history
+        - 'trap "podman logout --all" EXIT INT STOP CONT'
+        - 'podman tag ${DISTRO_NAME}_podman:$IMG_SFX $DEST_FQIN'
+        - 'podman push $DEST_FQIN'
+    container_artifacts:
+        path: '*.tar'
+        type: 'application/x-tar'
+
+
+task:
     alias: "base_images"
     depends_on:
         - image_builder
@@ -60,16 +96,10 @@ task:
     timeout_in: 30m
     # Cannot use a container for this task, virt required for fedora image conversion
     gce_instance:
-        image_project: "libpod-218412"
-        image_family: "image-builder"  # Latest image produced by image_builder task
-        zone: "us-central1-a"
+        <<: *ibi_vm
         # Nested-virt is required, need Intel Haswell or better CPU
         enable_nested_virtualization: true
         type: "n2-standard-2"
-        disk: 200  # Must be 200, negatively affects performance otherwise.
-        # VM Image import process involves google-storage buckets, and google-compute
-        # full access.  Note: Actual authZ specified by service-account roles.
-        # Ref: https://cloud.google.com/compute/docs/access/service-accounts?&_ga=2.102552833.-1670000616.1540407237#accesscopesiam
         scopes: ["cloud-platform"]
     matrix:
         - &base_image
@@ -126,6 +156,7 @@ task:
     depends_on:
         - validate
         - image_builder
+        - podman_containers
         - base_images
         - cache_images
     container:

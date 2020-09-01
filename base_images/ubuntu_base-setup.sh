@@ -20,7 +20,7 @@ set -x  # simpler than echo'ing each operation
 $SUDO apt-get -qq -y update
 $SUDO apt-get -qq -y upgrade apt dpkg
 $SUDO apt-get -qq -y upgrade
-$SUDO apt-get -qq -y install coreutils software-properties-common git curl openssh-server openssh-client
+$SUDO apt-get -qq -y install coreutils software-properties-common git curl openssh-server openssh-client gawk
 
 # Point sh at bash, system-wide.  This will slow boot-time but improve
 # compatibility / usefullness of all automated scripting (which is bash-centric)
