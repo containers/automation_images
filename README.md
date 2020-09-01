@@ -109,12 +109,14 @@ in multiple repositories :D
 ## Container images
 
 In parallel with other tasks, several instances of the image-builder VM are
-also used to create container images.  In particular, a Fedora and Ubuntu
-image are created which more-or-less duplicate the setup of the VM
+used to create container images.  In particular, Fedora and Ubuntu
+images are created that more-or-less duplicate the setup of the VM
 Cache-images.  They are then automatically pushed to:
 
-* https://quay.io/repository/libpod/ubuntu_podman
 * https://quay.io/repository/libpod/fedora_podman
+* https://quay.io/repository/libpod/prior-fedora_podman
+* https://quay.io/repository/libpod/ubuntu_podman
+* https://quay.io/repository/libpod/prior-ubuntu_podman
 
-Note: The tags for these images are identical to the suffix attached to
-the VM images, and serve the same purpose.
+The meaning of *prior* and not, is defined by the contents of the `*_release`
+files within the `podman` subdirectory.

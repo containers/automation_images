@@ -1,14 +1,15 @@
-# This container image is utilized by podman automation for building
-# and testing podman inside a container environment.
+# This produces fource container images intended to be utilized
+# by podman automation for building and testing podman inside a
+# container environment.  All four must be built using the
+# top-level Makefile.
 
-# N/B: The build-context for this container should be the top-level
-# repository root.  i.e. NOT the `podman` subdirectory where this
-# file is located.
+# N/B: The BASE_NAME and BASE_TAG build-vars are required.  Supported
+#      values for Fedora and Ubuntu, are specified in the *_release
+#      files within this dir.
 
-# Also supported: BASE_IMAGE=ubuntu
-ARG BASE_IMAGE=fedora
-ARG BASE_TAG=latest
-FROM ${BASE_IMAGE}:${BASE_TAG}
+ARG BASE_NAME=
+ARG BASE_TAG=
+FROM ${BASE_NAME}:${BASE_TAG}
 
 ENV AI_PATH=/usr/src/automation_images \
     CONTAINER=1
