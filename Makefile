@@ -71,12 +71,11 @@ IMG_SFX ?=
 help: ## Default target, parses special in-line comments as documentation.
 	@printf $(_HLPFMT) "Target:" "Description:"
 	@printf $(_HLPFMT) "--------------" "--------------------"
-	@grep -E '^[a-zA-Z0-9_\-\]+:.*?## .*$$' $(MAKEFILE_LIST) | \
+	@grep -E '^[[:print:]]+:.*?## .*$$' $(MAKEFILE_LIST) | \
 		awk 'BEGIN {FS = ":(.*)?## "}; {printf $(_HLPFMT), $$1, $$2}'
 
 .PHONY: ci_debug
 ci_debug: $(_TEMPDIR)/ci_debug.tar ## Build and enter container for local development/debugging of container-based Cirrus-CI tasks
-	$(eval override _GAC_FILEPATH := $(call err_if_empty,GAC_FILEPATH))
 	/usr/bin/podman run -it --rm \
 		--security-opt label=disable -v $$PWD:$$PWD -w $$PWD \
 		-v $(_TEMPDIR):$(_TEMPDIR):Z -v $(_GAC_FILEPATH):$(_GAC_FILEPATH):Z \
@@ -144,7 +143,7 @@ define packer_build
 			$(PACKER_INSTALL_DIR)/packer build \
 			-force \
 			-var TEMPDIR="$(_TEMPDIR)" \
-			-var GAC_FILEPATH="$(_GAC_FILEPATH)" \
+			-var GAC_FILEPATH="$(call err_if_empty,GAC_FILEPATH)" \
 			$(if $(PACKER_BUILDS),-only=$(PACKER_BUILDS)) \
 			$(if $(IMG_SFX),-var IMG_SFX=$(IMG_SFX)) \
 			$(if $(DEBUG_NESTED_VM),-var TTYDEV=$(shell tty),-var TTYDEV=/dev/null) \
@@ -152,9 +151,8 @@ define packer_build
 endef
 
 .PHONY: image_builder
-image_builder: image_builder/manifest.json
-image_builder/manifest.json: image_builder/gce.json image_builder/setup.sh lib.sh systemd_banish.sh $(PACKER_INSTALL_DIR)/packer ## Create image-building image and import into GCE (needed for making 'base_images'
-	$(eval override _GAC_FILEPATH := $(call err_if_empty,GAC_FILEPATH))
+image_builder: image_builder/manifest.json ## Create image-building image and import into GCE (needed for making all other images)
+image_builder/manifest.json: image_builder/gce.json image_builder/setup.sh lib.sh systemd_banish.sh $(PACKER_INSTALL_DIR)/packer
 	$(call packer_build,$<)
 
 # Note: We assume this repo is checked out somewhere under the caller's
@@ -163,13 +161,13 @@ image_builder/manifest.json: image_builder/gce.json image_builder/setup.sh lib.s
 # from inside the debugging container.
 .PHONY: image_builder_debug
 image_builder_debug: $(_TEMPDIR)/image_builder_debug.tar ## Build and enter container for local development/debugging of targets requiring packer + virtualization
-	$(eval override _GAC_FILEPATH := $(call err_if_empty,GAC_FILEPATH))
 	/usr/bin/podman run -it --rm \
 		--security-opt label=disable -v $$HOME:$$HOME -w $$PWD \
 		-v $(_TEMPDIR):$(_TEMPDIR):Z -v $(_GAC_FILEPATH):$(_GAC_FILEPATH):Z \
 		-v /dev/kvm:/dev/kvm \
 		-e PACKER_INSTALL_DIR=/usr/local/bin \
-		-e GAC_FILEPATH=$(GAC_FILEPATH) -e TEMPDIR=$(_TEMPDIR) \
+		-e GAC_FILEPATH=$(call err_if_empty,GAC_FILEPATH) \
+		 -e TEMPDIR=$(_TEMPDIR) \
 		docker-archive:$<
 
 $(_TEMPDIR)/image_builder_debug.tar: $(_TEMPDIR) $(_TEMPDIR)/var_cache_dnf image_builder/Containerfile image_builder/install_packages.txt ci/install_packages.sh lib.sh
@@ -177,25 +175,44 @@ $(_TEMPDIR)/image_builder_debug.tar: $(_TEMPDIR) $(_TEMPDIR)/var_cache_dnf image
 
 .PHONY: base_images
 # This needs to run in a virt/nested-virt capible environment
-base_images: base_images/manifest.json
-base_images/manifest.json: base_images/gce.json base_images/fedora_base-setup.sh $(_TEMPDIR)/cidata.iso $(_TEMPDIR)/cidata.ssh $(PACKER_INSTALL_DIR)/packer  ## Create, prepare, and import base-level images into GCE.  Optionally, set PACKER_BUILDS=<csv> to select builder(s).
-	$(eval override _GAC_FILEPATH := $(call err_if_empty,GAC_FILEPATH))
+base_images: base_images/manifest.json ## Create, prepare, and import base-level images into GCE.  Optionally, set PACKER_BUILDS=<csv> to select builder(s).
+
+base_images/manifest.json: base_images/gce.json base_images/fedora_base-setup.sh $(_TEMPDIR)/cidata.iso $(_TEMPDIR)/cidata.ssh $(PACKER_INSTALL_DIR)/packer
 	$(call packer_build,$<)
 
 .PHONY: cache_images
-cache_images: cache_images/manifest.json
-cache_images/manifest.json: cache_images/gce.json $(wildcard cache_images/*.sh) $(PACKER_INSTALL_DIR)/packer  ## Create, prepare, and import top-level images into GCE.  Optionally, set PACKER_BUILDS=<csv> to select builder(s).
-	$(eval override _GAC_FILEPATH := $(call err_if_empty,GAC_FILEPATH))
+cache_images: cache_images/manifest.json ## Create, prepare, and import top-level images into GCE.  Optionally, set PACKER_BUILDS=<csv> to select builder(s).
+cache_images/manifest.json: cache_images/gce.json $(wildcard cache_images/*.sh) $(PACKER_INSTALL_DIR)/packer
 	$(call packer_build,$<)
 
+override _fedora_podman_release := $(file < podman/fedora_release)
+override _prior-fedora_podman_release := $(file < podman/prior-fedora_release)
+override _ubuntu_podman_release := $(file < podman/ubuntu_release)
+override _prior-ubuntu_podman_release := $(file < podman/prior-ubuntu_release)
+define build_podman_container
+	$(MAKE) $(_TEMPDIR)/$(1).tar BASE_TAG=$(_$(1)_release)
+endef
+
 .PHONY: fedora_podman
-fedora_podman: $(_TEMPDIR)/fedora_podman.tar ## Build Fedora podman development containers
+fedora_podman:  ## Build Fedora podman development container
+	$(call build_podman_container,$@)
+
+.PHONY: prior-fedora_podman
+prior-fedora_podman:  ## Build Prior-Fedora podman development container
+	$(call build_podman_container,$@)
+
 .PHONY: ubuntu-podman
-ubuntu_podman: $(_TEMPDIR)/ubuntu_podman.tar ## Build Ubuntu podman development containers
+ubuntu_podman:  ## Build Ubuntu podman development container
+	$(call build_podman_container,$@)
+
+.PHONY: prior-ubuntu_podman
+prior-ubuntu_podman:  ## Build Prior-Ubuntu podman development container
+	$(call build_podman_container,$@)
 
 $(_TEMPDIR)/%_podman.tar: podman/Containerfile podman/setup.sh $(wildcard base_images/*.sh) $(wildcard cache_images/*.sh) $(_TEMPDIR) $(_TEMPDIR)/var_cache_dnf
 	podman build -t $*_podman:$(call err_if_empty,IMG_SFX) \
-		--build-arg=BASE_IMAGE=$* \
+		--build-arg=BASE_NAME=$(subst prior-,,$*) \
+		--build-arg=BASE_TAG=$(call err_if_empty,BASE_TAG) \
 		-v $(_TEMPDIR)/var_cache_dnf:/var/cache/dnf:Z \
 		-v $(_TEMPDIR)/var_cache_dnf:/var/cache/apt:Z \
 		-f podman/Containerfile .
