@@ -59,6 +59,7 @@ task:
     alias: "podman_containers"
     depends_on:
         - image_builder
+    only_if: $CIRRUS_PR =~ '.+'
     timeout_in: 30m
     gce_instance: &ibi_vm
         image_project: "libpod-218412"
