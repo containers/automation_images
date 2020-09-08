@@ -56,6 +56,7 @@ INSTALL_PACKAGES=(\
     gcc
     gettext
     git
+    gnupg2
     go-md2man
     golang-1.14
     iproute2
