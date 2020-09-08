@@ -64,15 +64,23 @@ task:
         zone: "us-central1-a"
         disk: 200  # Must be 200, negatively affects performance otherwise.
     matrix:
-        - name: &name "Build ${DISTRO_NAME}_podman container"
+        - name: &name "${DISTRO_NAME}_podman container"
           env:
             DISTRO_NAME: 'fedora'
             # Add a 'c' to the tag for consistency with VM Image names
-            DEST_FQIN: 'quay.io/libpod/fedora_podman:c$IMG_SFX'
+            DEST_FQIN: &fqin 'quay.io/libpod/${DISTRO_NAME}_podman:c$IMG_SFX'
+        - name: *name
+          env:
+            DISTRO_NAME: 'prior-fedora'
+            DEST_FQIN: *fqin
         - name: *name
           env:
             DISTRO_NAME: 'ubuntu'
-            DEST_FQIN: 'quay.io/libpod/ubuntu_podman:c$IMG_SFX'
+            DEST_FQIN: *fqin
+        - name: *name
+          env:
+            DISTRO_NAME: 'prior-ubuntu'
+            DEST_FQIN: *fqin
     env:
         TEMPDIR: '$CIRRUS_WORKING_DIR'
         _LOGIN_CMD: ENCRYPTED[d15806d68c90cf74faca59bc4f81ada269538092b8449c7d8cd4cf44cd8d58a7482d2b249a9da06508f32f9e4075dc18]
