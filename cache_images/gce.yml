@@ -38,6 +38,10 @@ builders:
         src: '{{ build_name }}-b{{user `IMG_SFX` }}'
       ssh_username: packer  # arbitrary, packer will create & setup
       ssh_pty: 'true'
+      # Required to enable nested-virtualization when using this image (later)
+      # N/B: Requires `enable_nested_virtualization: true` in .cirrus.yml
+      # gce_instance block.  This sets CPU Type >= Intel Haswell (GCE requirement)
+      image_licenses: ["projects/vm-options/global/licenses/enable-vmx"]
 
     - <<: *gce_hosted_image
       name: 'prior-ubuntu'  # setup script derrived from string before "-"
