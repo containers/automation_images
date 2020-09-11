@@ -127,6 +127,9 @@ ubuntu_finalize() {
     set -x
     $SUDO apt-get -qq -y autoremove
     $SUDO rm -rf /var/cache/apt
+    # cloud-init will re-populate these next boot, otherwise use defaults
+    $SUDO cp /usr/share/doc/apt/examples/sources.list /etc/apt/sources.list
+    $SUDO apt-get -qq -y update
     common_finalize
 }
 
