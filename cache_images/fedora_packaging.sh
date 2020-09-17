@@ -28,15 +28,6 @@ fi
 
 bigto ooe.sh $SUDO dnf update -y
 
-# Fedora, as of 31, uses cgroups v2 by default. runc does not support
-# cgroups v2, only crun does. (As of 2020-07-30 runc support is
-# forthcoming but not even close to ready yet). To ensure a reliable
-# runtime environment, force-remove runc if it is present.
-# However, because a few other repos. which use these images still need
-# it, ensure the runc package is cached in $PACKAGE_DOWNLOAD_DIR so
-# it may be swap it in when required.
-REMOVE_PACKAGES=(runc)
-
 INSTALL_PACKAGES=(\
     autoconf
     automake
@@ -123,6 +114,7 @@ INSTALL_PACKAGES=(\
     redhat-rpm-config
     rpcbind
     rsync
+    runc
     sed
     skopeo
     skopeo-containers
@@ -152,21 +144,18 @@ else
 fi
 
 
+# Download these package files, but don't install them; Any tests
+# wishing to, may install them using their native tools at runtime.
 DOWNLOAD_PACKAGES=(\
     "cri-o-$(get_kubernetes_version)*"
     cri-tools
     "kubernetes-$(get_kubernetes_version)*"
-    runc
     oci-umount
     parallel
 )
 
 echo "Installing general build/test dependencies"
 bigto ooe.sh $SUDO dnf install -y $EXARG "${INSTALL_PACKAGES[@]}"
-
-if [[ ${#REMOVE_PACKAGES[@]} -gt 0 ]]; then
-    lilto ooe.sh $SUDO dnf erase -y "${REMOVE_PACKAGES[@]}"
-fi
 
 if [[ ${#DOWNLOAD_PACKAGES[@]} -gt 0 ]]; then
     echo "Downloading packages for optional installation at runtime, as needed."

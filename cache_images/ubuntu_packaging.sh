@@ -46,6 +46,7 @@ INSTALL_PACKAGES=(\
     coreutils
     cri-o-runc
     criu
+    crun
     curl
     dnsmasq
     e2fslibs-dev
@@ -117,6 +118,8 @@ INSTALL_PACKAGES=(\
     zip
     zlib1g-dev
 )
+# Download these package files, but don't install them; Any tests
+# wishing to, may install them using their native tools at runtime.
 DOWNLOAD_PACKAGES=(\
     "cri-o-$(get_kubernetes_version)"
     cri-tools
