@@ -57,7 +57,7 @@ task:
 
 
 task:
-    alias: "podman_containers"
+    alias: "container_images"
     depends_on:
         - image_builder
     only_if: $CIRRUS_PR =~ '.+'
@@ -68,32 +68,35 @@ task:
         zone: "us-central1-a"
         disk: 200  # Must be 200, negatively affects performance otherwise.
     matrix:
-        - name: &name "${DISTRO_NAME}_podman container"
+        - name: &name "${TARGET_NAME} container"
           env:
-            DISTRO_NAME: 'fedora'
+            TARGET_NAME: 'fedora_podman'
             # Add a 'c' to the tag for consistency with VM Image names
-            DEST_FQIN: &fqin 'quay.io/libpod/${DISTRO_NAME}_podman:c$IMG_SFX'
+            DEST_FQIN: &fqin 'quay.io/libpod/${TARGET_NAME}:c$IMG_SFX'
         - name: *name
           env:
-            DISTRO_NAME: 'prior-fedora'
+            TARGET_NAME: 'prior-fedora_podman'
             DEST_FQIN: *fqin
         - name: *name
           env:
-            DISTRO_NAME: 'ubuntu'
+            TARGET_NAME: 'ubuntu_podman'
             DEST_FQIN: *fqin
         - name: *name
           env:
-            DISTRO_NAME: 'prior-ubuntu'
+            TARGET_NAME: 'prior-ubuntu_podman'
+            DEST_FQIN: *fqin
+        - name: *name
+          env:
+            TARGET_NAME: 'imgts'
+            DEST_FQIN: *fqin
+        - name: *name
+          env:
+            TARGET_NAME: 'imgprune'
             DEST_FQIN: *fqin
     env:
         TEMPDIR: '$CIRRUS_WORKING_DIR'
-        _LOGIN_CMD: ENCRYPTED[d15806d68c90cf74faca59bc4f81ada269538092b8449c7d8cd4cf44cd8d58a7482d2b249a9da06508f32f9e4075dc18]
-    script:
-        - 'make ${DISTRO_NAME}_podman'
-        - ' ${_LOGIN_CMD}'  # Keep this out of command-history
-        - 'trap "podman logout --all" EXIT INT STOP CONT'
-        - 'podman tag ${DISTRO_NAME}_podman:$IMG_SFX $DEST_FQIN'
-        - 'podman push $DEST_FQIN'
+        LOGIN_CMD: ENCRYPTED[d15806d68c90cf74faca59bc4f81ada269538092b8449c7d8cd4cf44cd8d58a7482d2b249a9da06508f32f9e4075dc18]
+    script: "ci/make_container_images.sh"
     container_artifacts:
         path: '*.tar'
         type: 'application/x-tar'
@@ -172,7 +175,7 @@ task:
     depends_on:
         - validate
         - image_builder
-        - podman_containers
+        - container_images
         - base_images
         - cache_images
     container:

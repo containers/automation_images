@@ -1,0 +1,93 @@
+#!/usr/bin/env bash
+
+set -e
+
+# shellcheck source=imgts/lib_entrypoint.sh
+source /usr/local/bin/lib_entrypoint.sh
+
+req_env_var GCPJSON GCPNAME GCPPROJECT
+
+gcloud_init
+
+# For safety's sake + limit nr background delete processes
+PRUNE_LIMIT=20
+THEFUTURE=$(date --date='+1 hour' +%s)
+TOO_OLD='30 days ago'
+THRESHOLD=$(date --date="$TOO_OLD" +%s)
+# Format Ref: https://cloud.google.com/sdk/gcloud/reference/topic/formats
+FORMAT='value[quote](name,selfLink,creationTimestamp,labels)'
+# Required variable set by caller
+# shellcheck disable=SC2154
+PROJRE="/v1/projects/$GCPPROJECT/global/"
+RECENTLY=$(date --date='3 days ago' --iso-8601=date)
+# Filter Ref: https://cloud.google.com/sdk/gcloud/reference/topic/filters
+# shellcheck disable=SC2154
+FILTER="selfLink~$PROJRE AND creationTimestamp<$RECENTLY"
+TODELETE=$(mktemp -p '' todelete.XXXXXX)
+IMGCOUNT=$(mktemp -p '' imgcount.XXXXXX)
+
+# Search-loop runs in a sub-process, must store count in file
+echo "0" > "$IMGCOUNT"
+count_image() {
+    local count
+    count=$(<"$IMGCOUNT")
+    let 'count+=1'
+    echo "$count" > "$IMGCOUNT"
+}
+
+echo "Using filter: $FILTER"
+echo "Searching images for pruning candidates older than $TOO_OLD ($(date --date="$TOO_OLD" --iso-8601=date)):"
+$GCLOUD compute images list --format="$FORMAT" --filter="$FILTER" | \
+    while read name selfLink creationTimestamp labels
+    do
+        count_image
+        created_ymd=$(date --date=$creationTimestamp --iso-8601=date)
+        last_used=$(egrep --only-matching --max-count=1 'last-used=[[:digit:]]+' <<< $labels || true)
+        markmsgpfx="Marking $name (created $created_ymd) for deletion"
+        if [[ -z "$last_used" ]]
+        then # image pre-dates addition of tracking labels
+            echo "$markmsgpfx: Missing 'last-used' metadata, labels: '$labels'"
+            echo "$name" >> $TODELETE
+            continue
+        fi
+
+        last_used_timestamp=$(date --date=@$(cut -d= -f2 <<< $last_used || true) +%s || true)
+        last_used_ymd=$(date --date=@$last_used_timestamp --iso-8601=date)
+        if [[ -z "$last_used_timestamp" ]] || [[ "$last_used_timestamp" -ge "$THEFUTURE" ]]
+        then
+            echo "$markmsgpfx: Missing or invalid last-used timestamp: '$last_used_timestamp'"
+            echo "$name" >> $TODELETE
+            continue
+        fi
+
+        if [[ "$last_used_timestamp" -le "$THRESHOLD" ]]
+        then
+            echo "$markmsgpfx: Used over $TOO_OLD on $last_used_ymd"
+            echo "$name" >> $TODELETE
+            continue
+        fi
+    done
+
+COUNT=$(<"$IMGCOUNT")
+echo "########################################################################"
+echo "Deleting up to $PRUNE_LIMIT images marked ($(wc -l < $TODELETE)) of all searched ($COUNT):"
+
+# Require a minimum number of images to exist
+NEED="$[$PRUNE_LIMIT]"
+if [[ "$COUNT" -lt "$NEED" ]]
+then
+    die 0 Safety-net Insufficient images \($COUNT\) to process deletions \($NEED\)
+    exit 0
+fi
+
+for image_name in $(sort --random-sort $TODELETE | tail -$PRUNE_LIMIT)
+do
+    # shellcheck disable=SC2154
+    if echo "$IMGNAMES $BASE_IMAGES" | grep -q "$image_name"
+    then
+        # double-verify in-use images were filtered out in search loop above
+        die 8 FATAL ATTEMPT TO DELETE IN-USE IMAGE \'$image_name\' - THIS SHOULD NEVER HAPPEN
+    fi
+    echo "Deleting $image_name..."
+    $GCLOUD compute images delete $image_name
+done
