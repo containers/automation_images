@@ -161,13 +161,15 @@ image_builder/manifest.json: image_builder/gce.json image_builder/setup.sh lib.s
 # from inside the debugging container.
 .PHONY: image_builder_debug
 image_builder_debug: $(_TEMPDIR)/image_builder_debug.tar ## Build and enter container for local development/debugging of targets requiring packer + virtualization
+	$(eval override _IMG_SFX := $(call err_if_empty,IMG_SFX))
+	$(eval override _GAC_FILEPATH := $(call err_if_empty,GAC_FILEPATH))
 	/usr/bin/podman run -it --rm \
 		--security-opt label=disable -v $$HOME:$$HOME -w $$PWD \
 		-v $(_TEMPDIR):$(_TEMPDIR):Z -v $(_GAC_FILEPATH):$(_GAC_FILEPATH):Z \
 		-v /dev/kvm:/dev/kvm \
 		-e PACKER_INSTALL_DIR=/usr/local/bin \
+		-e IMG_SFX=$(_IMG_SFX) \
 		-e GAC_FILEPATH=$(call err_if_empty,GAC_FILEPATH) \
-		 -e TEMPDIR=$(_TEMPDIR) \
 		docker-archive:$<
 
 $(_TEMPDIR)/image_builder_debug.tar: $(_TEMPDIR) $(_TEMPDIR)/var_cache_dnf image_builder/Containerfile image_builder/install_packages.txt ci/install_packages.sh lib.sh
