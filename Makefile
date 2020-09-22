@@ -203,7 +203,7 @@ fedora_podman:  ## Build Fedora podman development container
 prior-fedora_podman:  ## Build Prior-Fedora podman development container
 	$(call build_podman_container,$@)
 
-.PHONY: ubuntu-podman
+.PHONY: ubuntu_podman
 ubuntu_podman:  ## Build Ubuntu podman development container
 	$(call build_podman_container,$@)
 
@@ -220,6 +220,21 @@ $(_TEMPDIR)/%_podman.tar: podman/Containerfile podman/setup.sh $(wildcard base_i
 		-f podman/Containerfile .
 	rm -f $@
 	podman save --quiet -o $@ $*_podman:$(IMG_SFX)
+
+imgts: $(_TEMPDIR)/imgts.tar  ## Build the VM image time-stamping container image
+$(_TEMPDIR)/imgts.tar: imgts/Containerfile imgts/entrypoint.sh imgts/google-cloud-sdk.repo imgts/lib_entrypoint.sh $(_TEMPDIR)
+	podman build -t imgts:$(call err_if_empty,IMG_SFX) \
+		-f imgts/Containerfile .
+	rm -f $@
+	podman save --quiet -o $@ imgts:$(IMG_SFX)
+
+imgprune: $(_TEMPDIR)/imgprune.tar  ## Build the VM Image pruning container image
+$(_TEMPDIR)/imgprune.tar: $(_TEMPDIR)/imgts.tar imgts/lib_entrypoint.sh imgprune/Containerfile imgprune/entrypoint.sh $(_TEMPDIR)
+	podman load -i $(_TEMPDIR)/imgts.tar imgts:latest
+	podman build -t imgprune:$(call err_if_empty,IMG_SFX) \
+		-f imgprune/Containerfile .
+	rm -f $@
+	podman save --quiet -o $@ imgprune:$(IMG_SFX)
 
 .PHONY: clean
 clean: ## Remove all generated files referenced in this Makefile
