@@ -34,7 +34,6 @@ INSTALL_PACKAGES=(\
     autoconf
     automake
     bash-completion
-    bats
     bison
     btrfs-progs
     build-essential
