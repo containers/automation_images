@@ -22,7 +22,7 @@ export GAC_FILEPATH
 
 PACKER_LOG ?=
 # Uncomment tthe following to enable additional logging from packer.
-#PACKER_LOG = 1
+#override PACKER_LOG := 1
 export PACKER_LOG
 
 DEBUG_NESTED_VM ?=
@@ -33,6 +33,10 @@ DEBUG_NESTED_VM ?=
 # necessary, try PACKER_LOG=1 (above) first.
 #override DEBUG_NESTED_VM := 1
 export DEBUG_NESTED_VM
+
+# Sometimes additional arguments need to be specified on the make command-line.
+# For example, setting `-on-error=ask` or `-var some=thing`
+PACKER_BUILD_ARGS ?=
 
 # Set to CSV of builder-names from YAML, or empty for "all"
 PACKER_BUILDS ?=
@@ -54,7 +58,7 @@ override _PKR_DIR := $(abspath $(call err_if_empty,PKR_DIR))
 OSTYPE ?= linux
 OSARCH ?= amd64
 # Next version (1.5) changes DSL: JSON -> HCL
-PACKER_VERSION ?= 1.4.5
+PACKER_VERSION ?= 1.6.3
 override _PACKER_URL := https://releases.hashicorp.com/packer/$(PACKER_VERSION)/packer_$(PACKER_VERSION)_$(OSTYPE)_$(OSARCH).zip
 
 # Align each line properly to the header
@@ -120,7 +124,7 @@ install_packer: $(PACKER_INSTALL_DIR)/packer  ## Download and install packer in 
 
 $(_TEMPDIR)/cidata.ssh: $(_TEMPDIR)
 	-rm -f "$@"
-	ssh-keygen -f $@ -P "" -q
+	ssh-keygen -f $@ -P "" -q -t ed25519
 
 $(_TEMPDIR)/cidata.ssh.pub: $(_TEMPDIR) $(_TEMPDIR)/cidata.ssh
 	touch $@
@@ -147,6 +151,7 @@ define packer_build
 			$(if $(PACKER_BUILDS),-only=$(PACKER_BUILDS)) \
 			$(if $(IMG_SFX),-var IMG_SFX=$(IMG_SFX)) \
 			$(if $(DEBUG_NESTED_VM),-var TTYDEV=$(shell tty),-var TTYDEV=/dev/null) \
+			$(if $(PACKER_BUILD_ARGS),$(PACKER_BUILD_ARGS)) \
 			$(1)
 endef
 

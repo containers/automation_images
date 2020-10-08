@@ -81,9 +81,18 @@ set_gac_filepath(){
 }
 
 get_kubernetes_version() {
-    # TODO: Look up the kube RPM/DEB version installed, or in $PACKAGE_DOWNLOAD_DIR
-    #       and retrieve the major-minor version directly.
-    local KUBERNETES_VERSION="1.15"
+    local KUBERNETES_VERSION
+    case "$OS_REL_VER" in
+        fedora-32)
+            KUBERNETES_VERSION="1.15" ;;
+        fedora-33)
+            KUBERNETES_VERSION="1.18" ;;
+        ubuntu-19)
+            KUBERNETES_VERSION="1.15" ;;
+        ubuntu-20)
+            KUBERNETES_VERSION="1.15" ;;
+        *) die "Unknown/Unsupported \$OS_REL_VER '$OS_REL_VER'"
+    esac
     echo "$KUBERNETES_VERSION"
 }
 
@@ -99,7 +108,6 @@ common_finalize() {
     $SUDO rm -rf /var/lib/cloud/instanc*
     $SUDO rm -rf /root/.ssh/*
     $SUDO rm -rf /etc/ssh/*key*
-    $SUDO rm -rf /etc/ssh/moduli
     $SUDO rm -rf /home/*
     $SUDO rm -rf /tmp/*
     $SUDO rm -rf /tmp/.??*
