@@ -24,6 +24,9 @@ else
     ENABLE_UPDATES_TESTING=1
 fi
 
+# TODO: Remove this once crun-0.15-5 moves into updates from updates-testing
+ENABLE_UPDATES_TESTING=1
+
 bash $SCRIPT_DIRPATH/fedora_packaging.sh
 
 echo "Enabling cgroup management from containers"
