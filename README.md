@@ -203,7 +203,7 @@ the image-builder image, this process is mainly orchestrated by Packer:
    the build logs.
 
 
-## Container images (Also overview step 2)
+## Podman container images (Also overview step 2)
 
 In parallel with other tasks, several instances of the image-builder VM are
 used to create container images.  In particular, Fedora and Ubuntu
@@ -216,7 +216,35 @@ Cache-images.  They are then automatically pushed to:
 * https://quay.io/repository/libpod/prior-ubuntu_podman
 
 The meaning of *prior* and not, is defined by the contents of the `*_release`
-files within the `podman` subdirectory.
+files within the `podman` subdirectory.  This is necessary to support the
+Makefile target being used manually (e.g. debugging)
+
+## VM Image lifecycle management
+
+There is no built-in mechanism for removing disused VM images in GCP. Nor is
+there any built-in tracking information, recording which VM images are
+currently being used by one or more containers-repository automation.
+Three containers and two asynchronous processes are responsible for tracking
+and preventing infinite-growth of the VM image count.
+
+* `imgts` Runs as part of automation for every repository, every time any
+  VM is utilized.  It records the usage details, along with a timestamp
+  into the utilized VM image "labels" (metadata).  Failure to update
+  metadata is considered critical, and the task will fail to prompt
+  immediate corrective action by automation maintainers.
+
+* `imgobsolete` is triggered periodically by cron *only* on this
+  repository. It scans through all VM Images, filtering any which
+  haven't been used within the last 30 days (according to `imgts`
+  updated labels). Identified images are deprecated by marking them
+  `obsolete` in GCE.  This status blocks them from being used, but
+  does not actually remove them.
+
+* `imgprune` also runs periodically, immediately following `imgobsolete`.
+  It scans all currently obsolete images, filtering any which were
+  deprecated more than 30 days ago (according to deprecation metadata).
+  Images which have been obsolete for more than 30 days, are permanently
+  removed.
 
 
 # Debugging / Locally driving VM Image production

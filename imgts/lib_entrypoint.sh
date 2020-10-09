@@ -2,8 +2,8 @@
 
 set -e
 
-RED="\e[1;36;41m"
-YEL="\e[1;33;44m"
+RED="\e[1;31m"
+YEL="\e[1;33m"
 NOR="\e[0m"
 SENTINEL="__unknown__"  # default set in dockerfile
 # Disable all input prompts
@@ -12,11 +12,15 @@ GCLOUD="gcloud --quiet"
 
 die() {
     EXIT=$1
-    PFX=$2
-    shift 2
+    shift
     MSG="$*"
-    echo -e "${RED}${PFX}:${NOR} ${YEL}$MSG${NOR}"
-    [[ "$EXIT" -eq "0" ]] || exit "$EXIT"
+    echo -e "${RED}ERROR: $MSG${NOR}"
+    exit "$EXIT"
+}
+
+# Hilight messages not coming from a shell command
+msg() {
+    echo -e "${YEL}${1:-NoMessageGiven}${NOR}"
 }
 
 # Pass in a list of one or more envariable names; exit non-zero with
@@ -25,10 +29,10 @@ req_env_var() {
     for i; do
         if [[ -z "${!i}" ]]
         then
-            die 1 FATAL entrypoint.sh requires \$$i to be non-empty.
+            die 1 "entrypoint.sh requires \$$i to be non-empty."
         elif [[ "${!i}" == "$SENTINEL" ]]
         then
-            die 2 FATAL entrypoint.sh requires \$$i to be explicitly set.
+            die 2 "entrypoint.sh requires \$$i to be explicitly set."
         fi
     done
 }
@@ -49,6 +53,17 @@ gcloud_init() {
     # Required variable must be set by caller
     # shellcheck disable=SC2154
     $GCLOUD auth activate-service-account --project="$GCPPROJECT" --key-file="$TMPF" || \
-        die 5 FATAL auth
+        die 5 "Authentication error, please verify \$GCPJSON contents"
     rm -f $TMPF &> /dev/null || true  # ignore any read-only error
+}
+
+# Obsolete and Prune search-loops runs in a sub-process,
+# therefor count must be recorded in file.
+IMGCOUNT=$(mktemp -p '' imgcount.XXXXXX)
+echo "0" > "$IMGCOUNT"
+count_image() {
+    local count
+    count=$(<"$IMGCOUNT")
+    let 'count+=1'
+    echo "$count" > "$IMGCOUNT"
 }

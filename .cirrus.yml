@@ -20,7 +20,7 @@ gcp_credentials: ENCRYPTED[823fdbc2fee3c27fa054ba1e9cfca084829b5e71572f1703a28e0
 
 timeout_in: 60m
 
-task:
+validate_task:
     name: "Validate"
     alias: "validate"
     timeout_in: 5m
@@ -35,11 +35,9 @@ task:
         - "make base_images/gce.json"
 
 
-task:
+image_builder_task:
     name: "Image-builder image"
     alias: "image_builder"
-    # Usable images are produced from PRs, not merges.
-    only_if: $CIRRUS_PR =~ '.+'
     depends_on:
         - validate
     # Packer needs time to clean up partially created VM images
@@ -47,20 +45,20 @@ task:
     stateful: true
     timeout_in: 30m
     container:
-      dockerfile: "image_builder/Containerfile"
-      cpu: 2
-      memory: "2G"
+        dockerfile: "image_builder/Containerfile"
+        cpu: 2
+        memory: "2G"
     script: "ci/make_image_builder.sh"
     manifest_artifacts:
         path: image_builder/manifest.json
         type: application/json
 
 
-task:
+container_images_task: &container_images
+    name: "Build container images"
     alias: "container_images"
     depends_on:
         - image_builder
-    only_if: $CIRRUS_PR =~ '.+'
     timeout_in: 30m
     gce_instance: &ibi_vm
         image_project: "libpod-218412"
@@ -91,20 +89,31 @@ task:
             DEST_FQIN: *fqin
         - name: *name
           env:
+            TARGET_NAME: 'imgobsolete'
+            DEST_FQIN: *fqin
+        - name: *name
+          env:
             TARGET_NAME: 'imgprune'
             DEST_FQIN: *fqin
     env:
         TEMPDIR: '$CIRRUS_WORKING_DIR'
         LOGIN_CMD: ENCRYPTED[d15806d68c90cf74faca59bc4f81ada269538092b8449c7d8cd4cf44cd8d58a7482d2b249a9da06508f32f9e4075dc18]
-    script: "ci/make_container_images.sh"
-    container_artifacts:
-        path: '*.tar'
-        type: 'application/x-tar'
+    # CIRRUS_BRANCH *is* none-empty for both pr-push and branch-push
+    # Only push 'latest' tag images during a branch-push
+    script: |
+        if [[ -n "$CIRRUS_PR" ]]; then
+            ci/make_container_images.sh;
+        elif [[ -z "$CIRRUS_CRON" ]] && [[ -z "$CIRRUS_TAG" ]]; then
+            env PUSH_LATEST=1 ci/make_container_images.sh;
+        else
+            echo "No-op for cron and tag-push triggered builds";
+        fi
 
 
-task:
+base_images_task:
+    name: "Build VM Base-images"
     alias: "base_images"
-    only_if: $CIRRUS_PR =~ '.+'
+    only_if: &is_pr $CIRRUS_PR != ''
     depends_on:
         - image_builder
     # Packer needs time to clean up partially created VM images
@@ -137,9 +146,11 @@ task:
         path: base_images/manifest.json
         type: application/json
 
-task:
+
+cache_images_task:
+    name: "Build VM Cache-images"
     alias: "cache_images"
-    only_if: $CIRRUS_PR =~ '.+'
+    only_if: *is_pr
     depends_on:
         - base_images
     # Packer needs time to clean up partially created VM images
@@ -147,10 +158,9 @@ task:
     stateful: true
     timeout_in: 40m
     container:
-      dockerfile: "image_builder/Containerfile"
-      cpu: 2
-      memory: "2G"
-    script: "ci/make_cache_images.sh"
+        dockerfile: "image_builder/Containerfile"
+        cpu: 2
+        memory: "2G"
     matrix:
         - &cache_image
           name: "${PACKER_BUILDS} Cache Image"
@@ -165,11 +175,100 @@ task:
         - <<: *cache_image
           env:
             PACKER_BUILDS: "prior-ubuntu"
+    script: "ci/make_cache_images.sh"
     manifest_artifacts:
         path: cache_images/manifest.json
         type: application/json
 
-task:
+
+# Test both metadata addition to newly built images, and ensure container functions
+imgts_task:
+    name: "Apply new image metadata"
+    alias: imgts
+    only_if: *is_pr
+    depends_on:
+        - container_images
+        - base_images
+        - cache_images
+    container:
+        image: 'quay.io/libpod/imgts:c$IMG_SFX'
+        cpu: 2
+        memory: '2G'
+    env:
+        BUILDID: "$CIRRUS_BUILD_ID"
+        REPOREF: "$CIRRUS_REPO_NAME"
+        GCPJSON: ENCRYPTED[112c55192dba9a7edd1889a7e704aa1e6ae40730b97ad8ebcbae2bb5f4ff84c7e9ca5b955baaf1f69e7b9e5c5a14a4d3]
+        GCPNAME: ENCRYPTED[93cad237544dbbd663874e6896cd9c50a708e87d2cd40724c8b6c18237f4e2d40fd5e3c4a1fdbf7dafac3ceadf69a1c1]
+        GCPPROJECT: 'libpod-218412'
+        IMGNAMES: |
+            image-builder-${IMG_SFX}
+            fedora-b${IMG_SFX}
+            prior-fedora-b${IMG_SFX}
+            ubuntu-b${IMG_SFX}
+            prior-ubuntu-b${IMG_SFX}
+            fedora-c${IMG_SFX}
+            prior-fedora-c${IMG_SFX}
+            ubuntu-c${IMG_SFX}
+            prior-ubuntu-c${IMG_SFX}
+    script: "/usr/local/bin/entrypoint.sh"
+
+
+test_imgobsolete_task: &lifecycle_test
+    name: "Test old images obsolete marking"
+    alias: test_imgobsolete
+    only_if: *is_pr
+    depends_on:
+        - imgts
+    container:
+        image: 'quay.io/libpod/imgobsolete:c$IMG_SFX'
+        cpu: 2
+        memory: '2G'
+    env: &lifecycle_env
+        GCPJSON: ENCRYPTED[a0482ce379d4fa3ea84b3fd6199cce75294262a65250c08ec9a5c454cbba06b7b55c8cdb43bbab2f6a81f3419096200e]
+        GCPNAME: ENCRYPTED[57b2c60b8168a2dc6f281a31a051ffab069b3c05bd495f38c0d5178fdcfb9ac7e1295460d8c4beb979c88d88061fa463]
+        GCPPROJECT: 'libpod-218412'
+        DRY_RUN: 1
+    script:  /usr/local/bin/entrypoint.sh;
+
+
+test_imgprune_task:
+    <<: *lifecycle_test
+    name: "Test obsolete image deletion"
+    alias: test_imgprune
+    depends_on:
+        - test_imgobsolete
+    container:
+        image: 'quay.io/libpod/imgprune:c$IMG_SFX'
+
+
+# N/B: "latest" image produced after PR-merge (branch-push)
+cron_imgobsolete_task: &lifecycle_cron
+    name: "Periodicly mark old images obsolete"
+    alias: cron_imgobsolete
+    only_if: $CIRRUS_PR == '' && $CIRRUS_CRON != ''
+    depends_on:
+        - container_images
+    container:
+        image: 'quay.io/libpod/imgobsolete:latest'
+        cpu: 2
+        memory: '2G'
+    env:
+        <<: *lifecycle_env
+        DRY_RUN: 0
+    script:  /usr/local/bin/entrypoint.sh;
+
+
+cron_imgprune_task:
+    <<: *lifecycle_cron
+    name: "Periodicly delete obsolete images"
+    alias: cron_imgprune
+    depends_on:
+        - cron_imgobsolete
+    container:
+        image: 'quay.io/libpod/imgprune:latest'
+
+
+success_task:
     name: &success_name success
     alias: *success_name
     depends_on:
@@ -178,6 +277,11 @@ task:
         - container_images
         - base_images
         - cache_images
+        - imgts
+        - test_imgobsolete
+        - cron_imgobsolete
+        - test_imgprune
+        - cron_imgprune
     container:
         <<: *ci_container
     clone_script: mkdir -p "${CIRRUS_WORKING_DIR}"  # source is not needed

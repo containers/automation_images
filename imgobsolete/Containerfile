@@ -3,7 +3,7 @@ FROM imgts:latest
 RUN yum -y update && \
     yum clean all
 
-COPY /imgprune/entrypoint.sh /usr/local/bin/entrypoint.sh
+COPY /imgobsolete/entrypoint.sh /usr/local/bin/entrypoint.sh
 RUN chmod 755 /usr/local/bin/entrypoint.sh
 
 # These are only needed by imgts

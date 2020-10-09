@@ -1,5 +1,11 @@
 #!/usr/bin/env bash
 
+# This script is set as, and intended to run as the `imgprune` container's
+# entrypoint.  It is largely based on the imgobsolete's entrypoint script
+# but with some important/subtle differences.  It searches for deprecated
+# VM images with deletion-metadata some time in the past.  Some number of
+# these images are randomly selected and then permanently deleted.
+
 set -e
 
 # shellcheck source=imgts/lib_entrypoint.sh
@@ -9,85 +15,52 @@ req_env_var GCPJSON GCPNAME GCPPROJECT
 
 gcloud_init
 
-# For safety's sake + limit nr background delete processes
-PRUNE_LIMIT=20
-THEFUTURE=$(date --date='+1 hour' +%s)
-TOO_OLD='30 days ago'
-THRESHOLD=$(date --date="$TOO_OLD" +%s)
+# Set this to 1 for testing
+DRY_RUN="${DRY_RUN:-0}"
+# For safety's sake limit nr deletions
+DELETE_LIMIT=10
+ABOUTNOW=$(date --iso-8601=date)  # precision is not needed for this use
 # Format Ref: https://cloud.google.com/sdk/gcloud/reference/topic/formats
-FORMAT='value[quote](name,selfLink,creationTimestamp,labels)'
+# Field list from `gcloud compute images list --limit=1 --format=text`
+FORMAT='value[quote](name,selfLink,deprecated.state,deprecated.deleted,labels)'
 # Required variable set by caller
 # shellcheck disable=SC2154
 PROJRE="/v1/projects/$GCPPROJECT/global/"
-RECENTLY=$(date --date='3 days ago' --iso-8601=date)
 # Filter Ref: https://cloud.google.com/sdk/gcloud/reference/topic/filters
-# shellcheck disable=SC2154
-FILTER="selfLink~$PROJRE AND creationTimestamp<$RECENTLY"
+FILTER="selfLink~$PROJRE AND deprecated.state=OBSOLETE AND deprecated.deleted>$ABOUTNOW"
 TODELETE=$(mktemp -p '' todelete.XXXXXX)
-IMGCOUNT=$(mktemp -p '' imgcount.XXXXXX)
 
-# Search-loop runs in a sub-process, must store count in file
-echo "0" > "$IMGCOUNT"
-count_image() {
-    local count
-    count=$(<"$IMGCOUNT")
-    let 'count+=1'
-    echo "$count" > "$IMGCOUNT"
-}
-
-echo "Using filter: $FILTER"
-echo "Searching images for pruning candidates older than $TOO_OLD ($(date --date="$TOO_OLD" --iso-8601=date)):"
-$GCLOUD compute images list --format="$FORMAT" --filter="$FILTER" | \
-    while read name selfLink creationTimestamp labels
+msg "Searching for obsolete images using filter:${NOR} $FILTER"
+# Ref: https://cloud.google.com/compute/docs/images/create-delete-deprecate-private-images#deprecating_an_image
+$GCLOUD compute images list --show-deprecated \
+    --format="$FORMAT" --filter="$FILTER" | \
+    while read name selfLink dep_state del_date labels
     do
         count_image
-        created_ymd=$(date --date=$creationTimestamp --iso-8601=date)
-        last_used=$(egrep --only-matching --max-count=1 'last-used=[[:digit:]]+' <<< $labels || true)
-        markmsgpfx="Marking $name (created $created_ymd) for deletion"
-        if [[ -z "$last_used" ]]
-        then # image pre-dates addition of tracking labels
-            echo "$markmsgpfx: Missing 'last-used' metadata, labels: '$labels'"
-            echo "$name" >> $TODELETE
-            continue
-        fi
-
-        last_used_timestamp=$(date --date=@$(cut -d= -f2 <<< $last_used || true) +%s || true)
-        last_used_ymd=$(date --date=@$last_used_timestamp --iso-8601=date)
-        if [[ -z "$last_used_timestamp" ]] || [[ "$last_used_timestamp" -ge "$THEFUTURE" ]]
-        then
-            echo "$markmsgpfx: Missing or invalid last-used timestamp: '$last_used_timestamp'"
-            echo "$name" >> $TODELETE
-            continue
-        fi
-
-        if [[ "$last_used_timestamp" -le "$THRESHOLD" ]]
-        then
-            echo "$markmsgpfx: Used over $TOO_OLD on $last_used_ymd"
-            echo "$name" >> $TODELETE
-            continue
-        fi
+        reason=""
+        [[ "$dep_state" == "OBSOLETE" ]] || \
+            die 1 "Error: Unexpected depreciation-state encountered for $name: $dep_state; labels: $labels"
+        reason="Obsolete as of $del_date; labels: $labels"
+        echo "$name $reason" >> $TODELETE
     done
 
 COUNT=$(<"$IMGCOUNT")
-echo "########################################################################"
-echo "Deleting up to $PRUNE_LIMIT images marked ($(wc -l < $TODELETE)) of all searched ($COUNT):"
+msg "########################################################################"
+msg "Deleting up to $DELETE_LIMIT random images of $COUNT examined:"
 
 # Require a minimum number of images to exist
-NEED="$[$PRUNE_LIMIT]"
-if [[ "$COUNT" -lt "$NEED" ]]
+if [[ "$COUNT" -lt $DELETE_LIMIT ]]
 then
-    die 0 Safety-net Insufficient images \($COUNT\) to process deletions \($NEED\)
-    exit 0
+    die 0 "Safety-net Insufficient images ($COUNT) to process deletions ($DELETE_LIMIT required)"
 fi
 
-for image_name in $(sort --random-sort $TODELETE | tail -$PRUNE_LIMIT)
-do
-    # shellcheck disable=SC2154
-    if echo "$IMGNAMES $BASE_IMAGES" | grep -q "$image_name"
-    then
-        # double-verify in-use images were filtered out in search loop above
-        die 8 FATAL ATTEMPT TO DELETE IN-USE IMAGE \'$image_name\' - THIS SHOULD NEVER HAPPEN
+sort --random-sort $TODELETE | tail -$DELETE_LIMIT | \
+    while read -r image_name reason; do
+
+    msg "Deleting $image_name:${NOR} $reason"
+    if ((DRY_RUN)); then
+        msg "Dry-run: No changes made"
+    else
+        $GCLOUD compute images delete $image_name
     fi
-    echo "Deleting $image_name..."
-    $GCLOUD compute images delete $image_name
 done

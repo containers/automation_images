@@ -233,6 +233,14 @@ $(_TEMPDIR)/imgts.tar: imgts/Containerfile imgts/entrypoint.sh imgts/google-clou
 	rm -f $@
 	podman save --quiet -o $@ imgts:$(IMG_SFX)
 
+imgobsolete: $(_TEMPDIR)/imgobsolete.tar  ## Build the VM Image obsoleting container image
+$(_TEMPDIR)/imgobsolete.tar: $(_TEMPDIR)/imgts.tar imgts/lib_entrypoint.sh imgobsolete/Containerfile imgobsolete/entrypoint.sh $(_TEMPDIR)
+	podman load -i $(_TEMPDIR)/imgts.tar imgts:latest
+	podman build -t imgobsolete:$(call err_if_empty,IMG_SFX) \
+		-f imgobsolete/Containerfile .
+	rm -f $@
+	podman save --quiet -o $@ imgobsolete:$(IMG_SFX)
+
 imgprune: $(_TEMPDIR)/imgprune.tar  ## Build the VM Image pruning container image
 $(_TEMPDIR)/imgprune.tar: $(_TEMPDIR)/imgts.tar imgts/lib_entrypoint.sh imgprune/Containerfile imgprune/entrypoint.sh $(_TEMPDIR)
 	podman load -i $(_TEMPDIR)/imgts.tar imgts:latest
