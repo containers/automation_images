@@ -41,7 +41,7 @@ builders:
       iso_url: '{{user `FEDORA_IMAGE_URL`}}'
       disk_image: true
       format: "raw"
-      disk_size: 5120
+      disk_size: 10240
       iso_checksum: 'file:{{user `FEDORA_CSUM_URL`}}'
       vm_name: "disk.raw"  # actually qcow2, name required for post-processing
       output_directory: '{{ user `TEMPDIR` }}/{{build_name}}' # /<vm_name>.disk.raw
