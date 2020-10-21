@@ -110,6 +110,7 @@ INSTALL_PACKAGES=(\
     slirp4netns
     socat
     sudo
+    time
     unzip
     vim
     wget
