@@ -81,10 +81,6 @@ container_images_task: &container_images
             DEST_FQIN: *fqin
         - name: *name
           env:
-            TARGET_NAME: 'prior-ubuntu_podman'
-            DEST_FQIN: *fqin
-        - name: *name
-          env:
             TARGET_NAME: 'imgts'
             DEST_FQIN: *fqin
         - name: *name
@@ -138,9 +134,6 @@ base_images_task:
         - <<: *base_image
           env:
             PACKER_BUILDS: "ubuntu"
-        - <<: *base_image
-          env:
-            PACKER_BUILDS: "prior-ubuntu"
     script: "ci/make_base_images.sh"
     manifest_artifacts:
         path: base_images/manifest.json
@@ -172,9 +165,6 @@ cache_images_task:
         - <<: *cache_image
           env:
             PACKER_BUILDS: "ubuntu"
-        - <<: *cache_image
-          env:
-            PACKER_BUILDS: "prior-ubuntu"
     script: "ci/make_cache_images.sh"
     manifest_artifacts:
         path: cache_images/manifest.json
@@ -205,11 +195,9 @@ imgts_task:
             fedora-b${IMG_SFX}
             prior-fedora-b${IMG_SFX}
             ubuntu-b${IMG_SFX}
-            prior-ubuntu-b${IMG_SFX}
             fedora-c${IMG_SFX}
             prior-fedora-c${IMG_SFX}
             ubuntu-c${IMG_SFX}
-            prior-ubuntu-c${IMG_SFX}
     script: "/usr/local/bin/entrypoint.sh"
 
 

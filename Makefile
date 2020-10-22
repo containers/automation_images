@@ -184,7 +184,7 @@ $(_TEMPDIR)/image_builder_debug.tar: $(_TEMPDIR) $(_TEMPDIR)/var_cache_dnf image
 # This needs to run in a virt/nested-virt capible environment
 base_images: base_images/manifest.json ## Create, prepare, and import base-level images into GCE.  Optionally, set PACKER_BUILDS=<csv> to select builder(s).
 
-base_images/manifest.json: base_images/gce.json base_images/fedora_base-setup.sh $(_TEMPDIR)/cidata.iso $(_TEMPDIR)/cidata.ssh $(PACKER_INSTALL_DIR)/packer
+base_images/manifest.json: base_images/gce.json $(wildcard base_images/*.sh) $(_TEMPDIR)/cidata.iso $(_TEMPDIR)/cidata.ssh $(PACKER_INSTALL_DIR)/packer
 	$(call packer_build,$<)
 
 .PHONY: cache_images
@@ -195,7 +195,6 @@ cache_images/manifest.json: cache_images/gce.json $(wildcard cache_images/*.sh) 
 override _fedora_podman_release := $(file < podman/fedora_release)
 override _prior-fedora_podman_release := $(file < podman/prior-fedora_release)
 override _ubuntu_podman_release := $(file < podman/ubuntu_release)
-override _prior-ubuntu_podman_release := $(file < podman/prior-ubuntu_release)
 define build_podman_container
 	$(MAKE) $(_TEMPDIR)/$(1).tar BASE_TAG=$(_$(1)_release)
 endef
@@ -210,10 +209,6 @@ prior-fedora_podman:  ## Build Prior-Fedora podman development container
 
 .PHONY: ubuntu_podman
 ubuntu_podman:  ## Build Ubuntu podman development container
-	$(call build_podman_container,$@)
-
-.PHONY: prior-ubuntu_podman
-prior-ubuntu_podman:  ## Build Prior-Ubuntu podman development container
 	$(call build_podman_container,$@)
 
 $(_TEMPDIR)/%_podman.tar: podman/Containerfile podman/setup.sh $(wildcard base_images/*.sh) $(wildcard cache_images/*.sh) $(_TEMPDIR) $(_TEMPDIR)/var_cache_dnf

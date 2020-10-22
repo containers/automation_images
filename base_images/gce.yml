@@ -17,7 +17,7 @@ variables:  # Empty value means it must be passed in on command-line
 
     # Required for reliability, preserve image from upstream managed image changes
     UBUNTU_BASE_IMAGE: 'ubuntu-2004-focal-v20200506'
-    PRIOR_UBUNTU_BASE_IMAGE: 'ubuntu-1910-eoan-v20200211'
+    # Deprecated:  PRIOR_UBUNTU_BASE_IMAGE: 'ubuntu-1910-eoan-v20200211'
 
     # Latest Fedora release download URL
     FEDORA_IMAGE_URL: "https://dl.fedoraproject.org/pub/fedora/linux/releases/test/33_Beta/Cloud/x86_64/images/Fedora-Cloud-Base-33_Beta-1.3.x86_64.qcow2"
@@ -100,11 +100,6 @@ builders:
         src: '{{user `UBUNTU_BASE_IMAGE`}}'
       ssh_username: 'packer'  # arbitrary, packer will create & setup
 
-    - <<: *imgcopy
-      name: 'prior-ubuntu'
-      image_name: 'prior-ubuntu-b{{user `IMG_SFX`}}'
-      source_image: '{{user `PRIOR_UBUNTU_BASE_IMAGE`}}'
-
 provisioners:  # Ubuntu images come bundled with GCE integrations provisioned
     - type: 'shell'
       inline:
@@ -121,7 +116,7 @@ provisioners:  # Ubuntu images come bundled with GCE integrations provisioned
         - 'set -e'
         - '/bin/bash /tmp/automation_images/base_images/fedora_base-setup.sh'
 
-    - only: ['ubuntu', 'prior-ubuntu']
+    - only: ['ubuntu']
       type: 'shell'
       inline:
         - 'set -e'
