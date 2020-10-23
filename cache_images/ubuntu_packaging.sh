@@ -20,12 +20,25 @@ lilto ooe.sh $SUDO apt-get -qq -y update
 bigto ooe.sh $SUDO apt-get -qq -y upgrade
 
 echo "Configuring additional package repositories"
-lilto ooe.sh $SUDO add-apt-repository --yes ppa:criu/ppa
+
+
+if [[ "$OS_RELEASE_VER" -le 2004 ]]; then
+
+    # Needed for criu package
+    lilto ooe.sh $SUDO add-apt-repository --yes ppa:criu/ppa
+fi
+
+# The versions of some key dependencies are not updated quickly
+# enough to support upstream containers-org development.
 VERSION_ID=$(source /etc/os-release; echo $VERSION_ID)
-echo "deb http://download.opensuse.org/repositories/devel:/kubic:/libcontainers:/stable/xUbuntu_$VERSION_ID/ /" \
-    | ooe.sh $SUDO tee /etc/apt/sources.list.d/devel:kubic:libcontainers:stable.list
-ooe.sh curl -L -o /tmp/Release.key "https://download.opensuse.org/repositories/devel:kubic:libcontainers:stable/xUbuntu_${VERSION_ID}/Release.key"
-ooe.sh $SUDO apt-key add - < /tmp/Release.key
+REPO_URL="https://download.opensuse.org/repositories/devel:/kubic:/libcontainers:/testing/xUbuntu_$VERSION_ID/"
+GPG_URL="https://download.opensuse.org/repositories/devel:kubic:libcontainers:testing/xUbuntu_$VERSION_ID/Release.key"
+
+echo "deb $REPO_URL /" | ooe.sh $SUDO \
+    tee /etc/apt/sources.list.d/devel:kubic:libcontainers:testing:ci.list
+curl --fail --silent --location --url "$GPG_URL" | \
+    gpg --dearmor | \
+    $SUDO tee /etc/apt/trusted.gpg.d/devel_kubic_libcontainers_testing_ci.gpg &> /dev/null
 
 INSTALL_PACKAGES=(\
     apache2-utils
@@ -41,7 +54,6 @@ INSTALL_PACKAGES=(\
     bzip2
     conmon
     containernetworking-plugins
-    containers-common
     coreutils
     cri-o-runc
     criu
@@ -79,13 +91,12 @@ INSTALL_PACKAGES=(\
     libnl-3-dev
     libprotobuf-c-dev
     libprotobuf-dev
-    libseccomp-dev
     libseccomp2
+    libseccomp-dev
     libselinux-dev
     libsystemd-dev
     libtool
     libudev-dev
-    libvarlink
     lsof
     make
     netcat
@@ -94,8 +105,6 @@ INSTALL_PACKAGES=(\
     podman
     protobuf-c-compiler
     protobuf-compiler
-    python-dateutil
-    python-protobuf
     python2
     python3-dateutil
     python3-docker
@@ -105,7 +114,6 @@ INSTALL_PACKAGES=(\
     python3-requests
     python3-setuptools
     rsync
-    runc
     scons
     skopeo
     slirp4netns
@@ -122,21 +130,26 @@ INSTALL_PACKAGES=(\
 # Download these package files, but don't install them; Any tests
 # wishing to, may install them using their native tools at runtime.
 DOWNLOAD_PACKAGES=(\
-    cri-tools
     parallel
 )
 
 # These aren't resolvable on Ubuntu 20
-if [[ "$OS_RELEASE_VER" -le 19 ]]; then
+if [[ "$OS_RELEASE_VER" -le 2004 ]]; then
     INSTALL_PACKAGES+=(\
-        python-future
-        python-minimal
-        yum-utils
-    )
-else
-    INSTALL_PACKAGES+=(\
+        libvarlink
+        python-dateutil
         python-is-python3
+        python-protobuf
     )
+else  # e.g. 20.10 and later
+    INSTALL_PACKAGES+=(\
+        golang-github-varlink-go-dev
+        python-is-python3
+        python3-dateutil
+        python3-protobuf
+        varlink-go
+    )
+
 fi
 
 echo "Installing general build/testing dependencies"

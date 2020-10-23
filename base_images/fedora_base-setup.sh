@@ -29,8 +29,6 @@ else
     PKGS+=(google-compute-engine-tools google-compute-engine-oslogin)
 fi
 
-set -x  # simpler than echo'ing each operation
-
 dnf -y update $XSELINUX
 dnf -y install $XSELINUX "${PKGS[@]}"
 

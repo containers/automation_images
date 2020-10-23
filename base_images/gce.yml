@@ -16,8 +16,8 @@ variables:  # Empty value means it must be passed in on command-line
     IMG_SFX: '{{ timestamp }}'
 
     # Required for reliability, preserve image from upstream managed image changes
-    UBUNTU_BASE_IMAGE: 'ubuntu-2004-focal-v20200506'
-    PRIOR_UBUNTU_BASE_IMAGE: 'ubuntu-1910-eoan-v20200211'
+    UBUNTU_BASE_IMAGE: 'ubuntu-2010-groovy-v20201022a'
+    PRIOR_UBUNTU_BASE_IMAGE: 'ubuntu-2004-focal-v20201014'
 
     # Latest Fedora release download URL
     FEDORA_IMAGE_URL: "https://dl.fedoraproject.org/pub/fedora/linux/releases/33/Cloud/x86_64/images/Fedora-Cloud-Base-33-1.2.x86_64.qcow2"
@@ -94,7 +94,8 @@ builders:
       labels:
         sfx: '{{user `IMG_SFX`}}'
         src: '{{user `UBUNTU_BASE_IMAGE`}}'
-      ssh_username: 'packer'  # arbitrary, packer will create & setup
+      # Gotcha: https://www.packer.io/docs/builders/googlecompute#gotchas
+      ssh_username: 'packer'
 
     - <<: *imgcopy
       name: 'prior-ubuntu'

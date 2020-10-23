@@ -284,6 +284,11 @@ producing images proceeds as follows:
    produced and used in *overview step 1*.  If changes are made, the container
    image should be re-built to reflect them.
 
+4. If you wish to build only a subset of available images, list the names
+   you want as comma-separated values of the `PACKER_BUILDS` variable.  Be
+   sure you *export* this variable so that `make` has access to it.  For
+   example, `export PACKER_BUILDS=prior-ubuntu,prior-fedora`.
+
 4. Still within the container, again ensure you have plenty of network and CPU
    resources available.  Build the VM Base images by executing the command
    ``make base_images``. This is the equivalent operation as documented by

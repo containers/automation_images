@@ -11,7 +11,7 @@ SUDO=""
 [[ "$UID" -eq 0 ]] || \
     SUDO="sudo"
 
-EVIL_UNITS="cron crond atd apt-daily-upgrade apt-daily fstrim motd-news systemd-tmpfiles-clean"
+EVIL_UNITS="cron crond atd apt-daily-upgrade apt-daily fstrim motd-news systemd-tmpfiles-clean update-notifier-download"
 
 if [[ "$1" == "--list" ]]
 then

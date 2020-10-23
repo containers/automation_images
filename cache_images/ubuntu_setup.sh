@@ -9,8 +9,10 @@ SCRIPT_FILEPATH=$(realpath "$0")
 SCRIPT_DIRPATH=$(dirname "$SCRIPT_FILEPATH")
 REPO_DIRPATH=$(realpath "$SCRIPT_DIRPATH/../")
 
-# Run as quickly as possible after boot
-/bin/bash $REPO_DIRPATH/systemd_banish.sh
+if ! ((CONTAINER)); then
+    # Run as quickly as possible after boot
+    /bin/bash $REPO_DIRPATH/systemd_banish.sh
+fi
 
 # shellcheck source=./lib.sh
 source "$REPO_DIRPATH/lib.sh"
