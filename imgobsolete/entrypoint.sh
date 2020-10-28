@@ -91,6 +91,7 @@ sort --random-sort $TOOBSOLETE | tail -$OBSOLETE_LIMIT | \
         msg "Dry-run: No changes made"
     else
         # Ref: https://cloud.google.com/compute/docs/images/create-delete-deprecate-private-images#deprecating_an_image
+        # Note: --delete-in creates deprecated.delete(from imgobsolete container)
         $GCLOUD compute images deprecate $image_name --state=OBSOLETE --delete-in=30d
     fi
 done

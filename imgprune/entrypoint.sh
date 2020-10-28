@@ -27,7 +27,8 @@ FORMAT='value[quote](name,selfLink,deprecated.state,deprecated.deleted,labels)'
 # shellcheck disable=SC2154
 PROJRE="/v1/projects/$GCPPROJECT/global/"
 # Filter Ref: https://cloud.google.com/sdk/gcloud/reference/topic/filters
-FILTER="selfLink~$PROJRE AND deprecated.state=OBSOLETE AND deprecated.deleted>$ABOUTNOW"
+# Note: deprecated.delete comes from --delete-in (from imgobsolete container)
+FILTER="selfLink~$PROJRE AND deprecated.state=OBSOLETE AND deprecated.deleted<$ABOUTNOW"
 TODELETE=$(mktemp -p '' todelete.XXXXXX)
 
 msg "Searching for obsolete images using filter:${NOR} $FILTER"
