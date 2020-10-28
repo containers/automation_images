@@ -120,7 +120,6 @@ INSTALL_PACKAGES=(\
 # Download these package files, but don't install them; Any tests
 # wishing to, may install them using their native tools at runtime.
 DOWNLOAD_PACKAGES=(\
-    "cri-o-$(get_kubernetes_version)"
     cri-tools
     parallel
 )

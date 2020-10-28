@@ -87,10 +87,6 @@ get_kubernetes_version() {
             KUBERNETES_VERSION="1.15" ;;
         fedora-33)
             KUBERNETES_VERSION="1.18" ;;
-        ubuntu-19)
-            KUBERNETES_VERSION="1.15" ;;
-        ubuntu-20)
-            KUBERNETES_VERSION="1.15" ;;
         *) die "Unknown/Unsupported \$OS_REL_VER '$OS_REL_VER'"
     esac
     echo "$KUBERNETES_VERSION"
