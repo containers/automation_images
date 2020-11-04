@@ -73,4 +73,10 @@ if ! ((CONTAINER)); then
     fi
 fi
 
+if [[ "$OS_RELEASE_ID" == "fedora" ]] && ((OS_RELEASE_VER>=33)); then
+    # Ref: https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=783509
+    echo "Disabling automatic /tmp (tmpfs) mount"
+    $SUDO systemctl mask tmp.mount
+fi
+
 finalize

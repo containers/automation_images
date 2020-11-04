@@ -107,6 +107,7 @@ INSTALL_PACKAGES=(\
     python3-libselinux
     python3-libsemanage
     python3-libvirt
+    python3-pip
     python3-psutil
     python3-pytoml
     python3-requests
@@ -120,6 +121,7 @@ INSTALL_PACKAGES=(\
     slirp4netns
     socat
     tar
+    time
     unzip
     vim
     wget
