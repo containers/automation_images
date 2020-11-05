@@ -98,6 +98,7 @@ INSTALL_PACKAGES=(\
     python-protobuf
     python2
     python3-dateutil
+    python3-docker
     python3-pip
     python3-psutil
     python3-pytoml

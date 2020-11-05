@@ -102,6 +102,7 @@ INSTALL_PACKAGES=(\
     protobuf-c-devel
     protobuf-devel
     python2
+    python3-docker
     python3-PyYAML
     python3-dateutil
     python3-libselinux
