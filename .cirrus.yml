@@ -23,6 +23,7 @@ timeout_in: 60m
 validate_task:
     name: "Validate"
     alias: "validate"
+    only_if: &is_pr $CIRRUS_PR != ''
     timeout_in: 5m
     container: &ci_container
         # Ref: https://cirrus-ci.org/guide/docker-builder-vm/#dockerfile-as-a-ci-environment
@@ -38,6 +39,7 @@ validate_task:
 image_builder_task:
     name: "Image-builder image"
     alias: "image_builder"
+    only_if: *is_pr
     depends_on:
         - validate
     # Packer needs time to clean up partially created VM images
@@ -57,6 +59,7 @@ image_builder_task:
 container_images_task: &container_images
     name: "Build container images"
     alias: "container_images"
+    only_if: *is_pr
     depends_on:
         - image_builder
     timeout_in: 30m
@@ -113,7 +116,7 @@ container_images_task: &container_images
 base_images_task:
     name: "Build VM Base-images"
     alias: "base_images"
-    only_if: &is_pr $CIRRUS_PR != ''
+    only_if: *is_pr
     depends_on:
         - image_builder
     # Packer needs time to clean up partially created VM images
@@ -246,8 +249,6 @@ cron_imgobsolete_task: &lifecycle_cron
     name: "Periodicly mark old images obsolete"
     alias: cron_imgobsolete
     only_if: $CIRRUS_PR == '' && $CIRRUS_CRON != ''
-    depends_on:
-        - container_images
     container:
         image: 'quay.io/libpod/imgobsolete:latest'
         cpu: 2
