@@ -132,6 +132,11 @@ INSTALL_PACKAGES=(\
     zlib-devel
 )
 
+# Perl module packaging changes between F32 and F33
+if [[ "$OS_RELEASE_VER" -ge 33 ]]; then
+    INSTALL_PACKAGES+=( perl-FindBin )
+fi
+
 # When installing during a container-build, having this present
 # will seriously screw up future dnf operations in very non-obvious ways.
 if ! ((CONTAINER)); then
