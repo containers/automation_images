@@ -24,8 +24,7 @@ CUSTOM_CLOUD_CONFIG_DEFAULTS="$SCRIPT_DIRPATH/cloud-init/$OS_RELEASE_ID/cloud.cf
 # This location is checked by automation in other repos, please do not change.
 PACKAGE_DOWNLOAD_DIR=/var/cache/download
 
-# TODO: Lock down to specific version number for stability
-INSTALL_AUTOMATION_VERSION="latest"
+INSTALL_AUTOMATION_VERSION="1.2.3"
 
 SUDO="env"
 if [[ "$UID" -ne 0 ]]; then
