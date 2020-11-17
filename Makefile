@@ -219,6 +219,7 @@ $(_TEMPDIR)/%_podman.tar: podman/Containerfile podman/setup.sh $(wildcard base_i
 	podman build -t $*_podman:$(call err_if_empty,IMG_SFX) \
 		--build-arg=BASE_NAME=$(subst prior-,,$*) \
 		--build-arg=BASE_TAG=$(call err_if_empty,BASE_TAG) \
+		--build-arg=PACKER_BUILD_NAME=$(subst _podman,,$*) \
 		-v $(_TEMPDIR)/var_cache_dnf:/var/cache/dnf:Z \
 		-v $(_TEMPDIR)/var_cache_dnf:/var/cache/apt:Z \
 		-f podman/Containerfile .

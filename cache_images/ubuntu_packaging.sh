@@ -22,14 +22,16 @@ bigto ooe.sh $SUDO apt-get -qq -y upgrade
 echo "Configuring additional package repositories"
 
 
+# Useful version of criu is only available from launchpad repo
 if [[ "$OS_RELEASE_VER" -le 2004 ]]; then
-
-    # Needed for criu package
     lilto ooe.sh $SUDO add-apt-repository --yes ppa:criu/ppa
 fi
 
-# The versions of some key dependencies are not updated quickly
-# enough to support upstream containers-org development.
+# The OpenSuse Open Build System must be utilized to obtain newer
+# development versions of podman/buildah/skopeo & dependencies,
+# in order to support upstream (i.e. bleeding-edge) development and
+# automated testing.  These packages are not otherwise intended for
+# end-user consumption.
 VERSION_ID=$(source /etc/os-release; echo $VERSION_ID)
 REPO_URL="https://download.opensuse.org/repositories/devel:/kubic:/libcontainers:/testing/xUbuntu_$VERSION_ID/"
 GPG_URL="https://download.opensuse.org/repositories/devel:kubic:libcontainers:testing/xUbuntu_$VERSION_ID/Release.key"
