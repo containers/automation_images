@@ -43,6 +43,7 @@ INSTALL_PACKAGES=(\
     crun
     curl
     device-mapper-devel
+    docker-compose
     dnsmasq
     e2fsprogs-devel
     emacs-nox
