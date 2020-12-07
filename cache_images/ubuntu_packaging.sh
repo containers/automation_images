@@ -138,18 +138,15 @@ DOWNLOAD_PACKAGES=(\
 # These aren't resolvable on Ubuntu 20
 if [[ "$OS_RELEASE_VER" -le 2004 ]]; then
     INSTALL_PACKAGES+=(\
-        libvarlink
         python-dateutil
         python-is-python3
         python-protobuf
     )
 else  # e.g. 20.10 and later
     INSTALL_PACKAGES+=(\
-        golang-github-varlink-go-dev
         python-is-python3
         python3-dateutil
         python3-protobuf
-        varlink-go
     )
 
 fi

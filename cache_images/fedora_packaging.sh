@@ -91,7 +91,6 @@ INSTALL_PACKAGES=(\
     libseccomp-devel
     libselinux-devel
     libtool
-    libvarlink-util
     libxml2-devel
     libxslt-devel
     lsof
@@ -180,6 +179,7 @@ if [[ ${#DOWNLOAD_PACKAGES[@]} -gt 0 ]]; then
     ooe.sh $SUDO dnf -y module enable cri-o:$(get_kubernetes_version)
     $SUDO mkdir -p "$PACKAGE_DOWNLOAD_DIR"
     cd "$PACKAGE_DOWNLOAD_DIR"
+    lilto ooe.sh $SUDO dnf install -y 'dnf-command(download)'
     lilto ooe.sh $SUDO dnf download -y --resolve "${DOWNLOAD_PACKAGES[@]}"
 fi
 
