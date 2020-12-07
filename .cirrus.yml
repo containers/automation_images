@@ -118,7 +118,7 @@ base_images_task:
     alias: "base_images"
     only_if: *is_pr
     depends_on:
-        - image_builder
+        - container_images
     # Packer needs time to clean up partially created VM images
     auto_cancellation: $CI != "true"
     stateful: true
