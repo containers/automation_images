@@ -31,13 +31,25 @@ ARGS="
 # Don't allow one bad apple to ruin the whole batch
 ERRIMGS=''
 
+# It's possible for multiple simultaneous label updates to clash
+CLASHMSG='Labels fingerprint either invalid or resource labels have changed'
+
 # Must be defined by the cirrus-ci job using the container
 # shellcheck disable=SC2154
 for image in $IMGNAMES
 do
-    if ! $GCLOUD compute images update "$image" $ARGS; then
+    if ! OUTPUT=$($GCLOUD compute images update "$image" $ARGS 2>&1); then
+        echo "$OUTPUT" > /dev/stderr
+        if grep -iq "$CLASHMSG" <<<"$OUTPUT"; then
+            # Updating the 'last-used' label is most important.
+            # Assume clashing update did this for us.
+            msg "Warning: Detected simultaneous label update, ignoring clash."
+            continue
+        fi
         msg "Detected update error for '$image'" > /dev/stderr
         ERRIMGS="$ERRIMGS $image"
+    else
+        echo "$OUTPUT" > /dev/stderr
     fi
 done
 
