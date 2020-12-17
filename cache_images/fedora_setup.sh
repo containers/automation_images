@@ -15,22 +15,27 @@ REPO_DIRPATH=$(realpath "$SCRIPT_DIRPATH/../")
 # shellcheck source=./lib.sh
 source "$REPO_DIRPATH/lib.sh"
 
-# Do not enable updates-testing on the previous Fedora release
-# (packer defines this envar)
-# shellcheck disable=SC2154
-if [[ "$PACKER_BUILD_NAME" =~ prior ]]; then
-    ENABLE_UPDATES_TESTING=0
-else
-    ENABLE_UPDATES_TESTING=1
-fi
+# packer and/or a --build-arg define this envar value uniformly
+# for both VM and container image build workflows.
+req_env_vars PACKER_BUILD_NAME
 
 bash $SCRIPT_DIRPATH/fedora_packaging.sh
 
-echo "Enabling cgroup management from containers"
-((CONTAINER)) || \
+if ! ((CONTAINER)); then
+    msg "Enabling cgroup management from containers"
     ooe.sh $SUDO setsebool -P container_manage_cgroup true
+fi
 
 custom_cloud_init
+
+# shellcheck disable=SC2154
+if ! ((CONTAINER)) && [[ "$PACKER_BUILD_NAME" =~ prior ]]; then
+    warn "Disabling CgroupsV2 kernel command-line option for systemd"
+    SEDCMD='s/^GRUB_CMDLINE_LINUX="(.*)"/GRUB_CMDLINE_LINUX="\1 systemd.unified_cgroup_hierarchy=0"/'
+    ooe.sh $SUDO sed -re "$SEDCMD" -i /etc/default/grub
+    # This is always a symlink to the correct location under /boot/...
+    ooe.sh $SUDO grub2-mkconfig -o $($SUDO realpath --physical /etc/grub2.cfg)
+fi
 
 finalize
 

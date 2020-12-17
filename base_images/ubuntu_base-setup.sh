@@ -16,13 +16,23 @@ REPO_DIRPATH=$(realpath "$SCRIPT_DIRPATH/../")
 # shellcheck source=./lib.sh
 source "$REPO_DIRPATH/lib.sh"
 
+declare -a PKGS
+PKGS=( \
+    coreutils
+    curl
+    gawk
+    git
+    openssh-client
+    openssh-server
+    software-properties-common
+)
+
 set -x  # simpler than echo'ing each operation
 $SUDO apt-get -qq -y update
 $SUDO apt-get -qq -y upgrade apt dpkg
 $SUDO apt-get -qq -y upgrade
-$SUDO apt-get -qq -y install coreutils software-properties-common git curl openssh-server openssh-client gawk
+$SUDO apt-get -qq -y install "${PKGS[@]}"
 
-# Point sh at bash, system-wide.  This will slow boot-time but improve
 # compatibility / usefullness of all automated scripting (which is bash-centric)
 $SUDO DEBCONF_DB_OVERRIDE='File{'$SCRIPT_DIRPATH/no_dash.dat'}' \
     dpkg-reconfigure dash

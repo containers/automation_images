@@ -14,17 +14,26 @@ REPO_DIRPATH=$(realpath "$SCRIPT_DIRPATH/../")
 # shellcheck source=./lib.sh
 source "$REPO_DIRPATH/lib.sh"
 
-echo "Updating/Installing repos and packages for $OS_REL_VER"
+# packer and/or a --build-arg define this envar value uniformly
+# for both VM and container image build workflows.
+req_env_vars PACKER_BUILD_NAME
 
-# Set this to 1 to NOT enable updates-testing repository
-ENABLE_UPDATES_TESTING=${ENABLE_UPDATES_TESTING:-1}
-if ((ENABLE_UPDATES_TESTING)); then
-    warn "Enabling updates-testing repository for $OS_REL_VER"
+# Do not enable updates-testing on the 'prior' Fedora release images
+# as a matter of general policy.  Historically there have been many
+# problems with non-uniform behavior when both supported Fedora releases
+# receive container-related dependency updates at the same time.  Since
+# the 'prior' release has the shortest support lifetime, keep it's behavior
+# stable by only using released updates.
+# shellcheck disable=SC2154
+if [[ ! "$PACKER_BUILD_NAME" =~ prior ]]; then
+    warn "Enabling updates-testing repository for $PACKER_BUILD_NAME"
     lilto ooe.sh $SUDO dnf install -y 'dnf-command(config-manager)'
     lilto ooe.sh $SUDO dnf config-manager --set-enabled updates-testing
 else
-    warn "NOT enabling updates-testing repository for $OS_REL_VER"
+    warn "NOT enabling updates-testing repository for $PACKER_BUILD_NAME"
 fi
+
+msg "Updating/Installing repos and packages for $OS_REL_VER"
 
 bigto ooe.sh $SUDO dnf update -y
 
@@ -82,7 +91,6 @@ INSTALL_PACKAGES=(\
     libseccomp-devel
     libselinux-devel
     libtool
-    libvarlink-util
     libxml2-devel
     libxslt-devel
     lsof
@@ -171,6 +179,7 @@ if [[ ${#DOWNLOAD_PACKAGES[@]} -gt 0 ]]; then
     ooe.sh $SUDO dnf -y module enable cri-o:$(get_kubernetes_version)
     $SUDO mkdir -p "$PACKAGE_DOWNLOAD_DIR"
     cd "$PACKAGE_DOWNLOAD_DIR"
+    lilto ooe.sh $SUDO dnf install -y 'dnf-command(download)'
     lilto ooe.sh $SUDO dnf download -y --resolve "${DOWNLOAD_PACKAGES[@]}"
 fi
 

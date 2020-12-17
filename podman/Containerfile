@@ -11,6 +11,7 @@ ARG BASE_NAME=
 ARG BASE_TAG=
 FROM ${BASE_NAME}:${BASE_TAG}
 
+ARG PACKER_BUILD_NAME=
 ENV AI_PATH=/usr/src/automation_images \
     CONTAINER=1
 
