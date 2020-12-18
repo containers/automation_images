@@ -58,6 +58,7 @@ documentation](https://www.packer.io/docs).
    of the VM to run automated tests.
 
 
+
 ## The last part first (overview step 3)
 
 a.k.a. ***Cache Images***
@@ -115,7 +116,6 @@ Process:
    between the two PRs in comments, for future reference.
 
 9. After all the PRs are merged, you're done.
-
 
 
 
