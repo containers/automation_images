@@ -37,9 +37,6 @@ $SUDO apt-get -qq -y install "${PKGS[@]}"
 $SUDO DEBCONF_DB_OVERRIDE='File{'$SCRIPT_DIRPATH/no_dash.dat'}' \
     dpkg-reconfigure dash
 
-# Install common automation tooling (i.e. ooe.sh)
-curl --silent --show-error --location \
-     --url "https://raw.githubusercontent.com/containers/automation/master/bin/install_automation.sh" | \
-     $SUDO env INSTALL_PREFIX=/usr/share /bin/bash -s - "$INSTALL_AUTOMATION_VERSION"
+install_automation_tooling
 
 finalize
