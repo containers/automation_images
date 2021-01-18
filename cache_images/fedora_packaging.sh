@@ -103,6 +103,7 @@ INSTALL_PACKAGES=(\
     openssl-devel
     ostree-devel
     pandoc
+    parallel
     pkgconfig
     podman
     procps-ng

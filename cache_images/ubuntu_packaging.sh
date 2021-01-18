@@ -103,6 +103,7 @@ INSTALL_PACKAGES=(\
     make
     netcat
     openssl
+    parallel
     pkg-config
     podman
     protobuf-c-compiler
