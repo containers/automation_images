@@ -174,6 +174,16 @@ DOWNLOAD_PACKAGES=(\
 echo "Installing general build/test dependencies"
 bigto ooe.sh $SUDO dnf install -y $EXARG "${INSTALL_PACKAGES[@]}"
 
+#### TODO: Temporary monkey-patch to ensure updated conmon packages for podman v3.0
+####       Remote this once these packages make it into mainstream repos.
+if [[ "$OS_RELEASE_VER" -eq 33 ]]; then
+    # https://bodhi.fedoraproject.org/updates/FEDORA-2021-e06aa45b5a
+    $SUDO dnf upgrade -y --enablerepo=updates-testing --advisory=FEDORA-2021-e06aa45b5a
+elif [[ "$OS_RELEASE_VER" -eq 32 ]]; then
+    # https://bodhi.fedoraproject.org/updates/FEDORA-2021-b4f0f3b8dd
+    $SUDO dnf upgrade -y --enablerepo=updates-testing --advisory=FEDORA-2021-b4f0f3b8dd
+fi
+
 if [[ ${#DOWNLOAD_PACKAGES[@]} -gt 0 ]]; then
     echo "Downloading packages for optional installation at runtime, as needed."
     # Required for cri-o
