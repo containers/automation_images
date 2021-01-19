@@ -40,10 +40,8 @@ if [[ -d "/usr/share/automation" ]]; then
     # Since we're not a login-shell, this doesn't always automatically load
     # (via other means, pointing at this file)
     source /usr/share/automation/environment
-    for libname in defaults anchors console_output utils; do
-        #shellcheck disable=SC1090,SC2154
-        source $AUTOMATION_LIB_PATH/$libname.sh
-    done
+    #shellcheck disable=SC1090,SC2154
+    source $AUTOMATION_LIB_PATH/common_lib.sh
 
     # Shortcuts to common retry/timeout calls
     lilto() { err_retry 8 1000 "" "$@"; }  # just over 4 minutes max
@@ -52,7 +50,22 @@ else  # Automation common library not installed yet
     echo "Warning: Automation library not found. Assuming it's not yet installed" \
         > /dev/stderr
     die() { echo "ERROR: ${1:-No error message provided}"; exit 1; }
+    lilto() { die "Automation library not installed; Required for lilto()"; }
+    bigto() { die "Automation library not installed; Required for bigto()"; }
 fi
+
+install_automation_tooling() {
+    # This script supports installing all current and previous versions
+    local installer_url="https://raw.githubusercontent.com/containers/automation/master/bin/install_automation.sh"
+    curl --silent --show-error --location \
+         --url "$installer_url" | \
+         $SUDO env INSTALL_PREFIX=/usr/share /bin/bash -s - \
+        "$INSTALL_AUTOMATION_VERSION"
+    # This defines AUTOMATION_LIB_PATH
+    source /usr/share/automation/environment
+    #shellcheck disable=SC1090
+    source $AUTOMATION_LIB_PATH/common_lib.sh
+}
 
 custom_cloud_init() {
     if [[ -d "$CUSTOM_CLOUD_CONFIG_DEFAULTS" ]]

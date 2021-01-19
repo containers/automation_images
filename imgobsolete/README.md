@@ -9,5 +9,5 @@ should an image be erroneously obsoleted.
 Example build (from repository root):
 
 ```bash
-podman build -t $IMAGE_NAME -f imgobsolete/Containerfile .
+make imgobsolete IMG_SFX=example
 ```

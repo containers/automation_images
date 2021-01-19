@@ -34,10 +34,7 @@ dnf -y install $XSELINUX "${PKGS[@]}"
 
 systemctl enable rngd
 
-# Install common automation tooling (i.e. ooe.sh)
-curl --silent --show-error --location \
-     --url "https://raw.githubusercontent.com/containers/automation/master/bin/install_automation.sh" | \
-     env INSTALL_PREFIX=/usr/share /bin/bash -s - "$INSTALL_AUTOMATION_VERSION"
+install_automation_tooling
 
 # There is a race that can happen on boot between the GCE services configuring
 # the VM, and cloud-init trying to do similar activities.  Use a customized

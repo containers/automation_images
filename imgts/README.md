@@ -5,5 +5,5 @@ VM images to prevent them from being pruned.
 Example build (from repository root):
 
 ```bash
-podman build -t $IMAGE_NAME -f imgts/Containerfile .
+make imgts IMG_SFX=example
 ```

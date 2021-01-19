@@ -249,6 +249,15 @@ $(_TEMPDIR)/imgprune.tar: $(_TEMPDIR)/imgts.tar imgts/lib_entrypoint.sh imgprune
 	rm -f $@
 	podman save --quiet -o $@ imgprune:$(IMG_SFX)
 
+gcsupld: $(_TEMPDIR)/gcsupld.tar  ## Build the GCS Upload container image
+$(_TEMPDIR)/gcsupld.tar: $(_TEMPDIR)/imgts.tar imgts/lib_entrypoint.sh gcsupld/Containerfile gcsupld/entrypoint.sh $(_TEMPDIR)
+	podman load -i $(_TEMPDIR)/imgts.tar imgts:latest
+	podman build -t gcsupld:$(call err_if_empty,IMG_SFX) \
+		-f gcsupld/Containerfile .
+	rm -f $@
+	podman save --quiet -o $@ gcsupld:$(IMG_SFX)
+
+
 .PHONY: clean
 clean: ## Remove all generated files referenced in this Makefile
 	-rm -vrf $(_TEMPDIR)

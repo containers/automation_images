@@ -1,0 +1,11 @@
+FROM imgts:latest
+
+RUN yum -y update && \
+    yum clean all
+
+COPY /gcsupld/entrypoint.sh /usr/local/bin/entrypoint.sh
+RUN chmod 755 /usr/local/bin/entrypoint.sh
+
+# These are required at runtime
+ENV FROM_FILEPATH="" \
+    TO_GCSURI=""

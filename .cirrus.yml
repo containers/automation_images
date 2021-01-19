@@ -98,6 +98,10 @@ container_images_task: &container_images
           env:
             TARGET_NAME: 'imgprune'
             DEST_FQIN: *fqin
+        - name: *name
+          env:
+            TARGET_NAME: 'gcsupld'
+            DEST_FQIN: *fqin
     env:
         TEMPDIR: '$CIRRUS_WORKING_DIR'
         LOGIN_CMD: ENCRYPTED[d15806d68c90cf74faca59bc4f81ada269538092b8449c7d8cd4cf44cd8d58a7482d2b249a9da06508f32f9e4075dc18]
@@ -213,6 +217,7 @@ imgts_task:
             prior-fedora-c${IMG_SFX}
             ubuntu-c${IMG_SFX}
             prior-ubuntu-c${IMG_SFX}
+    clone_script: &noop mkdir -p "${CIRRUS_WORKING_DIR}"  # source is not needed
     script: "/usr/local/bin/entrypoint.sh"
 
 
@@ -231,6 +236,7 @@ test_imgobsolete_task: &lifecycle_test
         GCPNAME: ENCRYPTED[57b2c60b8168a2dc6f281a31a051ffab069b3c05bd495f38c0d5178fdcfb9ac7e1295460d8c4beb979c88d88061fa463]
         GCPPROJECT: 'libpod-218412'
         DRY_RUN: 1
+    clone_script: *noop
     script:  /usr/local/bin/entrypoint.sh;
 
 
@@ -242,6 +248,23 @@ test_imgprune_task:
         - test_imgobsolete
     container:
         image: 'quay.io/libpod/imgprune:c$IMG_SFX'
+
+
+test_gcsupld_task:
+    name: "Test uploading to GCS"
+    alias: test_gcsupld_task
+    only_if: *is_pr
+    depends_on:
+        - container_images
+    container:
+        image: 'quay.io/libpod/gcsupld:c$IMG_SFX'
+        cpu: 2
+        memory: '2G'
+    env:
+        GCPJSON: ENCRYPTED[e7883347ea7357958d5ee025913d9204fdd2ed566994dd512af4c25523bf7284738586f8aa17aff1b8e920a6de56a6e9]
+        GCPNAME: ENCRYPTED[77a24c0e75505c8eced8ed4ac9030a6d8c4b1e0987616c80f54d6b58ab0837dcef0f80e26a47fffdb0816d2b92100c78]
+        GCPPROJECT: 'libpod-218412'
+    test_script: "gcsupld/test.sh"
 
 
 # N/B: "latest" image produced after PR-merge (branch-push)
@@ -285,5 +308,5 @@ success_task:
         - cron_imgprune
     container:
         <<: *ci_container
-    clone_script: mkdir -p "${CIRRUS_WORKING_DIR}"  # source is not needed
+    clone_script: *noop
     script: /bin/true

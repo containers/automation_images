@@ -6,5 +6,5 @@ once they surpass a certain age since last-used.
 Example build (from repository root):
 
 ```bash
-podman build -t $IMAGE_NAME -f imgprune/Containerfile .
+make imgprune IMG_SFX=example
 ```
