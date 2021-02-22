@@ -32,7 +32,9 @@ fi
 dnf -y update $XSELINUX
 dnf -y install $XSELINUX "${PKGS[@]}"
 
-systemctl enable rngd
+if ! ((CONTAINER)); then
+    systemctl enable rngd
+fi
 
 install_automation_tooling
 

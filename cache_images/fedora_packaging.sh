@@ -123,7 +123,6 @@ INSTALL_PACKAGES=(\
     python3-pip
     python3-psutil
     python3-pylint
-    python3-pytoml
     python3-requests
     python3-requests-mock
     redhat-rpm-config
@@ -132,7 +131,6 @@ INSTALL_PACKAGES=(\
     runc
     sed
     skopeo
-    skopeo-containers
     slirp4netns
     socat
     tar
@@ -148,9 +146,12 @@ INSTALL_PACKAGES=(\
 )
 
 # Perl module packaging changes between F32 and F33
-if [[ "$OS_RELEASE_VER" -ge 33 ]]; then
-    INSTALL_PACKAGES+=( perl-FindBin )
-fi
+case "$OS_RELEASE_VER" in
+    32) INSTALL_PACKAGES+=( python3-pytoml ) ;;
+    33) ;&
+    34) INSTALL_PACKAGES+=( perl-FindBin python-toml ) ;;
+    *) die "Unknown/Unsupported \$OS_REL_VER '$OS_REL_VER'" ;;
+esac
 
 # When installing during a container-build, having this present
 # will seriously screw up future dnf operations in very non-obvious ways.
