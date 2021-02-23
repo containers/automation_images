@@ -27,7 +27,6 @@ PKGS=( \
     software-properties-common
 )
 
-set -x  # simpler than echo'ing each operation
 $SUDO apt-get -qq -y update
 $SUDO apt-get -qq -y upgrade apt dpkg
 $SUDO apt-get -qq -y upgrade

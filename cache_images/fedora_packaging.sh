@@ -177,7 +177,7 @@ DOWNLOAD_PACKAGES=(\
 )
 
 echo "Installing general build/test dependencies"
-bigto ooe.sh $SUDO dnf install -y $EXARG "${INSTALL_PACKAGES[@]}"
+bigto $SUDO dnf install -y $EXARG "${INSTALL_PACKAGES[@]}"
 
 if [[ ${#DOWNLOAD_PACKAGES[@]} -gt 0 ]]; then
     echo "Downloading packages for optional installation at runtime, as needed."
@@ -186,7 +186,7 @@ if [[ ${#DOWNLOAD_PACKAGES[@]} -gt 0 ]]; then
     $SUDO mkdir -p "$PACKAGE_DOWNLOAD_DIR"
     cd "$PACKAGE_DOWNLOAD_DIR"
     lilto ooe.sh $SUDO dnf install -y 'dnf-command(download)'
-    lilto ooe.sh $SUDO dnf download -y --resolve "${DOWNLOAD_PACKAGES[@]}"
+    lilto $SUDO dnf download -y --resolve "${DOWNLOAD_PACKAGES[@]}"
 fi
 
 # It was observed in F33, dnf install doesn't always get you the latest/greatest
