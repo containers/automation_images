@@ -15,16 +15,11 @@ suitability for use by other *containers* org. repos.
    When ready for review, somebody besides the author must click the green
    *Review changes* button within the PR.
 
-3. ***IMPORTANT***: **Automatic pull-requests merging is enabled on this repository!
-   Pull requests will be merged automatically when they:**
-
-   * Are not marked as a draft
-   * Have at least ***one*** approving github review.
-   * Pass the 'success' test
+3. Please create new pull-requests as **drafts** and/or mark them with a
+   `WIP:` title-prefix while you're working on them.
 
 4. Strict-merging is enabled, therefore all pull requests must be kept up
-   to date with the base branch.  The [Mergify bot can help with
-   this.](https://doc.mergify.io/commands.html#commands)
+   to date with the base branch (i.e. re-based).
 
 
 # Building VM Images
