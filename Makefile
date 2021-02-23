@@ -215,8 +215,11 @@ ubuntu_podman:  ## Build Ubuntu podman development container
 prior-ubuntu_podman:  ## Build Prior-Ubuntu podman development container
 	$(call build_podman_container,$@)
 
+# Workaround https://bugzilla.redhat.com/show_bug.cgi?id=1927635
+# with `--security-opt...--privileged` until bug fixed for CentOS 8.
 $(_TEMPDIR)/%_podman.tar: podman/Containerfile podman/setup.sh $(wildcard base_images/*.sh) $(wildcard cache_images/*.sh) $(_TEMPDIR) $(_TEMPDIR)/var_cache_dnf
-	podman build -t $*_podman:$(call err_if_empty,IMG_SFX) \
+	buildah bud -t $*_podman:$(call err_if_empty,IMG_SFX) \
+		--security-opt seccomp=unconfined \
 		--build-arg=BASE_NAME=$(subst prior-,,$*) \
 		--build-arg=BASE_TAG=$(call err_if_empty,BASE_TAG) \
 		--build-arg=PACKER_BUILD_NAME=$(subst _podman,,$*) \
