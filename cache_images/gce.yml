@@ -11,10 +11,6 @@ variables:
     # Required for ssh private key access
     TEMPDIR:
 
-    UBUNTU_BASE_NAME: "ubuntu-2004-focal-v20200506"
-    PRIOR_UBUNTU_BASE_NAME: "ubuntu-1910-eoan-v20200211"
-    FEDORA_BASE_NAME: "fedora-cloud-base-33-beta-1-3"
-    PRIOR_FEDORA_BASE_NAME: "fedora-cloud-base-32-1-6"
 
 # Don't leak sensitive values in error messages / output
 sensitive-variables:
@@ -41,6 +37,7 @@ builders:
         src: '{{ build_name }}-b{{user `IMG_SFX` }}'
       ssh_username: packer  # arbitrary, packer will create & setup w/ temp. keypair
       ssh_pty: 'true'
+      temporary_key_pair_type: ed25519
 
     - <<: *gce_hosted_image
       name: 'prior-ubuntu'  # setup script derrived from string before "-"
