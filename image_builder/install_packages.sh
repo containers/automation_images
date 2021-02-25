@@ -17,6 +17,10 @@ source "$REPO_DIRPATH/lib.sh"
 [[ -r "$INST_PKGS_FP" ]] || \
     die "Expecting to find a copy of the file $INST_PKGS_FP"
 
+# shellcheck disable=SC2154
+[[ -n "$PACKER_VERSION" ]] || \
+    die "Expecting a non-empty \$PACKER_VERSION value"
+
 set -x
     dnf update -y
     dnf -y install epel-release

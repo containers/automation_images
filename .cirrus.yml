@@ -8,6 +8,8 @@ env:
     CIRRUS_SHELL: "/bin/bash"
     # No need to go crazy, but grab enough to cover most PRs
     CIRRUS_CLONE_DEPTH: 50
+    # Version of packer to use when building images
+    PACKER_VERSION: &PACKER_VERSION "1.7.0"
     # Unique suffix label to use for all images produced by _this_ run (build)
     IMG_SFX: "${CIRRUS_BUILD_ID}"
     # Google Application Credentials (JSON) with access to create
@@ -30,6 +32,8 @@ validate_task:
         dockerfile: "ci/Containerfile"
         cpu: 1
         memory: "1G"
+        docker_arguments:
+            PACKER_VERSION: *PACKER_VERSION
     script:
         - "ci/shellcheck.sh"
         - "make image_builder/gce.json"
@@ -51,6 +55,8 @@ image_builder_task:
         dockerfile: "image_builder/Containerfile"
         cpu: 2
         memory: "2G"
+        docker_arguments:
+            PACKER_VERSION: *PACKER_VERSION
     script: "ci/make_image_builder.sh"
     manifest_artifacts:
         path: image_builder/manifest.json
@@ -200,6 +206,8 @@ cache_images_task:
         dockerfile: "image_builder/Containerfile"
         cpu: 2
         memory: "2G"
+        docker_arguments:
+            PACKER_VERSION: *PACKER_VERSION
     matrix:
         - &cache_image
           name: "${PACKER_BUILDS} Cache Image"
