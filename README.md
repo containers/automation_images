@@ -24,6 +24,7 @@ suitability for use by other *containers* org. repos.
 
 # Building VM Images
 
+
 ## Process Overview
 
 There are three parts to the automated (and manual) process.  For the vast
