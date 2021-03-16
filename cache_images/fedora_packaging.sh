@@ -184,6 +184,9 @@ if [[ ${#DOWNLOAD_PACKAGES[@]} -gt 0 ]]; then
     lilto ooe.sh $SUDO dnf download -y --resolve "${DOWNLOAD_PACKAGES[@]}"
 fi
 
+# It was observed in F33, dnf install doesn't always get you the latest/greatest
+lilto $SUDO dnf update -y
+
 echo "Configuring Go environment"
 export GOPATH=/var/tmp/go
 mkdir -p "$GOPATH"
