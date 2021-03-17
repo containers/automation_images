@@ -175,6 +175,7 @@ DOWNLOAD_PACKAGES=(\
     "kubernetes-$(get_kubernetes_version)*"
     oci-umount
     parallel
+    podman-docker
 )
 
 echo "Installing general build/test dependencies"
