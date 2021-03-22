@@ -129,6 +129,7 @@ INSTALL_PACKAGES=(\
     xz-utils
     zip
     zlib1g-dev
+    zstd
 )
 # Download these package files, but don't install them; Any tests
 # wishing to, may install them using their native tools at runtime.

@@ -140,6 +140,7 @@ INSTALL_PACKAGES=(\
     xz
     zip
     zlib-devel
+    zstd
 )
 
 # Perl module packaging changes between F32 and F33
