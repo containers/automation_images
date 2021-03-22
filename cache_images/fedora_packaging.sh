@@ -112,16 +112,20 @@ INSTALL_PACKAGES=(\
     protobuf-c-devel
     protobuf-devel
     python2
-    python3-docker
     python3-PyYAML
+    python3-coverage
     python3-dateutil
+    python3-docker
+    python3-fixtures
     python3-libselinux
     python3-libsemanage
     python3-libvirt
     python3-pip
     python3-psutil
+    python3-pylint
     python3-pytoml
     python3-requests
+    python3-requests-mock
     redhat-rpm-config
     rpcbind
     rsync
