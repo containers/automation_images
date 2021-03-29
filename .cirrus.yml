@@ -58,7 +58,6 @@ image_builder_task:
 
 
 container_images_task: &container_images
-    name: "Build container images"
     alias: "container_images"
     only_if: *is_pr
     skip: *ci_docs
@@ -72,7 +71,7 @@ container_images_task: &container_images
         zone: "us-central1-a"
         disk: 200  # Must be 200, negatively affects performance otherwise.
     matrix:
-        - name: &name "${TARGET_NAME} container"
+        - name: &name "Build ${TARGET_NAME} container"
           env:
             TARGET_NAME: 'fedora_podman'
             # Add a 'c' to the tag for consistency with VM Image names
@@ -117,7 +116,6 @@ container_images_task: &container_images
 
 latest_images_task:
     <<: *container_images
-    name: "Push latest images"
     alias: "latest_images"
     only_if: &branch $CIRRUS_PR == '' && $CIRRUS_CRON == ''
     skip: ''  # always refresh 'latest' images on branch-push
@@ -126,6 +124,27 @@ latest_images_task:
     env:
         <<: *image_env
         PUSH_LATEST: 1
+    matrix:
+        - name: &name "Latest ${TARGET_NAME} image"
+          env:
+            TARGET_NAME: 'imgts'
+            DEST_FQIN: *fqin
+        - name: *name
+          env:
+            TARGET_NAME: 'imgobsolete'
+            DEST_FQIN: *fqin
+        - name: *name
+          env:
+            TARGET_NAME: 'imgprune'
+            DEST_FQIN: *fqin
+        - name: *name
+          env:
+            TARGET_NAME: 'gcsupld'
+            DEST_FQIN: *fqin
+        - name: *name
+          env:
+            TARGET_NAME: 'get_ci_vm'
+            DEST_FQIN: *fqin
 
 
 base_images_task:
