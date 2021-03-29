@@ -40,6 +40,7 @@ image_builder_task:
     name: "Image-builder image"
     alias: "image_builder"
     only_if: *is_pr
+    skip: &ci_docs $CIRRUS_CHANGE_TITLE =~ '.*CI:DOCS.*'
     depends_on:
         - validate
     # Packer needs time to clean up partially created VM images
@@ -60,6 +61,7 @@ container_images_task: &container_images
     name: "Build container images"
     alias: "container_images"
     only_if: *is_pr
+    skip: *ci_docs
     depends_on:
         - image_builder
     timeout_in: 30m
@@ -112,9 +114,10 @@ latest_images_task:
     <<: *container_images
     name: "Push latest images"
     alias: "latest_images"
-    depends_on: []
     only_if: &branch $CIRRUS_PR == '' && $CIRRUS_CRON == ''
-    timeout_in: 30m
+    skip: ''  # always refresh 'latest' images on branch-push
+    skip: *ci_docs
+    depends_on: []
     gce_instance:
         <<: *ibi_vm
         # Trust whatever was built most recently (in some PR) is functional
@@ -122,13 +125,13 @@ latest_images_task:
     env:
         <<: *image_env
         PUSH_LATEST: 1
-    script: ci/make_container_images.sh;
 
 
 base_images_task:
     name: "Build VM Base-images"
     alias: "base_images"
     only_if: *is_pr
+    skip: *ci_docs
     depends_on:
         - container_images
     # Packer needs time to clean up partially created VM images
@@ -166,6 +169,7 @@ cache_images_task:
     name: "Build VM Cache-images"
     alias: "cache_images"
     only_if: *is_pr
+    skip: *ci_docs
     depends_on:
         - base_images
     # Packer needs time to clean up partially created VM images
@@ -201,6 +205,7 @@ imgts_task:
     name: "Apply new image metadata"
     alias: imgts
     only_if: *is_pr
+    skip: *ci_docs
     depends_on:
         - cache_images
     container:
@@ -231,6 +236,7 @@ test_imgobsolete_task: &lifecycle_test
     name: "Test old images obsolete marking"
     alias: test_imgobsolete
     only_if: &not_cron $CIRRUS_CRON == ''
+    skip: *ci_docs
     depends_on:
         - latest_images
         - imgts
@@ -251,6 +257,7 @@ test_imgprune_task:
     <<: *lifecycle_test
     name: "Test obsolete image deletion"
     alias: test_imgprune
+    skip: *ci_docs
     depends_on:
         - latest_images
         - imgts
@@ -262,6 +269,7 @@ test_gcsupld_task:
     name: "Test uploading to GCS"
     alias: test_gcsupld_task
     only_if: *not_cron
+    skip: *ci_docs
     depends_on:
         - latest_images
         - imgts
