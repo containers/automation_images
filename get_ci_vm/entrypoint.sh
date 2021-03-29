@@ -12,7 +12,7 @@ source "$(realpath "$SCRIPT_DIRPATH/../")/lib.sh"
 
 # Don't require users to remember to quote task names
 # shellcheck disable=SC2124
-CIRRUS_TASK="$@"
+CIRRUS_TASK="${CIRRUS_TASK:-$@}"
 
 # These are expected to be passed in to container
 SRCDIR="${SRCDIR}"
@@ -20,6 +20,12 @@ NAME="${NAME}"
 
 # If defined non-empty, the main() function will not be called
 TESTING_ENTRYPOINT="${TESTING_ENTRYPOINT}"
+
+# Assume we're running in a container, so no cleanup is necessary by default
+DO_CLEANUP="${DO_CLEANUP:-0}"
+
+# Time to read non-critical but important messages
+READING_DELAY="${READING_DELAY:-5s}"
 
 # apiv1 expects to receive the following env. vars. when called with --config
 # and $GET_CI_VM is set to 1
@@ -85,8 +91,6 @@ init() {
         die "Running as root not supported, use your regular user account for identification/auditing purposes"
     fi
 
-    # Assume we're running in a container, so no cleanup is necessary by default
-    DO_CLEANUP="${DO_CLEANUP:-0}"
     _TMPDIR=$(mktemp -d -p '' get_ci_vm_XXXXXX.tmp)
     # Several setup functions/commands expect this to be an absolute path
     if [[ "${DESTDIR:0:1}" != "/" ]]; then
@@ -267,7 +271,7 @@ https://cloud.google.com/compute/docs/regions-zones/#available
 
 e.g. env GCLOUD_ZONE=europe-west3-a hack/get_ci_vm.sh ...
 "
-        sleep 5s  # time to read, contimplate, and ctrl-c
+        sleep "$READING_DELAY"  # time to read, contimplate, and ctrl-c
     else
         # Goofy easter-egg...utc_base is arbitrary, this helps judge adjustments
         msg "Winning lottery-number checksum: $tz_diff"
@@ -292,7 +296,7 @@ init_gcevm() {
     rm -f "$HOME/.config/gcloud/ssh/google_compute_known_hosts"
 
     INST_NAME="${INST_NAME:-${NAME}-${INST_IMAGE}}"
-    GCLOUD="gcloud --configuration=$GCLOUD_CFG --project=$GCLOUD_PROJECT"
+    GCLOUD="${GCLOUD:-gcloud} --configuration=$GCLOUD_CFG --project=$GCLOUD_PROJECT"
     _args="--force-key-file-overwrite --strict-host-key-checking=no --zone=$GCLOUD_ZONE"
     SSH_CMD="$GCLOUD compute ssh $_args root@$INST_NAME"
     SCP_CMD="$GCLOUD compute scp $_args"
@@ -381,10 +385,9 @@ fini() {
     fi
     exit "$original_return_value"
 }
-trap fini EXIT
-
 
 main() {
+    trap fini EXIT
     init
     get_inst_image
     req_env_vars INST_TYPE

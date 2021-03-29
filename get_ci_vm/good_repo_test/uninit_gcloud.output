@@ -1,0 +1,39 @@
+Mock Google Cloud SDK [0.0.0]
+
+Platform: [Linux, x86_64] uname_result(system='Linux', node='6365688aa3d9', release='5.10.11-100.fc32.x86_64', version='#1 SMP Wed Jan 27 15:20:29 UTC 2021', machine='x86_64', processor='')
+Locale: (None, None)
+Python Version: [3.8.8 (default, Mar 15 2021, 13:10:14)  [GCC 10.2.1 20201203]]
+Python Location: [/usr/bin/python3]
+Site Packages: [Disabled]
+
+Installation Root: [/google-cloud-sdk]
+Installed Components:
+  bq: [2.0.65]
+  gsutil: [4.60]
+  core: [2021.03.19]
+System PATH: [/google-cloud-sdk/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin]
+Python PATH: [/google-cloud-sdk/lib/third_party:/google-cloud-sdk/lib:/usr/lib/python38.zip:/usr/lib/python3.8:/usr/lib/python3.8/lib-dynload]
+Cloud SDK on PATH: [True]
+Kubectl on PATH: [False]
+
+Installation Properties: [/google-cloud-sdk/properties]
+User Config Directory: [/root/.config/gcloud]
+Active Configuration Name: [default]
+Active Configuration Path: [/root/.config/gcloud/configurations/config_default]
+
+Account: [None]
+Project: [None]
+
+Current Properties:
+  [component_manager]
+    disable_update_check: [true]
+  [core]
+    disable_usage_reporting: [true]
+  [metrics]
+    environment: [github_docker_image]
+
+Logs Directory: [/root/.config/gcloud/logs]
+Last Log File: [/root/.config/gcloud/logs/2021.03.23/16.31.00.068510.log]
+
+git: [git version 2.30.2]
+ssh: [OpenSSH_8.4p1, OpenSSL 1.1.1k  25 Mar 2021]

@@ -4,7 +4,7 @@ ENV AI_PATH=/usr/src/automation_images
 
 # Only add needed files to avoid invalidating build cache
 ADD /lib.sh "$AI_PATH/"
-ADD /get_ci_vm/* "$AI_PATH/get_ci_vm/"
+ADD /get_ci_vm/entrypoint.sh /get_ci_vm/setup.sh "$AI_PATH/get_ci_vm/"
 WORKDIR "$AI_PATH"
 RUN bash ./get_ci_vm/setup.sh
 

@@ -287,7 +287,7 @@ test_imgprune_task:
 
 test_gcsupld_task:
     name: "Test uploading to GCS"
-    alias: test_gcsupld_task
+    alias: test_gcsupld
     only_if: *not_cron
     skip: *ci_docs
     depends_on:
@@ -302,6 +302,23 @@ test_gcsupld_task:
         GCPNAME: ENCRYPTED[77a24c0e75505c8eced8ed4ac9030a6d8c4b1e0987616c80f54d6b58ab0837dcef0f80e26a47fffdb0816d2b92100c78]
         GCPPROJECT: 'libpod-218412'
     test_script: "gcsupld/test.sh"
+
+
+test_get_ci_vm_task:
+    name: "Test get_ci_vm entrypoint"
+    alias: test_get_ci_vm
+    only_if: *not_cron
+    skip: *ci_docs
+    depends_on:
+        - latest_images
+        - imgts
+    container:
+        image: 'quay.io/libpod/get_ci_vm:c$IMG_SFX'
+        cpu: 2
+        memory: '2G'
+    env:
+        TESTING_ENTRYPOINT: true
+    test_script: "get_ci_vm/test.sh"
 
 
 # N/B: "latest" image produced after PR-merge (branch-push)
@@ -344,6 +361,8 @@ success_task:
         - cron_imgobsolete
         - test_imgprune
         - cron_imgprune
+        - test_gcsupld
+        - test_get_ci_vm
     container:
         <<: *ci_container
     clone_script: *noop

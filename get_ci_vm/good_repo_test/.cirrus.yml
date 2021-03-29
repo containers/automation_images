@@ -1,0 +1,9 @@
+---
+
+google_test_task:
+    gce_instance:
+        image_name: test-image-name
+
+container_test_task:
+    container:
+        image: something
