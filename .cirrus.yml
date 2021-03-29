@@ -102,19 +102,27 @@ container_images_task: &container_images
           env:
             TARGET_NAME: 'gcsupld'
             DEST_FQIN: *fqin
-    env:
+    env: &image_env
         TEMPDIR: '$CIRRUS_WORKING_DIR'
         LOGIN_CMD: ENCRYPTED[d15806d68c90cf74faca59bc4f81ada269538092b8449c7d8cd4cf44cd8d58a7482d2b249a9da06508f32f9e4075dc18]
-    # CIRRUS_BRANCH *is* none-empty for both pr-push and branch-push
-    # Only push 'latest' tag images during a branch-push
-    script: |
-        if [[ -n "$CIRRUS_PR" ]]; then
-            ci/make_container_images.sh;
-        elif [[ -z "$CIRRUS_CRON" ]] && [[ -z "$CIRRUS_TAG" ]]; then
-            env PUSH_LATEST=1 ci/make_container_images.sh;
-        else
-            echo "No-op for cron and tag-push triggered builds";
-        fi
+    script: ci/make_container_images.sh;
+
+
+latest_images_task:
+    <<: *container_images
+    name: "Push latest images"
+    alias: "latest_images"
+    depends_on: []
+    only_if: &branch $CIRRUS_PR == '' && $CIRRUS_CRON == ''
+    timeout_in: 30m
+    gce_instance:
+        <<: *ibi_vm
+        # Trust whatever was built most recently (in some PR) is functional
+        image_family: "image-builder"
+    env:
+        <<: *image_env
+        PUSH_LATEST: 1
+    script: ci/make_container_images.sh;
 
 
 base_images_task:
@@ -194,8 +202,6 @@ imgts_task:
     alias: imgts
     only_if: *is_pr
     depends_on:
-        - container_images
-        - base_images
         - cache_images
     container:
         image: 'quay.io/libpod/imgts:c$IMG_SFX'
@@ -224,8 +230,9 @@ imgts_task:
 test_imgobsolete_task: &lifecycle_test
     name: "Test old images obsolete marking"
     alias: test_imgobsolete
-    only_if: *is_pr
+    only_if: &not_cron $CIRRUS_CRON == ''
     depends_on:
+        - latest_images
         - imgts
     container:
         image: 'quay.io/libpod/imgobsolete:c$IMG_SFX'
@@ -245,7 +252,8 @@ test_imgprune_task:
     name: "Test obsolete image deletion"
     alias: test_imgprune
     depends_on:
-        - test_imgobsolete
+        - latest_images
+        - imgts
     container:
         image: 'quay.io/libpod/imgprune:c$IMG_SFX'
 
@@ -253,9 +261,10 @@ test_imgprune_task:
 test_gcsupld_task:
     name: "Test uploading to GCS"
     alias: test_gcsupld_task
-    only_if: *is_pr
+    only_if: *not_cron
     depends_on:
-        - container_images
+        - latest_images
+        - imgts
     container:
         image: 'quay.io/libpod/gcsupld:c$IMG_SFX'
         cpu: 2
@@ -299,6 +308,7 @@ success_task:
         - validate
         - image_builder
         - container_images
+        - latest_images
         - base_images
         - cache_images
         - imgts
