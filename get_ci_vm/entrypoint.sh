@@ -27,6 +27,9 @@ DO_CLEANUP="${DO_CLEANUP:-0}"
 # Time to read non-critical but important messages
 READING_DELAY="${READING_DELAY:-5s}"
 
+# Set non-zero to enable debugging
+DEBUG="${DEBUG:-0}"
+
 # apiv1 expects to receive the following env. vars. when called with --config
 # and $GET_CI_VM is set to 1
 #
@@ -73,16 +76,21 @@ status() {
 # Each repository behaves slightly differently, confirm
 # compatibility before loading repo-specific settings
 supports_apiv1() {
+    dbg "Examining $REPO_HACK_SCRIPT for apiv1 support"
     req_env_vars REPO_HACK_SCRIPT
     if [[ ! -r "$REPO_HACK_SCRIPT" ]]; then
         die "Can't find '$REPO_HACK_SCRIPT' in source repository."
     elif grep -Eq '^# get_ci_vm APIv1' "$REPO_HACK_SCRIPT"; then
+        dbg "Detected apiv1 support."
         return 0
     fi
+    dbg "Did NOT detect apiv1 support."
     return 1
 }
 
 init() {
+    dbg "Initial env. vars:"
+    if ((DEBUG)); then show_env_vars; fi
     status "Initializing get_ci_vm"
     # These are passed in by hack/get_ci_vm.sh script
     req_env_vars NAME SRCDIR
@@ -90,8 +98,8 @@ init() {
     if [[ "$NAME" == "root" ]]; then
         die "Running as root not supported, use your regular user account for identification/auditing purposes"
     fi
-
     _TMPDIR=$(mktemp -d -p '' get_ci_vm_XXXXXX.tmp)
+    dbg "Initializing for \$NAME=$NAME and \$SRCDIR=$SRCDIR and \$_TMPDIR=$_TMPDIR"
     # Several setup functions/commands expect this to be an absolute path
     if [[ "${DESTDIR:0:1}" != "/" ]]; then
         DESTDIR="/$DESTDIR"
@@ -101,6 +109,8 @@ init() {
     if supports_apiv1; then
         # Dump+Source needed to support in-line comments
         env GET_CI_VM=1 "$REPO_HACK_SCRIPT" --config > $_TMPDIR/apiv1.sh
+        dbg "Loading apiv1 vars:
+$(cat $_TMPDIR/apiv1.sh)"
         # shellcheck disable=SC1090
         source $_TMPDIR/apiv1.sh
         req_env_vars DESTDIR UPSTREAM_REPO
@@ -117,15 +127,19 @@ get_inst_image() {
     status "Obtaining task listing from repository .cirrus.yml"
     req_env_vars SRCDIR
     cirrus_tasks=$(cirrus-ci_env.py --list "$SRCDIR/.cirrus.yml")
-
+    dbg "Successfully loaded .cirrus.yml task listing"
     if [[ -z "$CIRRUS_TASK" ]]; then
         die "Usage: hack/get_ci_vm.sh <task name | --list>
        Note: Quoting the parameter is not required
 "
-    elif [[ "$CIRRUS_TASK" =~ "--list" ]]; then
+    elif [[ "$CIRRUS_TASK" =~ --list ]]; then
         msg "$cirrus_tasks"
+        dbg "Exiting after printing task list"
         exit 0
-    elif ! grep -q "$CIRRUS_TASK"<<<"$cirrus_tasks"; then
+    elif ! grep -q -- "$CIRRUS_TASK"<<<"$cirrus_tasks"; then
+        # The task-list can be long, don't let it swamp the error message"
+        dbg "Valid tasks:
+$cirrus_tasks"
         die "Unknown .cirrus.yml task name '$CIRRUS_TASK', use '--list' to show valid names."
     fi
 
@@ -137,6 +151,7 @@ get_inst_image() {
     mapfile -t type_image <<<"$_output"
     INST_TYPE="${type_image[0]}"
     INST_IMAGE="${type_image[1]}"
+    dbg "Parsed \$type_image=[$_output]"
     if [[ -z "$INST_TYPE" ]] || [[ -z "$INST_IMAGE" ]]; then
         die "Error parsing inst. type and image from output '$_output'"
     fi
@@ -146,6 +161,8 @@ get_inst_image() {
 # the specific project-id and named-configuration arguments in $PGCLOUD.
 has_valid_credentials() {
     req_env_vars GCLOUD
+    dbg "$GCLOUD info output"
+    dbg "$($GCLOUD info)"
     if $GCLOUD info |& grep -Eq 'Account:.*None'; then
         return 1
     fi
@@ -217,6 +234,8 @@ else
 fi
 EOF
     chmod +x ci_env.sh
+    dbg "Produced remote environment script:
+$(<ci_env.sh)"
 }
 
 # Tarball up current repository state and ci_env.sh script
@@ -225,6 +244,7 @@ make_setup_tarball() {
     req_env_vars DESTDIR _TMPDIR SRCDIR UPSTREAM_REPO
     mkdir -p "${_TMPDIR}$DESTDIR"
     git clone --no-local --no-hardlinks --depth 1 --single-branch --no-tags "$SRCDIR" "${_TMPDIR}$DESTDIR"
+    dbg "Handling non-commited repo. files: $(extra_repo_files)"
     extra_repo_files | while read -r extra_file; do
         extra_file_path="$_TMPDIR/$DESTDIR/$extra_file"
         extra_dir_path=$(dirname "$extra_file_path")
@@ -258,6 +278,7 @@ check_gcevm_tz() {
     local utc_base
     local tz_diff
     utc_local="${UTC_LOCAL_TEST:-$(date +%z)}"
+    dbg "Timezone check \$utc_local=$utc_local"
     utc_base="-0500" # All Cirrus-CI instances reside in the central zone
     tz_diff=$(python3 -c "print(abs(int('$utc_base', base=10) - int('$utc_local', base=10)))")
     # trigger at 5-zones away from us-central zone (arbitrary guess)
@@ -278,15 +299,30 @@ e.g. env GCLOUD_ZONE=europe-west3-a hack/get_ci_vm.sh ...
     fi
 }
 
+_dbg_envars() {
+    local env_var_name
+    local line
+    dbg "debug env. vars.:"
+    # Re-splitting elements is intentional
+    # shellcheck disable=SC2068
+    for env_var_name in $@; do
+        line="${env_var_name}=${!env_var_name}"
+        dbg "    $line"
+    done
+}
+
 init_gcevm() {
     local _args
+    local _vars
+    req_env_vars INST_IMAGE NAME
     if supports_apiv1; then
-        req_env_vars GCLOUD_CFG GCLOUD_ZONE GCLOUD_CPUS GCLOUD_MEMORY
-        req_env_vars GCLOUD_DISK GCLOUD_PROJECT GCLOUD_IMGPROJECT
+        _vars="GCLOUD_CFG GCLOUD_ZONE GCLOUD_CPUS GCLOUD_MEMORY"
+        _vars="$_vars GCLOUD_DISK GCLOUD_PROJECT GCLOUD_IMGPROJECT"
+        _dbg_envars $_vars
+        req_env_vars $_vars
     else
         die "Repository hack/get_ci_vm.sh not compatible 'gcevm' instances from this container image."
     fi
-    req_env_vars INST_IMAGE NAME GCLOUD_CFG GCLOUD_PROJECT GCLOUD_ZONE GCLOUD_CPUS GCLOUD_MEMORY GCLOUD_DISK
 
     check_gcevm_tz
 
@@ -305,6 +341,10 @@ init_gcevm() {
 --image=$INST_IMAGE --custom-cpu=$GCLOUD_CPUS --custom-memory=$GCLOUD_MEMORY \
 --boot-disk-size=$GCLOUD_DISK --labels=in-use-by=$NAME $INST_NAME"
     CLEANUP_CMD="$GCLOUD compute instances delete --zone=$GCLOUD_ZONE --delete-disks=all $INST_NAME"
+
+    dbg "Setup apiv1 gcevm env. vars:"
+    _dbg_envars INST_NAME GCLOUD SSH_CMD SCP_CMD CREATE_CMD CLEANUP_CMD
+
     if ! has_valid_credentials; then
         warn "Can't find valid GCP credentials, attempting to (re)initialize.
 If asked, please choose \"#1: Re-initialize\", \"login\", and \"$GCLOUD_ZONE\" GCLOUD_ZONE,
@@ -334,8 +374,10 @@ create_gcevm() {
         if ! ((attempts)); then
             die "Failed to access $INST_NAME with $SSH_CMD"
         fi
+        dbg "success"
         return 0
     else
+        dbg "failure"
         return 1
     fi
 }
@@ -364,6 +406,7 @@ Offering to delete $INST_NAME (might take a minute)
 Note: It's perfectly safe to answer 'N'.  Simply re-run script again
 later with the same arguments, to access and/or delete the VM.
 "
+    dbg "Executing \$CLEANUP_CMD=$CLEANUP_CMD"
     $CLEANUP_CMD || true # prompts for Yes/No; ignore errors
 }
 
@@ -387,6 +430,7 @@ fini() {
 }
 
 main() {
+    dbg "Debugging Enabled"
     trap fini EXIT
     init
     get_inst_image

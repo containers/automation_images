@@ -81,7 +81,7 @@ help: ## Default target, parses special in-line comments as documentation.
 ci_debug: $(_TEMPDIR)/ci_debug.tar ## Build and enter container for local development/debugging of container-based Cirrus-CI tasks
 	/usr/bin/podman run -it --rm \
 		--security-opt label=disable -v $$PWD:$$PWD -w $$PWD \
-		-v $(_TEMPDIR):$(_TEMPDIR):Z -v $(_GAC_FILEPATH):$(_GAC_FILEPATH):Z \
+		-v $(_TEMPDIR):$(_TEMPDIR):Z -v $(call err_if_empty,GAC_FILEPATH):$(GAC_FILEPATH):Z \
 		-e PACKER_INSTALL_DIR=/usr/local/bin \
 		-e GAC_FILEPATH=$(GAC_FILEPATH) -e TEMPDIR=$(_TEMPDIR) \
 		docker-archive:$<
