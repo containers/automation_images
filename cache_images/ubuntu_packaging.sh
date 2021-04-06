@@ -146,6 +146,8 @@ if [[ "$OS_RELEASE_VER" -le 2004 ]]; then
     )
 else  # e.g. 20.10 and later
     INSTALL_PACKAGES+=(\
+        libcap2
+        podman-plugins
         python-is-python3
         python3-dateutil
         python3-protobuf

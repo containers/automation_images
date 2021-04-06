@@ -58,7 +58,6 @@ image_builder_task:
 
 
 container_images_task: &container_images
-    name: "Build container images"
     alias: "container_images"
     only_if: *is_pr
     skip: *ci_docs
@@ -72,7 +71,7 @@ container_images_task: &container_images
         zone: "us-central1-a"
         disk: 200  # Must be 200, negatively affects performance otherwise.
     matrix:
-        - name: &name "${TARGET_NAME} container"
+        - name: &name "Build ${TARGET_NAME} container"
           env:
             TARGET_NAME: 'fedora_podman'
             # Add a 'c' to the tag for consistency with VM Image names
@@ -105,6 +104,10 @@ container_images_task: &container_images
           env:
             TARGET_NAME: 'gcsupld'
             DEST_FQIN: *fqin
+        - name: *name
+          env:
+            TARGET_NAME: 'get_ci_vm'
+            DEST_FQIN: *fqin
     env: &image_env
         TEMPDIR: '$CIRRUS_WORKING_DIR'
         LOGIN_CMD: ENCRYPTED[d15806d68c90cf74faca59bc4f81ada269538092b8449c7d8cd4cf44cd8d58a7482d2b249a9da06508f32f9e4075dc18]
@@ -113,7 +116,6 @@ container_images_task: &container_images
 
 latest_images_task:
     <<: *container_images
-    name: "Push latest images"
     alias: "latest_images"
     only_if: &branch $CIRRUS_PR == '' && $CIRRUS_CRON == ''
     skip: ''  # always refresh 'latest' images on branch-push
@@ -122,6 +124,27 @@ latest_images_task:
     env:
         <<: *image_env
         PUSH_LATEST: 1
+    matrix:
+        - name: &name "Latest ${TARGET_NAME} image"
+          env:
+            TARGET_NAME: 'imgts'
+            DEST_FQIN: *fqin
+        - name: *name
+          env:
+            TARGET_NAME: 'imgobsolete'
+            DEST_FQIN: *fqin
+        - name: *name
+          env:
+            TARGET_NAME: 'imgprune'
+            DEST_FQIN: *fqin
+        - name: *name
+          env:
+            TARGET_NAME: 'gcsupld'
+            DEST_FQIN: *fqin
+        - name: *name
+          env:
+            TARGET_NAME: 'get_ci_vm'
+            DEST_FQIN: *fqin
 
 
 base_images_task:
@@ -264,7 +287,7 @@ test_imgprune_task:
 
 test_gcsupld_task:
     name: "Test uploading to GCS"
-    alias: test_gcsupld_task
+    alias: test_gcsupld
     only_if: *not_cron
     skip: *ci_docs
     depends_on:
@@ -279,6 +302,23 @@ test_gcsupld_task:
         GCPNAME: ENCRYPTED[77a24c0e75505c8eced8ed4ac9030a6d8c4b1e0987616c80f54d6b58ab0837dcef0f80e26a47fffdb0816d2b92100c78]
         GCPPROJECT: 'libpod-218412'
     test_script: "gcsupld/test.sh"
+
+
+test_get_ci_vm_task:
+    name: "Test get_ci_vm entrypoint"
+    alias: test_get_ci_vm
+    only_if: *not_cron
+    skip: *ci_docs
+    depends_on:
+        - latest_images
+        - imgts
+    container:
+        image: 'quay.io/libpod/get_ci_vm:c$IMG_SFX'
+        cpu: 2
+        memory: '2G'
+    env:
+        TESTING_ENTRYPOINT: true
+    test_script: "get_ci_vm/test.sh"
 
 
 # N/B: "latest" image produced after PR-merge (branch-push)
@@ -321,6 +361,8 @@ success_task:
         - cron_imgobsolete
         - test_imgprune
         - cron_imgprune
+        - test_gcsupld
+        - test_get_ci_vm
     container:
         <<: *ci_container
     clone_script: *noop

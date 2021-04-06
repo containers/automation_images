@@ -24,7 +24,7 @@ CUSTOM_CLOUD_CONFIG_DEFAULTS="$SCRIPT_DIRPATH/cloud-init/$OS_RELEASE_ID/cloud.cf
 # This location is checked by automation in other repos, please do not change.
 PACKAGE_DOWNLOAD_DIR=/var/cache/download
 
-INSTALL_AUTOMATION_VERSION="1.2.3"
+INSTALL_AUTOMATION_VERSION="2.1.2"
 
 SUDO=""
 if [[ "$UID" -ne 0 ]]; then
@@ -37,9 +37,7 @@ if [[ "$OS_RELEASE_ID" == "ubuntu" ]]; then
 fi
 
 if [[ -d "/usr/share/automation" ]]; then
-    # Since we're not a login-shell, this doesn't always automatically load
-    # (via other means, pointing at this file)
-    source /usr/share/automation/environment
+    source /etc/automation_environment
     #shellcheck disable=SC1090,SC2154
     source $AUTOMATION_LIB_PATH/common_lib.sh
 
@@ -60,7 +58,7 @@ install_automation_tooling() {
     curl --silent --show-error --location \
          --url "$installer_url" | \
          $SUDO env INSTALL_PREFIX=/usr/share /bin/bash -s - \
-        "$INSTALL_AUTOMATION_VERSION"
+        "$INSTALL_AUTOMATION_VERSION" "$@"
     # This defines AUTOMATION_LIB_PATH
     source /usr/share/automation/environment
     #shellcheck disable=SC1090

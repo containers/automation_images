@@ -1,0 +1,24 @@
+FROM gcr.io/google.com/cloudsdktool/cloud-sdk:alpine
+
+ENV AI_PATH=/usr/src/automation_images
+
+# Only add needed files to avoid invalidating build cache
+ADD /lib.sh "$AI_PATH/"
+ADD /get_ci_vm/entrypoint.sh /get_ci_vm/setup.sh "$AI_PATH/get_ci_vm/"
+WORKDIR "$AI_PATH"
+RUN bash ./get_ci_vm/setup.sh
+
+#### For runtime use:
+
+# The containers-org repository source to be used must be volume-mounted
+# at $SRC (read-only).  The invoking user's $HOME/.config/gcloud must be
+# volume-mounted at /root/.config/gcloud (read-write).  The invoking user's
+# $HOME/.config/gcloud/ssh must be volume-mounted at /root/.ssh (read-write)
+# Lastly, $NAME needs to be set to identify and prevent VM instance name
+# conflicts.
+
+ENTRYPOINT ["/bin/bash", "/usr/src/automation_images/get_ci_vm/entrypoint.sh"]
+WORKDIR "/root"
+ENV SRCDIR="" \
+    NAME="" \
+    GCLOUD_ZONE=""

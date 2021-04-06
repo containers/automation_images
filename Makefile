@@ -81,7 +81,7 @@ help: ## Default target, parses special in-line comments as documentation.
 ci_debug: $(_TEMPDIR)/ci_debug.tar ## Build and enter container for local development/debugging of container-based Cirrus-CI tasks
 	/usr/bin/podman run -it --rm \
 		--security-opt label=disable -v $$PWD:$$PWD -w $$PWD \
-		-v $(_TEMPDIR):$(_TEMPDIR):Z -v $(_GAC_FILEPATH):$(_GAC_FILEPATH):Z \
+		-v $(_TEMPDIR):$(_TEMPDIR):Z -v $(call err_if_empty,GAC_FILEPATH):$(GAC_FILEPATH):Z \
 		-e PACKER_INSTALL_DIR=/usr/local/bin \
 		-e GAC_FILEPATH=$(GAC_FILEPATH) -e TEMPDIR=$(_TEMPDIR) \
 		docker-archive:$<
@@ -226,6 +226,7 @@ $(_TEMPDIR)/%_podman.tar: podman/Containerfile podman/setup.sh $(wildcard base_i
 	rm -f $@
 	podman save --quiet -o $@ $*_podman:$(IMG_SFX)
 
+.PHONY: imgts
 imgts: $(_TEMPDIR)/imgts.tar  ## Build the VM image time-stamping container image
 $(_TEMPDIR)/imgts.tar: imgts/Containerfile imgts/entrypoint.sh imgts/google-cloud-sdk.repo imgts/lib_entrypoint.sh $(_TEMPDIR)
 	podman build -t imgts:$(call err_if_empty,IMG_SFX) \
@@ -233,6 +234,7 @@ $(_TEMPDIR)/imgts.tar: imgts/Containerfile imgts/entrypoint.sh imgts/google-clou
 	rm -f $@
 	podman save --quiet -o $@ imgts:$(IMG_SFX)
 
+.PHONY: imgobsolete
 imgobsolete: $(_TEMPDIR)/imgobsolete.tar  ## Build the VM Image obsoleting container image
 $(_TEMPDIR)/imgobsolete.tar: $(_TEMPDIR)/imgts.tar imgts/lib_entrypoint.sh imgobsolete/Containerfile imgobsolete/entrypoint.sh $(_TEMPDIR)
 	podman load -i $(_TEMPDIR)/imgts.tar imgts:latest
@@ -241,6 +243,7 @@ $(_TEMPDIR)/imgobsolete.tar: $(_TEMPDIR)/imgts.tar imgts/lib_entrypoint.sh imgob
 	rm -f $@
 	podman save --quiet -o $@ imgobsolete:$(IMG_SFX)
 
+.PHONY: imgprune
 imgprune: $(_TEMPDIR)/imgprune.tar  ## Build the VM Image pruning container image
 $(_TEMPDIR)/imgprune.tar: $(_TEMPDIR)/imgts.tar imgts/lib_entrypoint.sh imgprune/Containerfile imgprune/entrypoint.sh $(_TEMPDIR)
 	podman load -i $(_TEMPDIR)/imgts.tar imgts:latest
@@ -249,6 +252,7 @@ $(_TEMPDIR)/imgprune.tar: $(_TEMPDIR)/imgts.tar imgts/lib_entrypoint.sh imgprune
 	rm -f $@
 	podman save --quiet -o $@ imgprune:$(IMG_SFX)
 
+.PHONY: gcsupld
 gcsupld: $(_TEMPDIR)/gcsupld.tar  ## Build the GCS Upload container image
 $(_TEMPDIR)/gcsupld.tar: $(_TEMPDIR)/imgts.tar imgts/lib_entrypoint.sh gcsupld/Containerfile gcsupld/entrypoint.sh $(_TEMPDIR)
 	podman load -i $(_TEMPDIR)/imgts.tar imgts:latest
@@ -257,6 +261,12 @@ $(_TEMPDIR)/gcsupld.tar: $(_TEMPDIR)/imgts.tar imgts/lib_entrypoint.sh gcsupld/C
 	rm -f $@
 	podman save --quiet -o $@ gcsupld:$(IMG_SFX)
 
+.PHONY: .get_ci_vm
+get_ci_vm: $(_TEMPDIR)/get_ci_vm.tar  ## Build the get_ci_vm container image
+$(_TEMPDIR)/get_ci_vm.tar: lib.sh get_ci_vm/Containerfile get_ci_vm/entrypoint.sh get_ci_vm/setup.sh $(_TEMPDIR)
+	podman build -t get_ci_vm:$(call err_if_empty,IMG_SFX) -f get_ci_vm/Containerfile .
+	rm -f $@
+	podman save --quiet -o $@ get_ci_vm:$(IMG_SFX)
 
 .PHONY: clean
 clean: ## Remove all generated files referenced in this Makefile
