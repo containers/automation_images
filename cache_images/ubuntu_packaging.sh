@@ -42,6 +42,10 @@ curl --fail --silent --location --url "$GPG_URL" | \
     gpg --dearmor | \
     $SUDO tee /etc/apt/trusted.gpg.d/devel_kubic_libcontainers_testing_ci.gpg &> /dev/null
 
+
+# Removed golang-1.14 from install packages due to known
+# performance reason.  Reinstall when ubuntu has 1.16.
+
 INSTALL_PACKAGES=(\
     apache2-utils
     apparmor
@@ -72,7 +76,6 @@ INSTALL_PACKAGES=(\
     git
     gnupg2
     go-md2man
-    golang-1.14
     iproute2
     iptables
     jq
@@ -170,7 +173,11 @@ echo "Configuring Go environment"
 # There are multiple (otherwise conflicting) versions of golang available
 # on Ubuntu.  Being primarily localized by env. vars and defaults, dropping
 # a symlink is the appropriate way to "install" a specific version system-wide.
-$SUDO ln -sf /usr/lib/go-1.14/bin/go /usr/bin/go
+#
+# Add upstream golang for perf issues
+curl -s -L https://golang.org/dl/go1.15.11.linux-amd64.tar.gz | $SUDO tar xzf - -C /usr/local/
+# Now linking to upstream golang until ubuntu performance issues are resolved
+$SUDO ln -sf /usr/local/go/bin/go /usr/bin/go
 
 export GOPATH=/var/tmp/go
 mkdir -p "$GOPATH"
