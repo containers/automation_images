@@ -3,13 +3,15 @@
 # for development/debugging or manually building most
 # Makefile targets.
 
-ARG FEDORA_RELEASE=32
+ARG FEDORA_RELEASE=latest
 FROM registry.fedoraproject.org/fedora:${FEDORA_RELEASE}
+ARG PACKER_VERSION
 MAINTAINER https://github.com/containers/automation_images/ci
 
 ENV CIRRUS_WORKING_DIR=/tmp/automation_images \
     PACKER_INSTALL_DIR=/usr/local/bin \
-    VERSION=1
+    PACKER_VERSION=$PACKER_VERSION \
+    CONTAINER=1
 ADD ./ci/install* "$CIRRUS_WORKING_DIR/ci/"
 WORKDIR "$CIRRUS_WORKING_DIR/"
 RUN bash ./ci/install_packages.sh

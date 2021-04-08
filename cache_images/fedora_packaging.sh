@@ -123,7 +123,6 @@ INSTALL_PACKAGES=(\
     python3-pip
     python3-psutil
     python3-pylint
-    python3-pytoml
     python3-requests
     python3-requests-mock
     redhat-rpm-config
@@ -132,7 +131,6 @@ INSTALL_PACKAGES=(\
     runc
     sed
     skopeo
-    skopeo-containers
     slirp4netns
     socat
     tar
@@ -148,9 +146,12 @@ INSTALL_PACKAGES=(\
 )
 
 # Perl module packaging changes between F32 and F33
-if [[ "$OS_RELEASE_VER" -ge 33 ]]; then
-    INSTALL_PACKAGES+=( perl-FindBin )
-fi
+case "$OS_RELEASE_VER" in
+    32) INSTALL_PACKAGES+=( python3-pytoml ) ;;
+    33) ;&
+    34) INSTALL_PACKAGES+=( perl-FindBin python-toml ) ;;
+    *) die "Unknown/Unsupported \$OS_REL_VER '$OS_REL_VER'" ;;
+esac
 
 # When installing during a container-build, having this present
 # will seriously screw up future dnf operations in very non-obvious ways.
@@ -174,10 +175,11 @@ DOWNLOAD_PACKAGES=(\
     "kubernetes-$(get_kubernetes_version)*"
     oci-umount
     parallel
+    podman-docker
 )
 
 echo "Installing general build/test dependencies"
-bigto ooe.sh $SUDO dnf install -y $EXARG "${INSTALL_PACKAGES[@]}"
+bigto $SUDO dnf install -y $EXARG "${INSTALL_PACKAGES[@]}"
 
 if [[ ${#DOWNLOAD_PACKAGES[@]} -gt 0 ]]; then
     echo "Downloading packages for optional installation at runtime, as needed."
@@ -186,7 +188,7 @@ if [[ ${#DOWNLOAD_PACKAGES[@]} -gt 0 ]]; then
     $SUDO mkdir -p "$PACKAGE_DOWNLOAD_DIR"
     cd "$PACKAGE_DOWNLOAD_DIR"
     lilto ooe.sh $SUDO dnf install -y 'dnf-command(download)'
-    lilto ooe.sh $SUDO dnf download -y --resolve "${DOWNLOAD_PACKAGES[@]}"
+    lilto $SUDO dnf download -y --resolve "${DOWNLOAD_PACKAGES[@]}"
 fi
 
 # It was observed in F33, dnf install doesn't always get you the latest/greatest

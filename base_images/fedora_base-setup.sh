@@ -32,7 +32,9 @@ fi
 dnf -y update $XSELINUX
 dnf -y install $XSELINUX "${PKGS[@]}"
 
-systemctl enable rngd
+if ! ((CONTAINER)); then
+    systemctl enable rngd
+fi
 
 install_automation_tooling
 
@@ -54,18 +56,6 @@ if ! ((CONTAINER)); then
     sed -r -e \
         "s/Type=oneshot/Type=oneshot\nSELinuxContext=$METADATA_SERVICE_CTX/" \
         /lib/$METADATA_SERVICE_PATH > /etc/$METADATA_SERVICE_PATH
-
-    # When this image is used for the 'cache_images' target, the packer tool
-    # will attempt to create and use a temporary ssh key (internally).  There
-    # are no options for selecting the key type or other creation parameters.  As
-    # of Fedora 33, this generated key will not be accepted as it is now considered
-    # cryptographically weak.  However, since these VM images are short-lived and
-    # for software testing purposes, high-security is a secondary consideration.
-    if [[ "$OS_RELEASE_VER" -ge 33 ]]; then
-        sed -i -r -e \
-            's/^(PubkeyAcceptedKeyTypes )(.*)/\1ssh-rsa,\2/' \
-            /etc/crypto-policies/back-ends/opensshserver.config
-    fi
 fi
 
 if [[ "$OS_RELEASE_ID" == "fedora" ]] && ((OS_RELEASE_VER>=33)); then

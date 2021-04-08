@@ -57,8 +57,8 @@ override _PKR_DIR := $(abspath $(call err_if_empty,PKR_DIR))
 
 OSTYPE ?= linux
 OSARCH ?= amd64
-PACKER_VERSION ?= 1.6.4
-override _PACKER_URL := https://releases.hashicorp.com/packer/$(PACKER_VERSION)/packer_$(PACKER_VERSION)_$(OSTYPE)_$(OSARCH).zip
+PACKER_VERSION ?= $(shell bash ./get_packer_version.sh)
+override _PACKER_URL := https://releases.hashicorp.com/packer/$(strip $(call err_if_empty,PACKER_VERSION))/packer_$(strip $(PACKER_VERSION))_$(OSTYPE)_$(OSARCH).zip
 
 # Align each line properly to the header
 override _HLPFMT = "%-20s %s\n"
@@ -80,14 +80,21 @@ help: ## Default target, parses special in-line comments as documentation.
 .PHONY: ci_debug
 ci_debug: $(_TEMPDIR)/ci_debug.tar ## Build and enter container for local development/debugging of container-based Cirrus-CI tasks
 	/usr/bin/podman run -it --rm \
-		--security-opt label=disable -v $$PWD:$$PWD -w $$PWD \
-		-v $(_TEMPDIR):$(_TEMPDIR):Z -v $(call err_if_empty,GAC_FILEPATH):$(GAC_FILEPATH):Z \
+		--security-opt label=disable \
+		-v $(_MKFILE_DIR):$(_MKFILE_DIR) -w $(_MKFILE_DIR) \
+		-v $(_TEMPDIR):$(_TEMPDIR):Z \
+		-v $(call err_if_empty,GAC_FILEPATH):$(GAC_FILEPATH):Z \
 		-e PACKER_INSTALL_DIR=/usr/local/bin \
-		-e GAC_FILEPATH=$(GAC_FILEPATH) -e TEMPDIR=$(_TEMPDIR) \
+		-e PACKER_VERSION=$(call err_if_empty,PACKER_VERSION) \
+		-e GAC_FILEPATH=$(call err_if_empty,GAC_FILEPATH) \
+		-e TEMPDIR=$(_TEMPDIR) \
 		docker-archive:$<
 
 define podman_build
-	podman build -t $(2) -v $(_TEMPDIR)/var_cache_dnf:/var/cache/dnf:Z -f $(3)/Containerfile .
+	podman build -t $(2) \
+		-v $(_TEMPDIR)/var_cache_dnf:/var/cache/dnf:Z \
+		--build-arg PACKER_VERSION=$(call err_if_empty,PACKER_VERSION) \
+		-f $(3)/Containerfile .
 	rm -f $(1)
 	podman save --quiet -o $(1) $(2)
 	podman rmi $(2)
@@ -165,14 +172,14 @@ image_builder/manifest.json: image_builder/gce.json image_builder/setup.sh lib.s
 # from inside the debugging container.
 .PHONY: image_builder_debug
 image_builder_debug: $(_TEMPDIR)/image_builder_debug.tar ## Build and enter container for local development/debugging of targets requiring packer + virtualization
-	$(eval override _IMG_SFX := $(call err_if_empty,IMG_SFX))
-	$(eval override _GAC_FILEPATH := $(call err_if_empty,GAC_FILEPATH))
 	/usr/bin/podman run -it --rm \
-		--security-opt label=disable -v $$HOME:$$HOME -w $$PWD \
-		-v $(_TEMPDIR):$(_TEMPDIR):Z -v $(_GAC_FILEPATH):$(_GAC_FILEPATH):Z \
+		--security-opt label=disable -v $$HOME:$$HOME -w $(_MKFILE_DIR) \
+		-v $(_TEMPDIR):$(_TEMPDIR):Z \
+		-v $(call err_if_empty,GAC_FILEPATH):$(GAC_FILEPATH):Z \
 		-v /dev/kvm:/dev/kvm \
 		-e PACKER_INSTALL_DIR=/usr/local/bin \
-		-e IMG_SFX=$(_IMG_SFX) \
+		-e PACKER_VERSION=$(call err_if_empty,PACKER_VERSION) \
+		-e IMG_SFX=$(call err_if_empty,IMG_SFX) \
 		-e GAC_FILEPATH=$(call err_if_empty,GAC_FILEPATH) \
 		docker-archive:$<
 
@@ -215,8 +222,11 @@ ubuntu_podman:  ## Build Ubuntu podman development container
 prior-ubuntu_podman:  ## Build Prior-Ubuntu podman development container
 	$(call build_podman_container,$@)
 
+# Workaround https://bugzilla.redhat.com/show_bug.cgi?id=1927635
+# with `--security-opt...--privileged` until bug fixed for CentOS 8.
 $(_TEMPDIR)/%_podman.tar: podman/Containerfile podman/setup.sh $(wildcard base_images/*.sh) $(wildcard cache_images/*.sh) $(_TEMPDIR) $(_TEMPDIR)/var_cache_dnf
-	podman build -t $*_podman:$(call err_if_empty,IMG_SFX) \
+	buildah bud -t $*_podman:$(call err_if_empty,IMG_SFX) \
+		--security-opt seccomp=unconfined \
 		--build-arg=BASE_NAME=$(subst prior-,,$*) \
 		--build-arg=BASE_TAG=$(call err_if_empty,BASE_TAG) \
 		--build-arg=PACKER_BUILD_NAME=$(subst _podman,,$*) \

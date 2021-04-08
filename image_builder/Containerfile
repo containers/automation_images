@@ -5,10 +5,12 @@
 
 ARG CENTOS_RELEASE=8
 FROM centos:${CENTOS_RELEASE}
+ARG PACKER_VERSION
 MAINTAINER https://github.com/containers/automation_images/image_builder
 
 ENV AI_PATH=/usr/src/automation_images \
     PACKER_INSTALL_DIR=/usr/local/bin \
+    PACKER_VERSION=$PACKER_VERSION \
     CONTAINER=1
 ADD /image_builder/install* "$AI_PATH/image_builder/"
 ADD /image_builder/google-cloud-sdk.repo /etc/yum.repos.d/

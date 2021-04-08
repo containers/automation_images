@@ -1,3 +1,4 @@
+buildah
 bash-completion
 curl
 findutils

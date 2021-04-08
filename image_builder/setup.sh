@@ -17,7 +17,9 @@ REPO_DIRPATH=$(realpath "$SCRIPT_DIRPATH/../")
 # shellcheck source=./lib.sh
 source "$REPO_DIRPATH/lib.sh"
 
-$SUDO /bin/bash "$SCRIPT_DIRPATH/install_packages.sh"
+PACKER_VERSION=$(bash $REPO_DIRPATH/get_packer_version.sh)
+$SUDO env PACKER_VERSION=$PACKER_VERSION \
+    /bin/bash "$SCRIPT_DIRPATH/install_packages.sh"
 
 $SUDO systemctl enable rngd
 

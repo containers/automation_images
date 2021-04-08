@@ -160,13 +160,13 @@ fi
 
 echo "Installing general build/testing dependencies"
 # Necessary to update cache of newly added repos
-lilto ooe.sh $SUDO apt-get -qq -y update
-bigto ooe.sh $SUDO apt-get -qq -y install "${INSTALL_PACKAGES[@]}"
+lilto $SUDO apt-get -q -y update
+bigto $SUDO apt-get -q -y install "${INSTALL_PACKAGES[@]}"
 
 if [[ ${#DOWNLOAD_PACKAGES[@]} -gt 0 ]]; then
     echo "Downloading packages for optional installation at runtime, as needed."
     $SUDO ln -s /var/cache/apt/archives "$PACKAGE_DOWNLOAD_DIR"
-    bigto ooe.sh $SUDO apt-get -qq -y install --download-only "${DOWNLOAD_PACKAGES[@]}"
+    bigto $SUDO apt-get -q -y install --download-only "${DOWNLOAD_PACKAGES[@]}"
 fi
 
 echo "Configuring Go environment"

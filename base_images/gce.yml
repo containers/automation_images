@@ -20,12 +20,12 @@ variables:  # Empty value means it must be passed in on command-line
     PRIOR_UBUNTU_BASE_IMAGE: 'ubuntu-2004-focal-v20201014'
 
     # Latest Fedora release download URL
-    FEDORA_IMAGE_URL: "https://dl.fedoraproject.org/pub/fedora/linux/releases/33/Cloud/x86_64/images/Fedora-Cloud-Base-33-1.2.x86_64.qcow2"
-    FEDORA_CSUM_URL: "https://dl.fedoraproject.org/pub/fedora/linux/releases/33/Cloud/x86_64/images/Fedora-Cloud-33-1.2-x86_64-CHECKSUM"
+    FEDORA_IMAGE_URL: "https://dl.fedoraproject.org/pub/fedora/linux/development/34/Cloud/x86_64/images/Fedora-Cloud-Base-34-20210407.n.0.x86_64.qcow2"
+    FEDORA_CSUM_URL: "https://dl.fedoraproject.org/pub/fedora/linux/development/34/Cloud/x86_64/images/Fedora-Cloud-34-x86_64-20210407.n.0-CHECKSUM"
 
     # Prior Fedora release
-    PRIOR_FEDORA_IMAGE_URL: "https://dl.fedoraproject.org/pub/fedora/linux/releases/32/Cloud/x86_64/images/Fedora-Cloud-Base-32-1.6.x86_64.qcow2"
-    PRIOR_FEDORA_CSUM_URL: "https://dl.fedoraproject.org/pub/fedora/linux/releases/32/Cloud/x86_64/images/Fedora-Cloud-32-1.6-x86_64-CHECKSUM"
+    PRIOR_FEDORA_IMAGE_URL: "https://dl.fedoraproject.org/pub/fedora/linux/releases/33/Cloud/x86_64/images/Fedora-Cloud-Base-33-1.2.x86_64.qcow2"
+    PRIOR_FEDORA_CSUM_URL: "https://dl.fedoraproject.org/pub/fedora/linux/releases/33/Cloud/x86_64/images/Fedora-Cloud-33-1.2-x86_64-CHECKSUM"
 
 
 # Don't leak sensitive values in error messages / output
