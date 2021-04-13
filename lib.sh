@@ -26,6 +26,8 @@ PACKAGE_DOWNLOAD_DIR=/var/cache/download
 
 INSTALL_AUTOMATION_VERSION="2.1.2"
 
+PUSH_LATEST="${PUSH_LATEST:-0}"
+
 SUDO=""
 if [[ "$UID" -ne 0 ]]; then
     SUDO="sudo"

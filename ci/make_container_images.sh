@@ -14,9 +14,6 @@ REPO_DIRPATH=$(realpath "$SCRIPT_DIRPATH/../")
 # shellcheck source=./lib.sh
 source "$REPO_DIRPATH/lib.sh"
 
-# When running under Cirrus-CI on a branch, also tag/push "latest" images
-PUSH_LATEST=0
-
 # shellcheck disable=SC2154
 if [[ -z "$CI" ]] || [[ "$CI" != "true" ]] || [[ "$CIRRUS_CI" != "$CI" ]]; then
     die "Unexpected \$CI='$CI' and/or \$CIRRUS_CI='$CIRRUS_CI'"
@@ -39,7 +36,7 @@ set +x
 # Prevent pushing 'latest' images from PRs, only branches and tags
 # shellcheck disable=SC2154
 if [[ $PUSH_LATEST -eq 1 ]] && [[ -n "$CIRRUS_PR" ]]; then
-    echo -e "\nWarning: Refusing to push 'latest' container images from a PR (branches/tags only).\n"
+    echo -e "\nWarning: Refusing to push 'latest' images when testing from a PR.\n"
     PUSH_LATEST=0
 fi
 
@@ -47,7 +44,7 @@ trap "podman logout --all" EXIT INT CONT
 # Out of pure laziness, the entire command is encrypted in Cirrus-CI
 ${LOGIN_CMD}
 
-set -x
+set -x  # Easier than echo'ing out status for everything
 SRC_FQIN="$TARGET_NAME:$IMG_SFX"
 podman tag "$SRC_FQIN" "$DEST_FQIN"
 podman push "$DEST_FQIN"
