@@ -127,7 +127,8 @@ latest_images_task:
     alias: "latest_images"
     only_if: $CIRRUS_CRON == ''
     skip: &ci_docs $CIRRUS_CHANGE_TITLE =~ '.*CI:DOCS.*'
-    depends_on: []
+    depends_on:
+        - validate
     env:
         <<: *image_env
         PUSH_LATEST: 1

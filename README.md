@@ -22,41 +22,66 @@ suitability for use by other *containers* org. repos.
    to date with the base branch (i.e. re-based).
 
 
+# Automation-control Magic strings
+
+Not all changes require building and testing every container and VM
+image.  For example, changes that only affect documentation.  When
+this is the case, pull-requests may include ***one*** of the following
+magic strings in their *title* text:
+
+* `[CI:DOCS]` - Only perform steps necessary for general validation.
+  Checking the actual documentation text is left up to human reviewers.
+
+* `[CI:LATEST]` - Only perform validation steps, then [build and test
+  the utility container images](README.md#utility) only.
+
+
 # Building VM Images
 
 
 ## Process Overview
 
-There are three parts to the automated (and manual) process.  For the vast
-majority of cases, **you will likely only be interested in the third (final)
-step**.  However, all steps are listed below for completeness.
+There are four parts to the automated (and manual) process.  For the [vast
+majority of cases, **you will likely only be interested in the forth (final)
+step**](README.md#the-last-part-first-overview-step-4).
+However, all steps are listed below for completeness.
 
 For more information on the overall process of importing custom GCE VM
 Images, please [refer to the documentation](https://cloud.google.com/compute/docs/import/import-existing-image).  For more information on the primary tool
 (*packer*) used for this process, please [see it's
 documentation](https://www.packer.io/docs).
 
-
-1. Build and import a VM image with necessary packages and metadata for
+1. [Build and import a VM image](README.md#the-image-builder-image-overview-step-1)
+    with necessary packages and metadata for
    running nested VMs.  For details on why this step is necessary,
    please [refer to the
    documentation](https://cloud.google.com/compute/docs/instances/enable-nested-virtualization-vm-instances#enablenestedvirt).
 
-2. Boot a *GCE VM* running the image produce in step 1.  Use this VM to
-   build and then import base-level VM image for supported platforms
+2. Two types of container images are built. The [first set includes both
+   current and "prior" flavors of Fedora and
+   Ubuntu](README.md#podman). The [second set is of utility container
+   images](README.md#utility).  Tooling required for VM image
+   maintenance, artifact uploads, and debugging.
+
+3. [Boot a *GCE VM* running the image-builder-image (from step
+   1)](README.md#the-base-images-overview-step-3).
+   Use this VM to
+   [build and then import base-level VM
+   image](README.md#the-base-images-overview-step-3) for supported platforms
    (Fedora or Ubuntu; as of this writing).  In other words, convert
    generic distribution provided VM Images, into a form capable of being
    booted as *GCE VMs*.  In parallel, build Fedora and Ubuntu container
    images and push them to ``quay.io/libpod/<name>_podman``
 
-3. Boot a *GCE VM* from each image produced in step 2.  Execute necessary
+4. [Boot a *GCE VM* from each image produced in step
+   3](README.md#the-last-part-first-overview-step-4).
+   Execute necessary
    scripts to customize image for use by containers-project automation.
    In other words, install packages and scripts needed for Future incarnations
    of the VM to run automated tests.
 
 
-
-## The last part first (overview step 3)
+## The last part first (overview step 4)
 
 a.k.a. ***Cache Images***
 
@@ -72,15 +97,15 @@ Notes:
   repositories.
 
 * VM configuration starts with one of the `cache_images/*_setup.sh` scripts.
-   Normally you probably won't need/want to mess with these.
+  Normally you probably won't need/want to mess with these.
 
-*  The bulk of the packaging work occurs next, from the `cache_images/*_packaging.sh`
-   scripts.  This is most likely what you want to modify.
+* The bulk of the packaging work occurs next, from the `cache_images/*_packaging.sh`
+  scripts.  This is most likely what you want to modify.
 
-*  Some non-packaged/source-based tooling is installed using the
-   `cache_images/podman_tooling.sh` script.  These are slightly fragile, as
-   they always come from upstream (master) podman.  Avoid adding/changing
-   anything here if alternatives exist.
+* Some non-packaged/source-based tooling is installed using the
+  `cache_images/podman_tooling.sh` script.  These are slightly fragile, as
+  they always come from upstream (master) podman.  Avoid adding/changing
+  anything here if alternatives exist.
 
 Process:
 
@@ -166,7 +191,48 @@ an overview of the process followed **by automation** to produce the
    the build logs.
 
 
-## The Base Images (overview step 2)
+## Container images (overview step 2)
+
+
+### Podman
+
+Several instances of the image-builder VM are used to create container
+images.  In particular, Fedora and Ubuntu images are created that
+more-or-less duplicate the setup of the VM Cache-images.  They are
+then automatically pushed to:
+
+* https://quay.io/repository/libpod/fedora_podman
+* https://quay.io/repository/libpod/prior-fedora_podman
+* https://quay.io/repository/libpod/ubuntu_podman
+* https://quay.io/repository/libpod/prior-ubuntu_podman
+
+The meaning of *prior* and *current*, is defined by the contents of
+the `*_release` files within the `podman` subdirectory.  This is
+necessary to support the Makefile target being used manually
+(e.g. debugging).  These files must be updated manually when introducing
+a new VM image version.
+
+
+### Utility
+
+In addition to the "podman" container images, several "utility" images
+are also built.  These are always referenced by downstream using their
+"latest" tag (unlike the podman and VM images).  In addition to
+the [VM lifecycle utility images](README.md#vm-image-lifecycle-management),
+the following are built:
+
+* `gcsupld` image is used for publishing artifacts into google cloud storage.
+
+* `get_ci_vm` image is used indirectly from the containers-org. repositories
+  script `hack/get_ci_vm.sh` script.  It should never be used directly.
+
+In all cases, when automation runs on a branch (i.e. after a PR is merged)
+the actual image tagged `latest` will be pushed.  When running in a PR,
+only validation and test images are produced.  This behavior is controled
+by a combination of the `$PUSH_LATEST` and `$CIRRUS_PR` variables.
+
+
+## The Base Images (overview step 3)
 
 VM Images in GCE depend upon certain google-specific systemd-services to be
 running on boot.  Additionally, in order to import external OS images,
@@ -199,22 +265,6 @@ the image-builder image, this process is mainly orchestrated by Packer:
 8. Automation scoops up the `manifest.json` file and archives it along with
    the build logs.
 
-
-## Podman container images (Also overview step 2)
-
-In parallel with other tasks, several instances of the image-builder VM are
-used to create container images.  In particular, Fedora and Ubuntu
-images are created that more-or-less duplicate the setup of the VM
-Cache-images.  They are then automatically pushed to:
-
-* https://quay.io/repository/libpod/fedora_podman
-* https://quay.io/repository/libpod/prior-fedora_podman
-* https://quay.io/repository/libpod/ubuntu_podman
-* https://quay.io/repository/libpod/prior-ubuntu_podman
-
-The meaning of *prior* and not, is defined by the contents of the `*_release`
-files within the `podman` subdirectory.  This is necessary to support the
-Makefile target being used manually (e.g. debugging)
 
 ## VM Image lifecycle management
 
