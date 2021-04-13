@@ -36,10 +36,11 @@ set -eo pipefail
 make "$TARGET_NAME" IMG_SFX=$IMG_SFX
 
 set +x
-# Cirrus sets CIRRUS_BRANCH="pull/#" for pull-requests, branch-name for branches
+# Prevent pushing 'latest' images from PRs, only branches and tags
 # shellcheck disable=SC2154
-if [[ -n "$CIRRUS_BRANCH" ]] && [[ -z "$CIRRUS_PR" ]] && [[ -z "$CIRRUS_TAG" ]]; then
-    PUSH_LATEST=1
+if [[ $PUSH_LATEST -eq 1 ]] && [[ -n "$CIRRUS_PR" ]]; then
+    echo -e "\nWarning: Refusing to push 'latest' container images from a PR (branches/tags only).\n"
+    PUSH_LATEST=0
 fi
 
 trap "podman logout --all" EXIT INT CONT
