@@ -229,8 +229,10 @@ mock_gcevm_workflow() {
 tar -xzf "$GOOD_TEST_REPO/dot_git.tar.gz" -C "$GOOD_TEST_REPO" .git
 # Setup should tarball new files in the repo.
 echo "testing" > "$GOOD_TEST_REPO/uncommited_file"
-# Setup should tarvall changed files in the repo.
+# Setup should tarball changed files in the repo.
 echo -e "\n\ntest file changes\n\n" >> "$GOOD_TEST_REPO/README.md"
+# Setup should ignore a removed file
+git rm -f "$GOOD_TEST_REPO/uninit_gcloud.output"
 # The goal is to match key elements and sequences in the mock output,
 # without overly burdening future development.
 workflow_regex="\
@@ -240,6 +242,7 @@ workflow_regex="\
 .*foobar-test-image-name\
 .*Cloning into\
 .*README.md\
+.*Ignoring uncommited removed.+uninit_gcloud.output\
 .*uncommited_file\
 .*Switched to a new branch\
 .*gcloud.+compute scp.+root@foobar-test-image-name:/tmp/\

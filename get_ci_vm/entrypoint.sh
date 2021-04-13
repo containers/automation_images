@@ -240,16 +240,26 @@ $(<ci_env.sh)"
 
 # Tarball up current repository state and ci_env.sh script
 make_setup_tarball() {
+    local extra_file
+    local extra_file_path
+    local extra_dir_path
+    local srcpath
     status "Preparing setup tarball for instance."
     req_env_vars DESTDIR _TMPDIR SRCDIR UPSTREAM_REPO
     mkdir -p "${_TMPDIR}$DESTDIR"
     git clone --no-local --no-hardlinks --depth 1 --single-branch --no-tags "$SRCDIR" "${_TMPDIR}$DESTDIR"
-    dbg "Handling non-commited repo. files: $(extra_repo_files)"
+    status "Preparing non-commited repo. files"
+    dbg "Handling: $(extra_repo_files)"
     extra_repo_files | while read -r extra_file; do
         extra_file_path="$_TMPDIR/$DESTDIR/$extra_file"
         extra_dir_path=$(dirname "$extra_file_path")
         mkdir -p "$extra_dir_path"
-        cp -av "${SRCDIR}/$extra_file" "${extra_dir_path}/"
+        srcpath="${SRCDIR}/$extra_file"
+        if [[ -r "$srcpath" ]]; then
+            cp -av "$srcpath" "${extra_dir_path}/"
+        else
+            msg "Ignoring uncommited removed $srcpath"
+        fi
     done
 
     status "Configuring shallow clone of local repository"
@@ -258,6 +268,7 @@ make_setup_tarball() {
     git config --local alias.cm commit
     git config --local alias.co checkout
     git config --local alias.br branch
+    git config --local advice.detachedHead false
     git co -b "get_ci_vm"
     git remote add upstream $UPSTREAM_REPO
     git remote remove origin  # Will not exist when tarball extracted
