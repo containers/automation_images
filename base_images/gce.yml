@@ -15,9 +15,11 @@ variables:  # Empty value means it must be passed in on command-line
     # N/B: There are length/character limitations in GCE for image names
     IMG_SFX: '{{ timestamp }}'
 
-    # Required for reliability, preserve image from upstream managed image changes
-    UBUNTU_BASE_IMAGE: 'ubuntu-2010-groovy-v20201022a'
-    PRIOR_UBUNTU_BASE_IMAGE: 'ubuntu-2004-focal-v20201014'
+    # Upstream source for Ubuntu image duplication (prevents expiration)
+    # Look these up in the console by searching images for
+    # "Created by: Canonical"
+    UBUNTU_BASE_IMAGE: 'ubuntu-2104-hirsute-v20210422'  # Guess
+    PRIOR_UBUNTU_BASE_IMAGE: 'ubuntu-2010-groovy-v20210325'
 
     # Latest Fedora release download URL
     FEDORA_IMAGE_URL: "https://dl.fedoraproject.org/pub/fedora/linux/development/34/Cloud/x86_64/images/Fedora-Cloud-Base-34-20210407.n.0.x86_64.qcow2"
