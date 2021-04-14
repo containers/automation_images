@@ -1,0 +1,60 @@
+---
+
+# Use the latest published version of the cirrus-ci_retrospective container
+# to determine the execution context of _this_ workflow run.  If it is a
+# pull request, post the to-be VM/Container image ID string as a comment.
+
+on:
+    check_suite:  # ALWAYS triggered from the default branch
+        # Ref: https://help.github.com/en/actions/reference/events-that-trigger-workflows#check-suite-event-check_suite
+        types:
+            - completed
+
+jobs:
+    comment_image_id:
+        # Do not execute for other github applications, only works with cirrus-ci
+        if: github.event.check_suite.app.name == 'Cirrus CI'
+        runs-on: ubuntu-latest
+        steps:
+            - name: Execute latest upstream cirrus-ci_retrospective
+              uses: docker://quay.io/libpod/cirrus-ci_retrospective:latest
+              env:
+                  GITHUB_TOKEN: ${{ github.token }}
+              # Writes $GITHUB_WORKSPACE/cirrus-ci_retrospective.json
+
+            - name: Debug cirrus-ci_retrospective JSON
+              run: jq --indent 4 --color-output . $GITHUB_WORKSPACE/cirrus-ci_retrospective.json
+
+            - name: Load JSON into github workflow output variables
+              id: retro
+              run: |
+                  ccirjson=$GITHUB_WORKSPACE/cirrus-ci_retrospective.json
+                  prn=$(jq --raw-output \
+                        '.[] | select(.name == "'success'") | .build.pullRequest' \
+                        "$ccirjson")
+                  bid=$(jq --raw-output \
+                        '.[] | select(.name == "'success'") | .build.id' \
+                        "$ccirjson")
+                  if [[ -n "$prn" ]] && \
+                     [[ "$prn" != "null" ]] && \
+                     [[ $prn -gt 0 ]]
+                  then
+                      printf "\n::set-output name=prn::%s\n" "$prn"
+                      printf "\n::set-output name=bid::%s\n" "$bid"
+                      printf "\n::set-output name=is_pr::%s\n" "true"
+                  else
+                      printf "\n::set-output name=prn::%s\n" "0"
+                      printf "\n::set-output name=bid::%s\n" "0"
+                      printf "\n::set-output name=is_pr::%s\n" "false"
+                  fi
+
+            - name: Add image id comment to pull request
+              if: steps.retro.outputs.is_pr == 'true'
+              uses: jungwinter/comment@v1
+              with:
+                  issue_number: '${{ steps.retro.outputs.prn }}'
+                  type: 'create'
+                  token: '${{ secrets.GITHUB_TOKEN }}'
+                  body: >-
+                    [Cirrus CI build](https://cirrus-ci.com/build/${{ steps.retro.outputs.bid }})
+                    successful. Image ID `c${{ steps.retro.outputs.bid }}` ready for use.
