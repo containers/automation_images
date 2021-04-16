@@ -44,9 +44,9 @@ image_builder_task:
     name: "Image-builder image"
     alias: "image_builder"
     only_if: *is_pr
-    skip: &ci_docs_latest |
+    skip: &ci_docs_tooling |
         $CIRRUS_CHANGE_TITLE =~ '.*CI:DOCS.*' ||
-        $CIRRUS_CHANGE_TITLE =~ '.*CI:LATEST.*'
+        $CIRRUS_CHANGE_TITLE =~ '.*CI:TOOLING.*'
     depends_on:
         - validate
     # Packer needs time to clean up partially created VM images
@@ -68,7 +68,7 @@ image_builder_task:
 container_images_task: &container_images
     alias: "container_images"
     only_if: *is_pr
-    skip: *ci_docs_latest
+    skip: *ci_docs_tooling
     depends_on:
         - image_builder
     timeout_in: 30m
@@ -96,70 +96,52 @@ container_images_task: &container_images
           env:
             TARGET_NAME: 'prior-ubuntu_podman'
             DEST_FQIN: *fqin
-        - name: *name
-          env:
-            TARGET_NAME: 'imgts'
-            DEST_FQIN: *fqin
-        - name: *name
-          env:
-            TARGET_NAME: 'imgobsolete'
-            DEST_FQIN: *fqin
-        - name: *name
-          env:
-            TARGET_NAME: 'imgprune'
-            DEST_FQIN: *fqin
-        - name: *name
-          env:
-            TARGET_NAME: 'gcsupld'
-            DEST_FQIN: *fqin
-        - name: *name
-          env:
-            TARGET_NAME: 'get_ci_vm'
-            DEST_FQIN: *fqin
     env: &image_env
         TEMPDIR: '$CIRRUS_WORKING_DIR'
         LOGIN_CMD: ENCRYPTED[d15806d68c90cf74faca59bc4f81ada269538092b8449c7d8cd4cf44cd8d58a7482d2b249a9da06508f32f9e4075dc18]
     script: ci/make_container_images.sh;
 
 
-latest_images_task:
-    <<: *container_images
-    alias: "latest_images"
+tooling_images_task:
+    alias: tooling_images
     only_if: $CIRRUS_CRON == ''
     skip: &ci_docs $CIRRUS_CHANGE_TITLE =~ '.*CI:DOCS.*'
     depends_on:
         - validate
-    env:
-        <<: *image_env
-        PUSH_LATEST: 1
+    timeout_in: 30m
+    gce_instance: *ibi_vm
     matrix:
-        - name: &name "Latest ${TARGET_NAME} image"
+        - name: &tooling_name "Tooling ${TARGET_NAME} image"
           env:
             TARGET_NAME: 'imgts'
-            DEST_FQIN: *fqin
-        - name: *name
+            DEST_FQIN: &tooling_fqin 'quay.io/libpod/${TARGET_NAME}:c$IMG_SFX'
+        - name: *tooling_name
           env:
             TARGET_NAME: 'imgobsolete'
-            DEST_FQIN: *fqin
-        - name: *name
+            DEST_FQIN: *tooling_fqin
+        - name: *tooling_name
           env:
             TARGET_NAME: 'imgprune'
-            DEST_FQIN: *fqin
-        - name: *name
+            DEST_FQIN: *tooling_fqin
+        - name: *tooling_name
           env:
             TARGET_NAME: 'gcsupld'
-            DEST_FQIN: *fqin
-        - name: *name
+            DEST_FQIN: *tooling_fqin
+        - name: *tooling_name
           env:
             TARGET_NAME: 'get_ci_vm'
-            DEST_FQIN: *fqin
+            DEST_FQIN: *tooling_fqin
+    env:
+        <<: *image_env
+        PUSH_LATEST: 1  # scripts force to 0 if $CIRRUS_PR
+    script: ci/make_container_images.sh;
 
 
 base_images_task:
     name: "Build VM Base-images"
     alias: "base_images"
     only_if: *is_pr
-    skip: *ci_docs_latest
+    skip: *ci_docs_tooling
     depends_on:
         - container_images
     # Packer needs time to clean up partially created VM images
@@ -197,7 +179,7 @@ cache_images_task:
     name: "Build VM Cache-images"
     alias: "cache_images"
     only_if: *is_pr
-    skip: *ci_docs_latest
+    skip: *ci_docs_tooling
     depends_on:
         - base_images
     # Packer needs time to clean up partially created VM images
@@ -235,7 +217,7 @@ imgts_task:
     name: "Apply new image metadata"
     alias: imgts
     only_if: *is_pr
-    skip: *ci_docs_latest
+    skip: *ci_docs_tooling
     depends_on:
         - cache_images
     container:
@@ -268,7 +250,7 @@ test_imgobsolete_task: &lifecycle_test
     only_if: &not_cron $CIRRUS_CRON == ''
     skip: *ci_docs
     depends_on:
-        - latest_images
+        - tooling_images
         - imgts
     container:
         image: 'quay.io/libpod/imgobsolete:c$IMG_SFX'
@@ -289,7 +271,7 @@ test_imgprune_task:
     alias: test_imgprune
     skip: *ci_docs
     depends_on:
-        - latest_images
+        - tooling_images
         - imgts
     container:
         image: 'quay.io/libpod/imgprune:c$IMG_SFX'
@@ -301,7 +283,7 @@ test_gcsupld_task:
     only_if: *not_cron
     skip: *ci_docs
     depends_on:
-        - latest_images
+        - tooling_images
         - imgts
     container:
         image: 'quay.io/libpod/gcsupld:c$IMG_SFX'
@@ -320,7 +302,7 @@ test_get_ci_vm_task:
     only_if: *not_cron
     skip: *ci_docs
     depends_on:
-        - latest_images
+        - tooling_images
         - imgts
     container:
         image: 'quay.io/libpod/get_ci_vm:c$IMG_SFX'
@@ -363,7 +345,7 @@ success_task:
         - validate
         - image_builder
         - container_images
-        - latest_images
+        - tooling_images
         - base_images
         - cache_images
         - imgts
