@@ -32,8 +32,10 @@ magic strings in their *title* text:
 * `[CI:DOCS]` - Only perform steps necessary for general validation.
   Checking the actual documentation text is left up to human reviewers.
 
-* `[CI:LATEST]` - Only perform validation steps, then [build and test
-  the utility container images](README.md#utility) only.
+* ***OR***
+
+* `[CI:TOOLING]` - Only perform validation steps, then [build and test
+  the tooling container images](README.md#tooling) only.
 
 
 # Building VM Images
@@ -59,8 +61,8 @@ documentation](https://www.packer.io/docs).
 
 2. Two types of container images are built. The [first set includes both
    current and "prior" flavors of Fedora and
-   Ubuntu](README.md#podman). The [second set is of utility container
-   images](README.md#utility).  Tooling required for VM image
+   Ubuntu](README.md#podman). The [second set is of tooling container
+   images](README.md#tooling).  Tooling required for VM image
    maintenance, artifact uploads, and debugging.
 
 3. [Boot a *GCE VM* running the image-builder-image (from step
@@ -213,12 +215,12 @@ necessary to support the Makefile target being used manually
 a new VM image version.
 
 
-### Utility
+### Tooling
 
-In addition to the "podman" container images, several "utility" images
+In addition to the "podman" container images, several automation tooling images
 are also built.  These are always referenced by downstream using their
 "latest" tag (unlike the podman and VM images).  In addition to
-the [VM lifecycle utility images](README.md#vm-image-lifecycle-management),
+the [VM lifecycle tooling images](README.md#vm-image-lifecycle-management),
 the following are built:
 
 * `gcsupld` image is used for publishing artifacts into google cloud storage.

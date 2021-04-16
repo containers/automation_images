@@ -30,6 +30,7 @@ install_automation_tooling cirrus-ci_env
 
 # For testing updates from a personal branch, use something like this
 #TMPDIR=$(mktemp -d)
-#git clone -b more_bug_fixes https://github.com/cevich/automation.git "$TMPDIR"
+#BRANCH=fix_osx_again
+#git clone -b $BRANCH https://github.com/cevich/automation.git "$TMPDIR"
 #env INSTALL_PREFIX=/usr/share $TMPDIR/bin/install_automation.sh 0.0.0 cirrus-ci_env
 #rm -rf "$TMPDIR"
