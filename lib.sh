@@ -147,7 +147,6 @@ common_finalize() {
     cd /
     clean_automatic_users
     $SUDO cloud-init clean --logs
-    $SUDO rm -rf $SCRIPT_DIRPATH
     $SUDO rm -rf /var/lib/cloud/instanc*
     $SUDO rm -rf /root/.ssh/*
     $SUDO rm -rf /etc/ssh/*key*
@@ -182,10 +181,7 @@ ubuntu_finalize() {
 }
 
 finalize() {
-    if ((CONTAINER)); then
-        echo "Skipping running finalize() in a container"
-        return 0
-    elif [[ "$OS_RELEASE_ID" == "centos" ]]; then
+    if [[ "$OS_RELEASE_ID" == "centos" ]]; then
         rh_finalize
     elif [[ "$OS_RELEASE_ID" == "fedora" ]]; then
         rh_finalize
