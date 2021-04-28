@@ -35,9 +35,14 @@ jobs:
                   bid=$(jq --raw-output \
                         '.[] | select(.name == "'success'") | .build.id' \
                         "$ccirjson")
+                  status=$(jq --raw-output \
+                        '.[] | select(.name == "'success'") | .status' \
+                        "$ccirjson")
+
                   if [[ -n "$prn" ]] && \
                      [[ "$prn" != "null" ]] && \
-                     [[ $prn -gt 0 ]]
+                     [[ $prn -gt 0 ]] && \
+                     [[ "$status" == "COMPLETED" ]]
                   then
                       printf "\n::set-output name=prn::%s\n" "$prn"
                       printf "\n::set-output name=bid::%s\n" "$bid"
