@@ -47,8 +47,7 @@ if [[ -d "/usr/share/automation" ]]; then
     lilto() { err_retry 8 1000 "" "$@"; }  # just over 4 minutes max
     bigto() { err_retry 7 5670 "" "$@"; }  # 12 minutes max
 else  # Automation common library not installed yet
-    echo "Warning: Automation library not found. Assuming it's not yet installed" \
-        > /dev/stderr
+    echo "Warning: Automation library not found. Assuming it's not yet installed"
     die() { echo "ERROR: ${1:-No error message provided}"; exit 1; }
     lilto() { die "Automation library not installed; Required for lilto()"; }
     bigto() { die "Automation library not installed; Required for bigto()"; }
