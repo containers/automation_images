@@ -60,12 +60,14 @@ builders:
           - "tty,id=pts,path={{user `TTYDEV`}}"
         - - "-device"
           - "isa-serial,chardev=pts"
-        - - "-cdrom"
-          - "{{ user `TEMPDIR` }}/cidata.iso"
         - - "-netdev"
           - "user,id=net0,hostfwd=tcp::{{ .SSHHostPort }}-:22"
         - - "-device"
           - "virtio-net,netdev=net0"
+      cd_label: "cidata"
+      cd_files:
+        - '{{user `TEMPDIR`}}/meta-data'
+        - '{{user `TEMPDIR`}}/user-data'
       communicator: 'ssh'
       pause_before_connecting: '10s'
       ssh_private_key_file: '{{ user `TEMPDIR` }}/cidata.ssh'

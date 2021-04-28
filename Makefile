@@ -138,14 +138,12 @@ $(_TEMPDIR)/cidata.ssh.pub: $(_TEMPDIR) $(_TEMPDIR)/cidata.ssh
 $(_TEMPDIR)/meta-data: $(_TEMPDIR)
 	echo "local-hostname: localhost.localdomain" > $@
 
-$(_TEMPDIR)/user-data: $(_TEMPDIR) $(_TEMPDIR)/cidata.ssh.pub
+$(_TEMPDIR)/user-data: $(_TEMPDIR) $(_TEMPDIR)/cidata.ssh.pub $(_TEMPDIR)/cidata.ssh
 	cd $(_TEMPDIR) && \
 		bash $(_MKFILE_DIR)/make-user-data.sh
 
-$(_TEMPDIR)/cidata.iso: $(_TEMPDIR) $(_TEMPDIR)/user-data $(_TEMPDIR)/meta-data
-	cd $(_TEMPDIR) && \
-	genisoimage -output ./cidata.iso -volid cidata -input-charset utf-8 \
-		-joliet -rock ./user-data ./meta-data
+.PHONY: cidata
+cidata: $(_TEMPDIR)/user-data $(_TEMPDIR)/meta-data
 
 define packer_build
 	env PACKER_CACHE_DIR="$(_TEMPDIR)" \
@@ -190,7 +188,7 @@ $(_TEMPDIR)/image_builder_debug.tar: $(_TEMPDIR) $(_TEMPDIR)/var_cache_dnf image
 # This needs to run in a virt/nested-virt capible environment
 base_images: base_images/manifest.json ## Create, prepare, and import base-level images into GCE.  Optionally, set PACKER_BUILDS=<csv> to select builder(s).
 
-base_images/manifest.json: base_images/gce.json base_images/fedora_base-setup.sh $(_TEMPDIR)/cidata.iso $(_TEMPDIR)/cidata.ssh $(PACKER_INSTALL_DIR)/packer
+base_images/manifest.json: base_images/gce.json base_images/fedora_base-setup.sh cidata $(_TEMPDIR)/cidata.ssh $(PACKER_INSTALL_DIR)/packer
 	$(call packer_build,$<)
 
 .PHONY: cache_images
