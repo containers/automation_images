@@ -22,8 +22,8 @@ variables:  # Empty value means it must be passed in on command-line
     PRIOR_UBUNTU_BASE_IMAGE: 'ubuntu-2010-groovy-v20210325'
 
     # Latest Fedora release download URL
-    FEDORA_IMAGE_URL: "https://dl.fedoraproject.org/pub/fedora/linux/development/34/Cloud/x86_64/images/Fedora-Cloud-Base-34-20210423.n.0.x86_64.qcow2"
-    FEDORA_CSUM_URL: "https://dl.fedoraproject.org/pub/fedora/linux/development/34/Cloud/x86_64/images/Fedora-Cloud-34-x86_64-20210423.n.0-CHECKSUM"
+    FEDORA_IMAGE_URL: "https://dl.fedoraproject.org/pub/fedora/linux/releases/34/Cloud/x86_64/images/Fedora-Cloud-Base-34-1.2.x86_64.qcow2"
+    FEDORA_CSUM_URL: "https://dl.fedoraproject.org/pub/fedora/linux/releases/34/Cloud/x86_64/images/Fedora-Cloud-34-1.2-x86_64-CHECKSUM"
 
     # Prior Fedora release
     PRIOR_FEDORA_IMAGE_URL: "https://dl.fedoraproject.org/pub/fedora/linux/releases/33/Cloud/x86_64/images/Fedora-Cloud-Base-33-1.2.x86_64.qcow2"
