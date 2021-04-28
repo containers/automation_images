@@ -22,12 +22,12 @@ variables:  # Empty value means it must be passed in on command-line
     PRIOR_UBUNTU_BASE_IMAGE: 'ubuntu-2010-groovy-v20210325'
 
     # Latest Fedora release download URL
-    FEDORA_IMAGE_URL: "https://dl.fedoraproject.org/pub/fedora/linux/releases/34/Cloud/x86_64/images/Fedora-Cloud-Base-34-1.2.x86_64.qcow2"
-    FEDORA_CSUM_URL: "https://dl.fedoraproject.org/pub/fedora/linux/releases/34/Cloud/x86_64/images/Fedora-Cloud-34-1.2-x86_64-CHECKSUM"
+    FEDORA_IMAGE_URL: "https://dl.fedoraproject.org/pub/fedora/linux/releases/34/Everything/x86_64/iso/Fedora-Everything-netinst-x86_64-34-1.2.iso"
+    FEDORA_CSUM_URL: "https://dl.fedoraproject.org/pub/fedora/linux/releases/34/Everything/x86_64/iso/Fedora-Everything-34-1.2-x86_64-CHECKSUM"
 
     # Prior Fedora release
-    PRIOR_FEDORA_IMAGE_URL: "https://dl.fedoraproject.org/pub/fedora/linux/releases/33/Cloud/x86_64/images/Fedora-Cloud-Base-33-1.2.x86_64.qcow2"
-    PRIOR_FEDORA_CSUM_URL: "https://dl.fedoraproject.org/pub/fedora/linux/releases/33/Cloud/x86_64/images/Fedora-Cloud-33-1.2-x86_64-CHECKSUM"
+    PRIOR_FEDORA_IMAGE_URL: "https://dl.fedoraproject.org/pub/fedora/linux/releases/33/Everything/x86_64/iso/Fedora-Everything-netinst-x86_64-33-1.2.iso"
+    PRIOR_FEDORA_CSUM_URL: "https://dl.fedoraproject.org/pub/fedora/linux/releases/33/Everything/x86_64/iso/Fedora-Everything-33-1.2-x86_64-CHECKSUM"
 
 
 # Don't leak sensitive values in error messages / output
@@ -41,13 +41,24 @@ builders:
       accelerator: "kvm"
       qemu_binary: '/usr/libexec/qemu-kvm'  # Unique to CentOS, not fedora :(
       iso_url: '{{user `FEDORA_IMAGE_URL`}}'
-      disk_image: true
       format: "raw"
       disk_size: 10240
       iso_checksum: 'file:{{user `FEDORA_CSUM_URL`}}'
       vm_name: "disk.raw"  # actually qcow2, name required for post-processing
       output_directory: '{{ user `TEMPDIR` }}/{{build_name}}' # /<vm_name>.disk.raw
       boot_wait: '5s'
+      boot_command:
+        - '<up>'  # Test & Install (second option) always the default
+        - '<tab>' # Drop to the end of 'boot: <kernel command line>'
+        - ' ' # Append options to the end of the line
+        - 'noshell'
+        - ' '
+        - 'inst.singlelang'
+        - ' '
+        - 'inst.cmdline'
+        - ' '
+        - 'inst.ks=cdrom'
+        - '<enter>'
       shutdown_command: 'shutdown -h now'
       headless: true
       # qemu_binary: "/usr/libexec/qemu-kvm"
@@ -68,12 +79,13 @@ builders:
       cd_files:
         - '{{user `TEMPDIR`}}/meta-data'
         - '{{user `TEMPDIR`}}/user-data'
+        - './base_images/{{build_name}}/ks.cfg'
+      vnc_bind_address: '127.0.0.1'
       communicator: 'ssh'
-      pause_before_connecting: '10s'
       ssh_private_key_file: '{{ user `TEMPDIR` }}/cidata.ssh'
       ssh_disable_agent_forwarding: true
       ssh_username: 'root'
-      ssh_timeout: '5m'
+      ssh_timeout: '30m'  # Time for kickstart to finish and reboot
       vnc_bind_address: 0.0.0.0
 
     - <<: *qemu_virt

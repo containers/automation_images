@@ -171,7 +171,10 @@ image_builder/manifest.json: image_builder/gce.json image_builder/setup.sh lib.s
 .PHONY: image_builder_debug
 image_builder_debug: $(_TEMPDIR)/image_builder_debug.tar ## Build and enter container for local development/debugging of targets requiring packer + virtualization
 	/usr/bin/podman run -it --rm \
-		--security-opt label=disable -v $$HOME:$$HOME -w $(_MKFILE_DIR) \
+		--security-opt label=disable \
+		--expose=5900-6000 \
+		--publish-all \
+		-v $$HOME:$$HOME -w $(_MKFILE_DIR) \
 		-v $(_TEMPDIR):$(_TEMPDIR):Z \
 		-v $(call err_if_empty,GAC_FILEPATH):$(GAC_FILEPATH):Z \
 		-v /dev/kvm:/dev/kvm \
