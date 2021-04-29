@@ -6,5 +6,5 @@
 
 cd $(dirname "${BASH_SOURCE[0]}") || exit
 YML_LINE=$(grep -Em1 '^\s+PACKER_VERSION:' .cirrus.yml)
-VER_VAL=$(echo "$YML_LINE" | cut -d : -f 2 | tr -d "\"'[:space:]")
+VER_VAL=$(awk '{print $3}' <<<"$YML_LINE" | tr -d "\"'[:space:]")
 echo -n "$VER_VAL"
