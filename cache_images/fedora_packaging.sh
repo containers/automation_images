@@ -111,6 +111,9 @@ INSTALL_PACKAGES=(\
     protobuf-c
     protobuf-c-devel
     protobuf-devel
+    python-pip-wheel
+    python-setuptools-wheel
+    python-wheel-wheel
     python2
     python3-PyYAML
     python3-coverage
@@ -123,6 +126,7 @@ INSTALL_PACKAGES=(\
     python3-pip
     python3-psutil
     python3-pylint
+    python3-pyxdg
     python3-requests
     python3-requests-mock
     redhat-rpm-config
