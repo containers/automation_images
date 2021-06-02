@@ -5,7 +5,6 @@ container images.  CI/CD automation in this repo. revolves around
 producing new images. It does only very minimal testing of image
 suitability for use by other *containers* org. repos.
 
-
 # Contributing
 
 1. Thanks!
