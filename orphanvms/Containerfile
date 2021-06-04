@@ -1,0 +1,16 @@
+FROM imgts:latest
+
+RUN yum -y update && \
+    yum clean all
+
+COPY /orphanvms/entrypoint.sh /usr/local/bin/entrypoint.sh
+RUN chmod 755 /usr/local/bin/entrypoint.sh
+
+# These are only needed by imgts
+ENV GCPPROJECT="" \
+    IMGNAMES="" \
+    BUILDID="" \
+    REPOREF=""
+
+# This is an additional requirement
+ENV GCPPROJECTS="__unknown__"
