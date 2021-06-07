@@ -45,8 +45,9 @@ jobs:
                     GCPNAME=${{ secrets.GCPNAME }}
                     GCPJSON=${{ secrets.GCPJSON }}
                 EOF
-                podman run -it --rm --env-file=$env_file \
-                    quay.io/libpod/orphanvms:cevich \
+                podman run --rm \
+                    --env-file=$env_file \
+                    quay.io/libpod/orphanvms:latest \
                     > /tmp/output.txt
 
                 printf "::set-output name=count::%d\n" \
