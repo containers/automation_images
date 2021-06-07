@@ -1,0 +1,92 @@
+---
+
+# Format Ref: https://docs.github.com/en/free-pro-team@latest/actions/reference/workflow-syntax-for-github-actions
+
+# Required to un-FUBAR default ${{github.workflow}} value
+name: check_orphan_vms
+
+on:
+    # Note: This only applies to the default branch.
+    schedule:
+        # Assume cirrus cron jobs runs at least once per day
+        - cron:  '59 23 * * *'
+    # Debug: Allow triggering job manually in github-actions WebUI
+    workflow_dispatch: {}
+
+env:
+    # Debug-mode can reveal secrets, only enable by a secret value.
+    # Ref: https://docs.github.com/en/actions/managing-workflow-runs/enabling-debug-logging#enabling-runner-diagnostic-logging
+    ACTIONS_STEP_DEBUG: '${{ secrets.ACTIONS_STEP_DEBUG }}'
+    ACTIONS_RUNNER_DEBUG: '${{ secrets.ACTIONS_RUNNER_DEBUG }}'
+    # Use same destination addresses from podman repository
+    FAILMAILCSV: './_podman/contrib/cirrus/cron-fail_addrs.csv'
+
+jobs:
+    orphan_vms:
+        runs-on: ubuntu-latest
+        steps:
+            - uses: actions/checkout@v2
+              with:
+                  persist-credentials: false
+
+            # Avoid duplicating cron-fail_addrs.csv
+            - uses: actions/checkout@v2
+              with:
+                  repository: containers/podman
+                  path: '_podman'
+                  persist-credentials: false
+
+            - name: Collect listing of orphaned VMs
+              id: orphans
+              run: |
+                env_file=$(mktemp -p '' env_file_XXXXXXXX)
+                cat << EOF >> $env_file
+                    GCPPROJECTS=$(egrep -vx '^#+.*$' $GITHUB_WORKSPACE/gcpprojects.txt | tr -s '[:space:]' ' ')
+                    GCPNAME=${{ secrets.GCPNAME }}
+                    GCPJSON=${{ secrets.GCPJSON }}
+                EOF
+                podman run -it --rm --env-file=$env_file \
+                    quay.io/libpod/orphanvms:cevich \
+                    > /tmp/output.txt
+
+                printf "::set-output name=count::%d\n" \
+                    $(egrep -x '\* VM .+' | wc -l - | awk '{print $1}')
+
+            - if: steps.orphans.outputs.count > 0
+              shell: bash
+              run: |
+                set -eo pipefail
+                (
+                echo "Detected ${{ steps.orphans.outputs.count }} Orphan GCP VM(s):"
+                echo ""
+                cat /tmp/output.txt
+                echo ""
+                echo "# Source: ${{ github.workflow }} workflow on ${{ github.repository }}."
+                # Separate content from sendgrid.com automatic footer.
+                echo ""
+                echo ""
+                ) > /tmp/email_body.txt
+
+            - if: steps.orphans.outputs.count > 0
+              id: mailto
+              run: printf "::set-output name=csv::%s\n" $(cat "$FAILMAILCSV")
+
+            - if: steps.mailto.outputs.csv != ''
+              name: Send orphan notification e-mail
+              # Ref: https://github.com/dawidd6/action-send-mail
+              uses: dawidd6/action-send-mail@v2.2.2
+              with:
+                server_address: ${{ secrets.ACTION_MAIL_SERVER }}
+                server_port: 465
+                username: ${{ secrets.ACTION_MAIL_USERNAME }}
+                password: ${{ secrets.ACTION_MAIL_PASSWORD }}
+                subject: Orphaned GCP VMs
+                to: ${{ steps.mailto.outputs.csv }}
+                from: ${{ secrets.ACTION_MAIL_SENDER }}
+                body: file:///tmp/email_body.txt
+
+            - if: always()
+              uses: actions/upload-artifact@v2
+              with:
+                  name: ${{ github.job }}_artifacts
+                  path: /tmp/output.txt
