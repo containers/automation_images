@@ -245,7 +245,8 @@ $(_TEMPDIR)/imgts.tar: imgts/Containerfile imgts/entrypoint.sh imgts/google-clou
 .PHONY: imgobsolete
 imgobsolete: $(_TEMPDIR)/imgobsolete.tar  ## Build the VM Image obsoleting container image
 $(_TEMPDIR)/imgobsolete.tar: $(_TEMPDIR)/imgts.tar imgts/lib_entrypoint.sh imgobsolete/Containerfile imgobsolete/entrypoint.sh $(_TEMPDIR)
-	podman load -i $(_TEMPDIR)/imgts.tar imgts:latest
+	podman load -i $(_TEMPDIR)/imgts.tar
+	podman tag imgts:$(call err_if_empty,IMG_SFX) imgts:latest
 	podman build -t imgobsolete:$(call err_if_empty,IMG_SFX) \
 		-f imgobsolete/Containerfile .
 	rm -f $@
@@ -254,7 +255,8 @@ $(_TEMPDIR)/imgobsolete.tar: $(_TEMPDIR)/imgts.tar imgts/lib_entrypoint.sh imgob
 .PHONY: imgprune
 imgprune: $(_TEMPDIR)/imgprune.tar  ## Build the VM Image pruning container image
 $(_TEMPDIR)/imgprune.tar: $(_TEMPDIR)/imgts.tar imgts/lib_entrypoint.sh imgprune/Containerfile imgprune/entrypoint.sh $(_TEMPDIR)
-	podman load -i $(_TEMPDIR)/imgts.tar imgts:latest
+	podman load -i $(_TEMPDIR)/imgts.tar
+	podman tag imgts:$(call err_if_empty,IMG_SFX) imgts:latest
 	podman build -t imgprune:$(call err_if_empty,IMG_SFX) \
 		-f imgprune/Containerfile .
 	rm -f $@
@@ -263,7 +265,8 @@ $(_TEMPDIR)/imgprune.tar: $(_TEMPDIR)/imgts.tar imgts/lib_entrypoint.sh imgprune
 .PHONY: gcsupld
 gcsupld: $(_TEMPDIR)/gcsupld.tar  ## Build the GCS Upload container image
 $(_TEMPDIR)/gcsupld.tar: $(_TEMPDIR)/imgts.tar imgts/lib_entrypoint.sh gcsupld/Containerfile gcsupld/entrypoint.sh $(_TEMPDIR)
-	podman load -i $(_TEMPDIR)/imgts.tar imgts:latest
+	podman load -i $(_TEMPDIR)/imgts.tar
+	podman tag imgts:$(call err_if_empty,IMG_SFX) imgts:latest
 	podman build -t gcsupld:$(call err_if_empty,IMG_SFX) \
 		-f gcsupld/Containerfile .
 	rm -f $@
@@ -275,6 +278,17 @@ $(_TEMPDIR)/get_ci_vm.tar: lib.sh get_ci_vm/Containerfile get_ci_vm/entrypoint.s
 	podman build -t get_ci_vm:$(call err_if_empty,IMG_SFX) -f get_ci_vm/Containerfile .
 	rm -f $@
 	podman save --quiet -o $@ get_ci_vm:$(IMG_SFX)
+
+.PHONY: orphanvms
+orphanvms: $(_TEMPDIR)/orphanvms.tar  ## Build the Orphaned VM container image
+$(_TEMPDIR)/orphanvms.tar: $(_TEMPDIR)/imgts.tar imgts/lib_entrypoint.sh orphanvms/Containerfile orphanvms/entrypoint.sh $(_TEMPDIR)
+	podman load -i $(_TEMPDIR)/imgts.tar
+	podman tag imgts:$(call err_if_empty,IMG_SFX) imgts:latest
+	podman build -t orphanvms:$(IMG_SFX) \
+		-f orphanvms/Containerfile .
+	rm -f $@
+	podman save --quiet -o $@ orphanvms:$(IMG_SFX)
+
 
 .PHONY: clean
 clean: ## Remove all generated files referenced in this Makefile

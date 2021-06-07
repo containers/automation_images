@@ -131,6 +131,10 @@ tooling_images_task:
           env:
             TARGET_NAME: 'get_ci_vm'
             DEST_FQIN: *tooling_fqin
+        - name: *tooling_name
+          env:
+            TARGET_NAME: 'orphanvms'
+            DEST_FQIN: *tooling_fqin
     env:
         <<: *image_env
         PUSH_LATEST: 1  # scripts force to 0 if $CIRRUS_PR

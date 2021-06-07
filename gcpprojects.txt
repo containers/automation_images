@@ -1,0 +1,13 @@
+# This is a listing of GCP Project IDs which use images produced by
+# this repo.  It's used by the "Orphan VMs" github action to monitor
+# for any leftover/lost VMs.
+buildah
+conmon-222014
+containers-build-source-image
+dnsname-8675309
+libpod-218412
+oci-seccomp-bpf-hook
+podman-py
+skopeo
+storage-240716
+udica-247612
