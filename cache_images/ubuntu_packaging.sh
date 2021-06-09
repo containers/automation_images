@@ -33,6 +33,7 @@ fi
 # automated testing.  These packages are not otherwise intended for
 # end-user consumption.
 VERSION_ID=$(source /etc/os-release; echo $VERSION_ID)
+# Overview: https://build.opensuse.org/project/show/devel:kubic:libcontainers:testing
 REPO_URL="https://download.opensuse.org/repositories/devel:/kubic:/libcontainers:/testing/xUbuntu_$VERSION_ID/"
 GPG_URL="https://download.opensuse.org/repositories/devel:kubic:libcontainers:testing/xUbuntu_$VERSION_ID/Release.key"
 
@@ -49,6 +50,7 @@ curl --fail --silent --location --url "$GPG_URL" | \
 INSTALL_PACKAGES=(\
     apache2-utils
     apparmor
+    apt-transport-https
     aufs-tools
     autoconf
     automake
@@ -58,22 +60,19 @@ INSTALL_PACKAGES=(\
     build-essential
     buildah
     bzip2
+    ca-certificates
     conmon
     containernetworking-plugins
-    coreutils
     cri-o-runc
     criu
     crun
-    curl
     dnsmasq
     e2fslibs-dev
     emacs-nox
     file
     fuse3
-    gawk
     gcc
     gettext
-    git
     gnupg2
     go-md2man
     iproute2
@@ -83,6 +82,7 @@ INSTALL_PACKAGES=(\
     libapparmor-dev
     libbtrfs-dev
     libcap-dev
+    libcap2
     libdevmapper-dev
     libdevmapper1.02.1
     libfuse-dev
@@ -96,12 +96,13 @@ INSTALL_PACKAGES=(\
     libnl-3-dev
     libprotobuf-c-dev
     libprotobuf-dev
-    libseccomp2
     libseccomp-dev
+    libseccomp2
     libselinux-dev
     libsystemd-dev
     libtool
     libudev-dev
+    lsb-release
     lsof
     make
     netcat
@@ -109,12 +110,16 @@ INSTALL_PACKAGES=(\
     parallel
     pkg-config
     podman
+    podman-plugins
     protobuf-c-compiler
     protobuf-compiler
+    python-is-python3
     python2
+    python3-dateutil
     python3-dateutil
     python3-docker
     python3-pip
+    python3-protobuf
     python3-psutil
     python3-pytoml
     python3-requests
@@ -134,40 +139,34 @@ INSTALL_PACKAGES=(\
     zlib1g-dev
     zstd
 )
-# Download these package files, but don't install them; Any tests
-# wishing to, may install them using their native tools at runtime.
-DOWNLOAD_PACKAGES=(\
-    parallel
-)
-
-# These aren't resolvable on Ubuntu 20
-if [[ "$OS_RELEASE_VER" -le 2004 ]]; then
-    INSTALL_PACKAGES+=(\
-        python-dateutil
-        python-is-python3
-        python-protobuf
-    )
-else  # e.g. 20.10 and later
-    INSTALL_PACKAGES+=(\
-        libcap2
-        podman-plugins
-        python-is-python3
-        python3-dateutil
-        python3-protobuf
-    )
-
-fi
 
 echo "Installing general build/testing dependencies"
 # Necessary to update cache of newly added repos
 lilto $SUDO apt-get -q -y update
 bigto $SUDO apt-get -q -y install "${INSTALL_PACKAGES[@]}"
 
-if [[ ${#DOWNLOAD_PACKAGES[@]} -gt 0 ]]; then
-    echo "Downloading packages for optional installation at runtime, as needed."
-    $SUDO ln -s /var/cache/apt/archives "$PACKAGE_DOWNLOAD_DIR"
-    bigto $SUDO apt-get -q -y install --download-only "${DOWNLOAD_PACKAGES[@]}"
-fi
+# Buildah conformance testing needs to install packages from docker.io
+# at runtime.  Setup the repo here, so it only affects downloaded
+# (cached) packages and not updates/installs (above).  Installing packages
+# cached in the image is preferable to reaching out to the repository
+# at runtime.  It also has the desirable effect of preventing the
+# possibility of package changes from one CI run to the next (or from
+# one branch to the next).
+DOWNLOAD_PACKAGES=(\
+    containerd.io
+    docker-ce
+    docker-ce-cli
+)
+curl --fail --silent --location \
+    --url  https://download.docker.com/linux/ubuntu/gpg | \
+    gpg --dearmor | \
+    $SUDO tee /etc/apt/trusted.gpg.d/docker_com.gpg &> /dev/null
+echo "deb https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable" | \
+    ooe.sh $SUDO tee /etc/apt/sources.list.d/docker.list &> /dev/null
+lilto $SUDO apt-get -q -y update
+echo "Downloading packages for optional installation at runtime."
+$SUDO ln -s /var/cache/apt/archives "$PACKAGE_DOWNLOAD_DIR"
+bigto $SUDO apt-get -q -y install --download-only "${DOWNLOAD_PACKAGES[@]}"
 
 echo "Configuring Go environment"
 # There are multiple (otherwise conflicting) versions of golang available

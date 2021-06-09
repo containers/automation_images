@@ -174,7 +174,7 @@ ubuntu_finalize() {
     set +e  # Don't fail at the very end
     set -x
     $SUDO apt-get -qq -y autoremove
-    $SUDO rm -rf /var/cache/apt
+    $SUDO rm -f /var/cache/apt/*  # DON'T remove archives: packages downloaded there
     $SUDO rm -rf /var/lib/apt/lists/*
     common_finalize
 }
