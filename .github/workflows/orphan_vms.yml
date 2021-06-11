@@ -48,10 +48,10 @@ jobs:
                 podman run --rm \
                     --env-file=$env_file \
                     quay.io/libpod/orphanvms:latest \
-                    > /tmp/output.txt
+                    | tee /tmp/output.txt
 
                 printf "::set-output name=count::%d\n" \
-                    $(egrep -x '\* VM .+' | wc -l - | awk '{print $1}')
+                    $(egrep -x '\* VM .+' /tmp/output.txt | wc -l - | awk '{print $1}')
 
             - if: steps.orphans.outputs.count > 0
               shell: bash
