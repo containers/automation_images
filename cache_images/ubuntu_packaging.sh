@@ -177,7 +177,7 @@ echo "Configuring Go environment"
 # Add upstream golang for perf issues
 curl -s -L https://golang.org/dl/go1.15.11.linux-amd64.tar.gz | $SUDO tar xzf - -C /usr/local/
 # Now linking to upstream golang until ubuntu performance issues are resolved
-$SUDO ln -sf /usr/local/go/bin/go /usr/bin/go
+$SUDO ln -sf /usr/local/go/bin/* /usr/bin/
 
 export GOPATH=/var/tmp/go
 mkdir -p "$GOPATH"
