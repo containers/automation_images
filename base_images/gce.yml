@@ -18,8 +18,8 @@ variables:  # Empty value means it must be passed in on command-line
     # Upstream source for Ubuntu image duplication (prevents expiration)
     # Look these up in the console by searching images for
     # "Created by: Canonical"
-    UBUNTU_BASE_IMAGE: 'ubuntu-2104-hirsute-v20210422'  # Guess
-    PRIOR_UBUNTU_BASE_IMAGE: 'ubuntu-2010-groovy-v20210325'
+    UBUNTU_BASE_IMAGE: 'ubuntu-2104-hirsute-v20210511a'
+    PRIOR_UBUNTU_BASE_IMAGE: 'ubuntu-2010-groovy-v20210511a'
 
     # Latest Fedora release download URL
     FEDORA_IMAGE_URL: "https://dl.fedoraproject.org/pub/fedora/linux/releases/34/Cloud/x86_64/images/Fedora-Cloud-Base-34-1.2.x86_64.qcow2"
