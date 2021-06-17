@@ -88,59 +88,72 @@ a.k.a. ***Cache Images***
 
 These are the VM Images actually used by other repositories for automated
 testing.  So, assuming you just need to update packages or tweak the list,
-start here.  Though be aware, this repository does not yet perform any testing
-of the images.  That's your secondary responsibility, see step 5 below.
+[start here](README.md#process).  Though be aware, this repository does not
+yet perform any testing of the images.  That's your secondary responsibility,
+see step 4 below.
 
-Notes:
-
-* ***Warning:*** Before you go deleting seemingly "unnecessary" packages and
-  "extra" code, remember these VM images are shared by automation in multiple
-  repositories.
+**Notes:**
 
 * VM configuration starts with one of the `cache_images/*_setup.sh` scripts.
   Normally you probably won't need/want to mess with these.
 
 * The bulk of the packaging work occurs next, from the `cache_images/*_packaging.sh`
-  scripts.  This is most likely what you want to modify.
+  scripts.  **This is most likely what you want to modify.**
 
 * Some non-packaged/source-based tooling is installed using the
   `cache_images/podman_tooling.sh` script.  These are slightly fragile, as
   they always come from upstream (master) podman.  Avoid adding/changing
   anything here if alternatives exist.
 
-Process:
+* **Warning:** Before you go deleting seemingly "unnecessary" packages and
+  "extra" code, remember these VM images are shared by automation in multiple
+  repositories.
 
-1. After you make your changes, push to a PR.  Shell-script changes will be
-   validated and VM image production building will begin automatically.
+### Process: ###
 
-2. Assuming successful image-build, the name of all output images will share
-   a common suffix.  To discover this suffix, find and click one of the
-   `View more details on Cirrus CI` links (bottom of the *Checks* tab in github).
-   Any **Cirrus-CI** task will do, it doesn't matter which you pick.
+1. After you make your script changes, push to a PR.  They will be
+   validated and linted before VM image production begins.
 
-3. Toward the top of the page, is a button labeled *VIEW ALL TASKS*.
-   Click this button.
+2. The name of all output images will share a common suffix (*image ID*).
+   Assuming a successful image-build, a
+   [github-action](.github/workflows/pr_image_id.yml)
+   will post the new *image ID* as a comment in the PR.  If this automation
+   breaks, you may need to [figure the ID out the hard
+   way](README.md#Looking-up-an-image-ID).
 
-4. Look at the URL in your browser, it will be of the form
-   `https://cirrus-ci.com/build/<big number>`.  Copy-paste (or otherwise
-   record in stone) the **big number**, you'll need it for the next step.
+3. Go over to whatever other containers/repository needed the image update.
+   Open the `.cirrus.yml` file, and find the 'env' line referencing the *image
+   ID*.  It will likely be named `IMAGE_SUFFIX:` or something similar.
+   Paste in the *image ID*.
 
-5. Go over to whatever other containers/repository needed the image update.
-   Open the `.cirrus.yml` file, and find the 'env' line referencing the image
-   suffix.  It will likely be named `_BUILT_IMAGE_SUFFIX:` or something similar.
-
-7. Paste in the **big number** *prefixed by the letter 'c'*.  The *"c*" indicates
-   the images are *cache images*.  For example, if the url was `http://.../12345`
-   you would paste in `c12345` as the value for `_BUILT_IMAGE_SUFFIX:`.
-
-8. Open up a PR with this change, and push it.  Once all tests pass and you're
+4. Open up a PR with this change, and push it.  Once all tests pass and you're
    satisfied with the image changes, ask somebody to review/approve both
    PRs for merging.  If you're feeling generous, perhaps provide cross-links
    between the two PRs in comments, for future reference.
 
 9. After all the PRs are merged, you're done.
 
+### Looking up an image ID: ###
 
+An *image ID* is simplya big number prefixed by the letter 'c'.  You may
+need to look it up in a PR for example, if
+[the automated comment posting github-action](.github/workflows/pr_image_id.yml)
+fails.
+
+1. In a PR, find and click one of the `View more details on Cirrus CI`
+   links (bottom of the *Checks* tab in github). Any **Cirrus-CI** task
+   will do, it doesn't matter which you pick.
+
+2. Toward the top of the page, is a button labeled *VIEW ALL TASKS*.
+   Click this button.
+
+3. Look at the URL in your browser, it will be of the form
+   `https://cirrus-ci.com/build/<big number>`.  Copy-paste (or otherwise
+   record in stone) the **big number**, you'll need it for the next step.
+
+4. The new *image ID* is formed by prefixing the **big number** with the
+   the letter *"c*".  For example, if the url was `http://.../12345`
+   the *image ID* would be `c12345`.
 
 ## The image-builder image (overview step 1)
 
