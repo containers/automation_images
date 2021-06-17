@@ -8,8 +8,8 @@ name: check_orphan_vms
 on:
     # Note: This only applies to the default branch.
     schedule:
-        # Assume cirrus cron jobs runs at least once per day
-        - cron:  '59 23 * * *'
+        # Nobody is around to respond to weekend e-mails
+        - cron:  '59 23 * * 0-4'
     # Debug: Allow triggering job manually in github-actions WebUI
     workflow_dispatch: {}
 
