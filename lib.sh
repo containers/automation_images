@@ -37,7 +37,7 @@ if [[ "$OS_RELEASE_ID" == "ubuntu" ]]; then
     SUDO="$SUDO env DEBIAN_FRONTEND=$DEBIAN_FRONTEND"
 fi
 
-if [[ -d "/usr/share/automation" ]]; then
+if [[ -r "/etc/automation_environment" ]]; then
     source /etc/automation_environment
     #shellcheck disable=SC1090,SC2154
     source $AUTOMATION_LIB_PATH/common_lib.sh
