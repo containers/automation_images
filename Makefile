@@ -231,6 +231,17 @@ $(_TEMPDIR)/%_podman.tar: podman/Containerfile podman/setup.sh $(wildcard base_i
 	rm -f $@
 	podman save --quiet -o $@ $*_podman:$(IMG_SFX)
 
+.PHONY: skopeo_cidev
+skopeo_cidev: $(_TEMPDIR)/skopeo_cidev.tar  ## Build Skopeo development and CI container
+
+$(_TEMPDIR)/skopeo_cidev.tar: podman/fedora_release $(wildcard skopeo_base/*) $(_TEMPDIR) $(_TEMPDIR)/var_cache_dnf
+	podman build -t skopeo_cidev:$(call err_if_empty,IMG_SFX) \
+		--build-arg=BASE_TAG=$(_fedora_podman_release) \
+		-v $(_TEMPDIR)/var_cache_dnf:/var/cache/dnf:Z \
+		skopeo_cidev
+	rm -f $@
+	podman save --quiet -o $@ skopeo_cidev:$(IMG_SFX)
+
 .PHONY: imgts
 imgts: $(_TEMPDIR)/imgts.tar  ## Build the VM image time-stamping container image
 $(_TEMPDIR)/imgts.tar: imgts/Containerfile imgts/entrypoint.sh imgts/google-cloud-sdk.repo imgts/lib_entrypoint.sh $(_TEMPDIR)

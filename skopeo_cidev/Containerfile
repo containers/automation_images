@@ -1,0 +1,18 @@
+ARG BASE_NAME=fedora
+ARG BASE_TAG=latest
+FROM ${BASE_NAME}:${BASE_TAG}
+
+COPY /packages.txt /root/
+RUN dnf -y update && \
+    dnf -y install $(sed -r -e '/^#/d' -e '/^$/d' /root/packages.txt) && \
+    dnf -y upgrade && \
+    dnf clean all
+
+ENV REG_REPO="https://github.com/docker/distribution.git" \
+    REG_COMMIT="47a064d4195a9b56133891bbb13620c3ac83a827" \
+    REG_COMMIT_SCHEMA1="ec87e9b6971d831f0eff752ddb54fb64693e51cd" \
+    OSO_REPO="https://github.com/openshift/origin.git" \
+    OSO_TAG="v1.5.0-alpha.3"
+
+COPY /setup.sh /root/
+RUN bash /root/setup.sh
