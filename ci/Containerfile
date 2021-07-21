@@ -27,6 +27,7 @@ RUN dnf update -y && \
         gawk \
         jq \
         make \
+        openssh-clients \
         python3-pyyaml \
         rootfiles \
         rsync \

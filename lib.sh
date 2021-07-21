@@ -174,8 +174,7 @@ common_finalize() {
 rh_finalize() {
     set +e  # Don't fail at the very end
     set -x
-    $SUDO dnf clean all
-    $SUDO rm -rf /var/cache/{yum,dnf}
+    # Packaging cache is preserved across builds of container images
     $SUDO rm -f /etc/udev/rules.d/*-persistent-*.rules
     $SUDO touch /.unconfigured  # force firstboot to run
     common_finalize
@@ -185,9 +184,7 @@ rh_finalize() {
 ubuntu_finalize() {
     set +e  # Don't fail at the very end
     set -x
-    $SUDO apt-get -qq -y autoremove
-    $SUDO rm -f /var/cache/apt/*  # DON'T remove archives: packages downloaded there
-    $SUDO rm -rf /var/lib/apt/lists/*
+    # Packaging cache is preserved across builds of container images
     common_finalize
 }
 
