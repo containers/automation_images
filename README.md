@@ -185,7 +185,7 @@ an overview of the process followed **by automation** to produce the
    This generated file may be ignored, *make* will be regenerate it upon
    any changes to the YAML file.
 
-4. Packer will spin up a GCE VM based on CentOS. It will then install the
+4. Packer will spin up a GCE VM based on CentOS Stream. It will then install the
    necessary packages and attach a [nested-virtualization "license" to the
    VM](https://cloud.google.com/compute/docs/instances/enable-nested-virtualization-vm-instances#enablenestedvirt).  Be patient until this process completes.
 

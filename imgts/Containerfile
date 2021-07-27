@@ -1,4 +1,4 @@
-FROM centos:8
+FROM quay.io/centos/centos:stream8
 
 # Only needed for installing build-time dependencies
 COPY /imgts/google-cloud-sdk.repo /etc/yum.repos.d/google-cloud-sdk.repo

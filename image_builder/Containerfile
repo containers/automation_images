@@ -3,8 +3,8 @@
 # by the relevant target in the Makefile at the root of this
 # repository.
 
-ARG CENTOS_RELEASE=8
-FROM centos:${CENTOS_RELEASE}
+ARG CENTOS_RELEASE=stream8
+FROM quay.io/centos/centos:${CENTOS_RELEASE}
 ARG PACKER_VERSION
 MAINTAINER https://github.com/containers/automation_images/image_builder
 
