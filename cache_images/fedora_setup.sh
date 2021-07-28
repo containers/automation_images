@@ -35,6 +35,11 @@ if ! ((CONTAINER)) && [[ "$PACKER_BUILD_NAME" =~ prior ]]; then
     ooe.sh $SUDO sed -re "$SEDCMD" -i /etc/default/grub
     # This is always a symlink to the correct location under /boot/...
     ooe.sh $SUDO grub2-mkconfig -o $($SUDO realpath --physical /etc/grub2.cfg)
+    # This is needed to update the /boot/loader/entries/... file to match grub
+    # config (bug?).  Discovered Jul 28, 2021 on newly build F33 images.  Never
+    # a problem before this point :(
+    ooe.sh $SUDO grubby --grub2 --update-kernel=$($SUDO grubby --default-kernel) \
+        --args="systemd.unified_cgroup_hierarchy=0"
 fi
 
 finalize
