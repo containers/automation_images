@@ -96,9 +96,15 @@ container_images_task: &container_images
           env:
             TARGET_NAME: 'prior-ubuntu_podman'
             DEST_FQIN: *fqin
+        - name: *name
+          env:
+            TARGET_NAME: 'skopeo_cidev'
+            DEST_FQIN: *fqin
     env: &image_env
         TEMPDIR: '$CIRRUS_WORKING_DIR'
-        LOGIN_CMD: ENCRYPTED[d15806d68c90cf74faca59bc4f81ada269538092b8449c7d8cd4cf44cd8d58a7482d2b249a9da06508f32f9e4075dc18]
+        # For quay.io/libpod namespace
+        REG_USERNAME: ENCRYPTED[de755aef351c501ee480231c24eae25b15e2b2a2b7c629f477c1d427fc5269e360bb358a53bd8914605bae588e99b52a]
+        REG_PASSWORD: ENCRYPTED[52268944bb0d6642c33efb1c5d7fb82d0c40f9e6988448de35827f9be2cc547c1383db13e8b21516dbd7a0a69a7ae536]
     script: ci/make_container_images.sh;
 
 
