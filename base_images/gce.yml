@@ -15,6 +15,12 @@ variables:  # Empty value means it must be passed in on command-line
     # N/B: There are length/character limitations in GCE for image names
     IMG_SFX: '{{ timestamp }}'
 
+    # BIG-FAT-WARNING:  When updating the image names and/or URLs below,
+    # ensure the distro version numbers contained in the `podman/*_release`
+    # files exactly match.  These represent the container base-image tags
+    # to build from - just as the sources below are the base-images to
+    # start from building VM images.
+
     # Upstream source for Ubuntu image duplication (prevents expiration)
     # Look these up in the console by searching images for
     # "Created by: Canonical"
