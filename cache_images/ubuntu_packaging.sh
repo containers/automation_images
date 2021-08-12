@@ -63,6 +63,7 @@ INSTALL_PACKAGES=(\
     ca-certificates
     conmon
     containernetworking-plugins
+    containers-common
     cri-o-runc
     criu
     crun
@@ -140,9 +141,15 @@ INSTALL_PACKAGES=(\
     zstd
 )
 
-echo "Installing general build/testing dependencies"
 # Necessary to update cache of newly added repos
 lilto $SUDO apt-get -q -y update
+
+if (($OS_RELEASE_VER>=2104)); then
+    echo "Blocking golang-* package interfearance with kubik containers-common"
+    $SUDO apt-mark hold golang-github-containers-common golang-github-containers-image
+fi
+
+echo "Installing general build/testing dependencies"
 bigto $SUDO apt-get -q -y install "${INSTALL_PACKAGES[@]}"
 
 # Buildah conformance testing needs to install packages from docker.io
