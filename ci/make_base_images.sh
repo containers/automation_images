@@ -5,7 +5,7 @@
 # of this script in any other context/environment is unlikely to
 # function as intended.
 
-SCRIPT_FILEPATH=$(realpath "$0")
+SCRIPT_FILEPATH=$(realpath "${BASH_SOURCE[0]}")
 SCRIPT_DIRPATH=$(dirname "$SCRIPT_FILEPATH")
 REPO_DIRPATH=$(realpath "$SCRIPT_DIRPATH/../")
 
