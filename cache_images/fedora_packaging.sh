@@ -7,7 +7,7 @@
 
 set -e
 
-SCRIPT_FILEPATH=$(realpath "$0")
+SCRIPT_FILEPATH=$(realpath "${BASH_SOURCE[0]}")
 SCRIPT_DIRPATH=$(dirname "$SCRIPT_FILEPATH")
 REPO_DIRPATH=$(realpath "$SCRIPT_DIRPATH/../")
 
@@ -184,6 +184,13 @@ DOWNLOAD_PACKAGES=(\
 
 echo "Installing general build/test dependencies"
 bigto $SUDO dnf install -y $EXARG "${INSTALL_PACKAGES[@]}"
+
+# TODO: Temporarily side-load an updated buildah
+# https://bodhi.fedoraproject.org/updates/FEDORA-2021-2bcbfc2b3c
+# Remove this after the package (or later version) is available in repo.
+if [[ "$OS_RELEASE_VER" =~ 33 ]]; then
+    lilto $SUDO dnf update -y "https://kojipkgs.fedoraproject.org//packages/buildah/1.22.0/1.fc33/x86_64/buildah-1.22.0-1.fc33.x86_64.rpm"
+fi
 
 if [[ ${#DOWNLOAD_PACKAGES[@]} -gt 0 ]]; then
     echo "Downloading packages for optional installation at runtime, as needed."

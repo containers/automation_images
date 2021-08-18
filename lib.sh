@@ -5,9 +5,6 @@
 # Using it in any other way or context unlikely to do anything
 # useful for you.
 
-SCRIPT_FILEPATH=$(realpath "$0")
-SCRIPT_DIRPATH=$(dirname "$SCRIPT_FILEPATH")
-
 # By default, assume we're not running inside a container
 CONTAINER="${CONTAINER:-0}"
 
@@ -15,8 +12,6 @@ OS_RELEASE_VER="$(source /etc/os-release; echo $VERSION_ID | tr -d '.')"
 OS_RELEASE_ID="$(source /etc/os-release; echo $ID)"
 OS_REL_VER="$OS_RELEASE_ID-$OS_RELEASE_VER"
 
-SRC=$(realpath $(dirname "${BASH_SOURCE[0]}")/../)
-CUSTOM_CLOUD_CONFIG_DEFAULTS="$SCRIPT_DIRPATH/cloud-init/$OS_RELEASE_ID/cloud.cfg.d"
 # Avoid getting stuck waiting for user input
 [[ "$OS_RELEASE_ID" != "ubuntu" ]] || \
     export DEBIAN_FRONTEND="noninteractive"
@@ -28,8 +23,12 @@ INSTALL_AUTOMATION_VERSION="3.1.0"
 
 PUSH_LATEST="${PUSH_LATEST:-0}"
 
+# Some platforms set and make this read-only
+[[ -n "$UID" ]] || \
+    UID=$(getent passwd $USER | cut -d : -f 3)
+
 SUDO=""
-if [[ "$UID" -ne 0 ]]; then
+if [[ -n "$UID" ]] && [[ "$UID" -ne 0 ]]; then
     SUDO="sudo"
 fi
 
@@ -67,7 +66,9 @@ install_automation_tooling() {
 }
 
 custom_cloud_init() {
-    if [[ -d "$CUSTOM_CLOUD_CONFIG_DEFAULTS" ]]
+    #shellcheck disable=SC2154
+    CUSTOM_CLOUD_CONFIG_DEFAULTS="$SCRIPT_DIRPATH/cloud-init/$OS_RELEASE_ID/cloud.cfg.d"
+    if [[ -n "$SCRIPT_DIRPATH" ]] && [[ -d "$CUSTOM_CLOUD_CONFIG_DEFAULTS" ]]
     then
         echo "Installing custom cloud-init defaults"
         $SUDO cp -v "$CUSTOM_CLOUD_CONFIG_DEFAULTS"/* /etc/cloud/cloud.cfg.d/

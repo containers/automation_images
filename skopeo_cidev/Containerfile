@@ -2,6 +2,11 @@ ARG BASE_NAME=fedora
 ARG BASE_TAG=latest
 FROM ${BASE_NAME}:${BASE_TAG}
 
+# Required to keep perl & other tooling happy
+ENV LANGUAGE="en_US" \
+    LC_ALL="en_US" \
+    LANG="en_US.UTF-8"
+
 COPY /packages.txt /root/
 RUN dnf -y update && \
     dnf -y install $(sed -r -e '/^#/d' -e '/^$/d' /root/packages.txt) && \

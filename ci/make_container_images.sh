@@ -7,7 +7,7 @@
 
 set -eo pipefail
 
-SCRIPT_FILEPATH=$(realpath "$0")
+SCRIPT_FILEPATH=$(realpath "${BASH_SOURCE[0]}")
 SCRIPT_DIRPATH=$(dirname "$SCRIPT_FILEPATH")
 REPO_DIRPATH=$(realpath "$SCRIPT_DIRPATH/../")
 
