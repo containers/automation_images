@@ -37,6 +37,8 @@ fi
 
 custom_cloud_init
 
+nm_ignore_cni
+
 finalize
 
 echo "SUCCESS!"
