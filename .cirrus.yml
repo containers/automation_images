@@ -52,7 +52,7 @@ image_builder_task:
     # Packer needs time to clean up partially created VM images
     auto_cancellation: $CI != "true"
     stateful: true
-    timeout_in: 30m
+    timeout_in: 40m
     container:
         dockerfile: "image_builder/Containerfile"
         cpu: 2
