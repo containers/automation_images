@@ -59,8 +59,8 @@ documentation](https://www.packer.io/docs).
    documentation](https://cloud.google.com/compute/docs/instances/enable-nested-virtualization-vm-instances#enablenestedvirt).
 
 2. Two types of container images are built. The [first set includes both
-   current and "prior" flavors of Fedora and
-   Ubuntu](README.md#podman). The [second set is of tooling container
+   current and "prior" flavor of Fedora](README.md#podman). The
+   [second set is of tooling container
    images](README.md#tooling).  Tooling required for VM image
    maintenance, artifact uploads, and debugging.
 
@@ -218,7 +218,6 @@ then automatically pushed to:
 * https://quay.io/repository/libpod/fedora_podman
 * https://quay.io/repository/libpod/prior-fedora_podman
 * https://quay.io/repository/libpod/ubuntu_podman
-* https://quay.io/repository/libpod/prior-ubuntu_podman
 
 The meaning of *prior* and *current*, is defined by the contents of
 the `*_release` files within the `podman` subdirectory.  This is
@@ -348,7 +347,7 @@ producing images proceeds as follows:
 4. If you wish to build only a subset of available images, list the names
    you want as comma-separated values of the `PACKER_BUILDS` variable.  Be
    sure you *export* this variable so that `make` has access to it.  For
-   example, `export PACKER_BUILDS=prior-ubuntu,prior-fedora`.
+   example, `export PACKER_BUILDS=ubuntu,prior-fedora`.
 
 4. Still within the container, again ensure you have plenty of network and CPU
    resources available.  Build the VM Base images by executing the command

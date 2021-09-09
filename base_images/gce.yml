@@ -25,7 +25,6 @@ variables:  # Empty value means it must be passed in on command-line
     # Look these up in the console by searching images for
     # "Created by: Canonical"
     UBUNTU_BASE_IMAGE: 'ubuntu-2104-hirsute-v20210511a'
-    PRIOR_UBUNTU_BASE_IMAGE: 'ubuntu-2010-groovy-v20210511a'
 
     # Latest Fedora release download URL
     FEDORA_IMAGE_URL: "https://dl.fedoraproject.org/pub/fedora/linux/releases/34/Cloud/x86_64/images/Fedora-Cloud-Base-34-1.2.x86_64.qcow2"
@@ -107,11 +106,6 @@ builders:
       # Gotcha: https://www.packer.io/docs/builders/googlecompute#gotchas
       ssh_username: 'packer'
 
-    - <<: *imgcopy
-      name: 'prior-ubuntu'
-      image_name: 'prior-ubuntu-b{{user `IMG_SFX`}}'
-      source_image: '{{user `PRIOR_UBUNTU_BASE_IMAGE`}}'
-
 provisioners:  # Ubuntu images come bundled with GCE integrations provisioned
     - type: 'shell'
       inline:
@@ -128,7 +122,7 @@ provisioners:  # Ubuntu images come bundled with GCE integrations provisioned
         - 'set -e'
         - '/bin/bash /tmp/automation_images/base_images/fedora_base-setup.sh'
 
-    - only: ['ubuntu', 'prior-ubuntu']
+    - only: ['ubuntu']
       type: 'shell'
       inline:
         - 'set -e'

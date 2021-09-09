@@ -42,10 +42,6 @@ builders:
       image_licenses: ["projects/vm-options/global/licenses/enable-vmx"]
 
     - <<: *gce_hosted_image
-      name: 'prior-ubuntu'  # setup script derrived from string before "-"
-      source_image_family: 'prior-ubuntu-base'
-
-    - <<: *gce_hosted_image
       name: 'fedora'
       source_image_family: 'fedora-base'
 
@@ -69,7 +65,7 @@ provisioners:
         - 'set -e'
         - '/bin/bash /tmp/automation_images/cache_images/fedora_setup.sh'
 
-    - only: ['ubuntu', 'prior-ubuntu']
+    - only: ['ubuntu']
       type: 'shell'
       inline:
         - 'set -e'

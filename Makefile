@@ -199,7 +199,6 @@ cache_images/manifest.json: cache_images/gce.json $(wildcard cache_images/*.sh) 
 override _fedora_podman_release := $(file < podman/fedora_release)
 override _prior-fedora_podman_release := $(file < podman/prior-fedora_release)
 override _ubuntu_podman_release := $(file < podman/ubuntu_release)
-override _prior-ubuntu_podman_release := $(file < podman/prior-ubuntu_release)
 define build_podman_container
 	$(MAKE) $(_TEMPDIR)/$(1).tar BASE_TAG=$(_$(1)_release)
 endef
@@ -214,10 +213,6 @@ prior-fedora_podman:  ## Build Prior-Fedora podman development container
 
 .PHONY: ubuntu_podman
 ubuntu_podman:  ## Build Ubuntu podman development container
-	$(call build_podman_container,$@)
-
-.PHONY: prior-ubuntu_podman
-prior-ubuntu_podman:  ## Build Prior-Ubuntu podman development container
 	$(call build_podman_container,$@)
 
 $(_TEMPDIR)/%_podman.tar: podman/Containerfile podman/setup.sh $(wildcard base_images/*.sh) $(wildcard cache_images/*.sh) $(_TEMPDIR) $(_TEMPDIR)/var_cache_dnf
