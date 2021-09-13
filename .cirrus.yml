@@ -30,14 +30,15 @@ validate_task:
     container: &ci_container
         # Ref: https://cirrus-ci.org/guide/docker-builder-vm/#dockerfile-as-a-ci-environment
         dockerfile: "ci/Containerfile"
-        cpu: 1
-        memory: "1G"
         docker_arguments:
             PACKER_VERSION: *PACKER_VERSION
     script:
         - "ci/shellcheck.sh"
+        - "make clean"
+        - "make help"
         - "make image_builder/gce.json"
         - "make base_images/gce.json"
+        - "make cache_images/gce.json"
 
 
 image_builder_task:

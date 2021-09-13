@@ -21,7 +21,7 @@ if_ci_else = $(if $(findstring true,$(CI)),$(1),$(2))
 export GAC_FILEPATH
 
 PACKER_LOG ?=
-# Uncomment tthe following to enable additional logging from packer.
+# Uncomment the following to enable additional logging from packer.
 #override PACKER_LOG := 1
 export PACKER_LOG
 
@@ -185,7 +185,7 @@ $(_TEMPDIR)/image_builder_debug.tar: $(_TEMPDIR) $(_TEMPDIR)/var_cache_dnf image
 	$(call podman_build,$@,image_builder_debug,image_builder)
 
 .PHONY: base_images
-# This needs to run in a virt/nested-virt capible environment
+# This needs to run in a virt/nested-virt capable environment
 base_images: base_images/manifest.json ## Create, prepare, and import base-level images into GCE.  Optionally, set PACKER_BUILDS=<csv> to select builder(s).
 
 base_images/manifest.json: base_images/gce.json base_images/fedora_base-setup.sh cidata $(_TEMPDIR)/cidata.ssh $(PACKER_INSTALL_DIR)/packer
