@@ -12,9 +12,37 @@ ENV CIRRUS_WORKING_DIR=/tmp/automation_images \
     PACKER_INSTALL_DIR=/usr/local/bin \
     PACKER_VERSION=$PACKER_VERSION \
     CONTAINER=1
-ADD ./ci/install* "$CIRRUS_WORKING_DIR/ci/"
-WORKDIR "$CIRRUS_WORKING_DIR/"
-RUN bash ./ci/install_packages.sh
-# Overwrite prior add, allows build cache to skip install_packages.sh when possible
-ADD ./* "$CIRRUS_WORKING_DIR/"
-RUN make install_packer PACKER_INSTALL_DIR="$PACKER_INSTALL_DIR"
+
+# When using the dockerfile-as-ci feature of Cirrus-CI, it's unsafe
+# to rely on COPY or ADD instructions.  See documentation for warning.
+RUN test -n "$PACKER_VERSION"
+RUN dnf update -y && \
+    dnf mark remove $(rpm -qa | grep -Ev '(gpg-pubkey)|(dnf)|(sudo)') && \
+    dnf install -y --exclude selinux-policy-targeted \
+        ShellCheck \
+        bash-completion \
+        coreutils \
+        curl \
+        findutils \
+        gawk \
+        jq \
+        make \
+        python3-pyyaml \
+        rootfiles \
+        rsync \
+        sed \
+        tar \
+        util-linux \
+        unzip \
+        && \
+    dnf mark install dnf sudo $_ && \
+    dnf autoremove -y && \
+    dnf clean all
+
+# Must duplicate this from Makefile to avoid using any COPY|ADD instructions
+RUN curl -L --silent --show-error -o /tmp/packer.zip \
+        https://releases.hashicorp.com/packer/$PACKER_VERSION/packer_${PACKER_VERSION}_linux_amd64.zip && \
+    cd $PACKER_INSTALL_DIR && \
+    unzip -o /tmp/packer.zip && \
+    touch packer && \
+    rm -f /tmp/packer.zip

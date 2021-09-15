@@ -42,6 +42,8 @@ if ! ((CONTAINER)) && [[ "$PACKER_BUILD_NAME" =~ prior ]]; then
         --args="systemd.unified_cgroup_hierarchy=0"
 fi
 
+nm_ignore_cni
+
 finalize
 
 echo "SUCCESS!"

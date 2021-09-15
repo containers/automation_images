@@ -142,6 +142,17 @@ clean_automatic_users() {
     $SUDO rm -rf /home/*/.ssh/*
 }
 
+# Workaround for "NetworkManager doing weird things" (leading to testing-flakes)
+# Ref:https://github.com/containers/podman/issues/11123#issuecomment-912516145
+nm_ignore_cni() {
+    echo "Deploying NetworkManager anti-weird-things workaround"
+    $SUDO mkdir -p /etc/NetworkManager/conf.d/
+    cat << EOF | $SUDO tee /etc/NetworkManager/conf.d/podman-cni.conf
+[keyfile]
+unmanaged-devices=interface-name:cni-podman*;interface-name:veth*
+EOF
+}
+
 common_finalize() {
     set -x  # extra detail is no-longer necessary
     cd /

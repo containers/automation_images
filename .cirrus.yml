@@ -30,14 +30,15 @@ validate_task:
     container: &ci_container
         # Ref: https://cirrus-ci.org/guide/docker-builder-vm/#dockerfile-as-a-ci-environment
         dockerfile: "ci/Containerfile"
-        cpu: 1
-        memory: "1G"
         docker_arguments:
             PACKER_VERSION: *PACKER_VERSION
     script:
         - "ci/shellcheck.sh"
+        - "make clean"
+        - "make help"
         - "make image_builder/gce.json"
         - "make base_images/gce.json"
+        - "make cache_images/gce.json"
 
 
 image_builder_task:
@@ -52,7 +53,7 @@ image_builder_task:
     # Packer needs time to clean up partially created VM images
     auto_cancellation: $CI != "true"
     stateful: true
-    timeout_in: 30m
+    timeout_in: 40m
     container:
         dockerfile: "image_builder/Containerfile"
         cpu: 2
@@ -91,10 +92,6 @@ container_images_task: &container_images
         - name: *name
           env:
             TARGET_NAME: 'ubuntu_podman'
-            DEST_FQIN: *fqin
-        - name: *name
-          env:
-            TARGET_NAME: 'prior-ubuntu_podman'
             DEST_FQIN: *fqin
         - name: *name
           env:
@@ -176,9 +173,6 @@ base_images_task:
         - <<: *base_image
           env:
             PACKER_BUILDS: "ubuntu"
-        - <<: *base_image
-          env:
-            PACKER_BUILDS: "prior-ubuntu"
     script: "ci/make_base_images.sh"
     manifest_artifacts:
         path: base_images/manifest.json
@@ -213,9 +207,6 @@ cache_images_task:
         - <<: *cache_image
           env:
             PACKER_BUILDS: "ubuntu"
-        - <<: *cache_image
-          env:
-            PACKER_BUILDS: "prior-ubuntu"
     script: "ci/make_cache_images.sh"
     manifest_artifacts:
         path: cache_images/manifest.json
@@ -245,11 +236,9 @@ imgts_task:
             fedora-b${IMG_SFX}
             prior-fedora-b${IMG_SFX}
             ubuntu-b${IMG_SFX}
-            prior-ubuntu-b${IMG_SFX}
             fedora-c${IMG_SFX}
             prior-fedora-c${IMG_SFX}
             ubuntu-c${IMG_SFX}
-            prior-ubuntu-c${IMG_SFX}
     clone_script: &noop mkdir -p "${CIRRUS_WORKING_DIR}"  # source is not needed
     script: "/usr/local/bin/entrypoint.sh"
 

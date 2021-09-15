@@ -185,13 +185,6 @@ DOWNLOAD_PACKAGES=(\
 echo "Installing general build/test dependencies"
 bigto $SUDO dnf install -y $EXARG "${INSTALL_PACKAGES[@]}"
 
-# TODO: Temporarily side-load an updated buildah
-# https://bodhi.fedoraproject.org/updates/FEDORA-2021-b5a11501de
-# Remove this after the package (or later version) is available in repo.
-if [[ "$OS_RELEASE_VER" =~ 33 ]]; then
-    lilto $SUDO dnf upgrade -y --enablerepo=updates-testing --advisory=FEDORA-2021-b5a11501de
-fi
-
 if [[ ${#DOWNLOAD_PACKAGES[@]} -gt 0 ]]; then
     echo "Downloading packages for optional installation at runtime, as needed."
     # Required for cri-o
