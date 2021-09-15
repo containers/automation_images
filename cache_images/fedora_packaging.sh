@@ -180,6 +180,8 @@ DOWNLOAD_PACKAGES=(\
     oci-umount
     parallel
     podman-docker
+    python3-pytest4
+    python3-virtualenv
 )
 
 echo "Installing general build/test dependencies"
