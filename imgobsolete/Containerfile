@@ -1,7 +1,6 @@
 FROM imgts:latest
 
-RUN yum -y update && \
-    yum clean all
+RUN yum -y --setopt=keepcache=true update
 
 COPY /imgobsolete/entrypoint.sh /usr/local/bin/entrypoint.sh
 RUN chmod 755 /usr/local/bin/entrypoint.sh
