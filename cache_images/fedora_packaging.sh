@@ -187,7 +187,7 @@ DOWNLOAD_PACKAGES=(\
 echo "Installing general build/test dependencies"
 bigto $SUDO dnf install -y $EXARG "${INSTALL_PACKAGES[@]}"
 
-if [[ ${#DOWNLOAD_PACKAGES[@]} -gt 0 ]]; then
+if ((CONTAINER==0)) && [[ ${#DOWNLOAD_PACKAGES[@]} -gt 0 ]]; then
     echo "Downloading packages for optional installation at runtime, as needed."
     # Required for cri-o
     ooe.sh $SUDO dnf -y module enable cri-o:$(get_kubernetes_version)

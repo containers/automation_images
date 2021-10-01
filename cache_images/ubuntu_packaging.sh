@@ -164,16 +164,22 @@ DOWNLOAD_PACKAGES=(\
     docker-ce
     docker-ce-cli
 )
+
 curl --fail --silent --location \
     --url  https://download.docker.com/linux/ubuntu/gpg | \
     gpg --dearmor | \
     $SUDO tee /etc/apt/trusted.gpg.d/docker_com.gpg &> /dev/null
 echo "deb https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable" | \
     ooe.sh $SUDO tee /etc/apt/sources.list.d/docker.list &> /dev/null
-lilto $SUDO apt-get -q -y update
-echo "Downloading packages for optional installation at runtime."
-$SUDO ln -s /var/cache/apt/archives "$PACKAGE_DOWNLOAD_DIR"
-bigto $SUDO apt-get -q -y install --download-only "${DOWNLOAD_PACKAGES[@]}"
+
+if ((CONTAINER==0)) && [[ ${#DOWNLOAD_PACKAGES[@]} -gt 0 ]]; then
+    $SUDO apt-get clean  # no reason to keep previous downloads around
+    # Needed to install .deb files + resolve dependencies
+    lilto $SUDO apt-get -q -y update
+    echo "Downloading packages for optional installation at runtime."
+    $SUDO ln -s /var/cache/apt/archives "$PACKAGE_DOWNLOAD_DIR"
+    bigto $SUDO apt-get -q -y install --download-only "${DOWNLOAD_PACKAGES[@]}"
+fi
 
 echo "Configuring Go environment"
 # There are multiple (otherwise conflicting) versions of golang available
