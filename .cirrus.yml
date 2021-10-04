@@ -315,6 +315,21 @@ test_get_ci_vm_task:
     test_script: "get_ci_vm/test.sh"
 
 
+test_build-push_task:
+    name: "Test build-push VM functions"
+    alias: test_build-push
+    depends_on:
+        - cache_images
+    gce_instance:
+        image_project: "libpod-218412"
+        image_name: "build-push-c${IMG_SFX}"
+        zone: "us-central1-a"
+        disk: 200
+        # More muscle to emulate multi-arch
+        type: "n2-standard-4"
+    script: bash ./build-push/test.sh
+
+
 # N/B: "latest" image produced after PR-merge (branch-push)
 cron_imgobsolete_task: &lifecycle_cron
     name: "Periodicly mark old images obsolete"
@@ -357,6 +372,7 @@ success_task:
         - cron_imgprune
         - test_gcsupld
         - test_get_ci_vm
+        - test_build-push
     container:
         <<: *ci_container
     clone_script: *noop
