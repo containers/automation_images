@@ -3,7 +3,7 @@
 # Main collection of env. vars to set for all tasks and scripts.
 env:
     # Name of the ultimate destination branch for this CI run, PR or post-merge.
-    DEST_BRANCH: "master"
+    DEST_BRANCH: "main"
     # Shell used to execute all script commands
     CIRRUS_SHELL: "/bin/bash"
     # No need to go crazy, but grab enough to cover most PRs
@@ -12,11 +12,6 @@ env:
     PACKER_VERSION: &PACKER_VERSION "1.7.0"
     # Unique suffix label to use for all images produced by _this_ run (build)
     IMG_SFX: "${CIRRUS_BUILD_ID}"
-    # Google Application Credentials (JSON) with access to create
-    # Note: Actual authZ specified by service-account roles.
-    # Ref: https://cloud.google.com/compute/docs/access/service-accounts?&_ga=2.102552833.-1670000616.1540407237#accesscopesiam
-    GAC_JSON: ENCRYPTED[7fba7fb26ab568ae39f799ab58a476123206576b0135b3d1019117c6d682391370c801e149f29324ff4b50133012aed9]
-
 
 gcp_credentials: ENCRYPTED[823fdbc2fee3c27fa054ba1e9cfca084829b5e71572f1703a28e0746b1a924ee5860193f931adce197d40bf89e7027fe]
 
@@ -60,6 +55,10 @@ image_builder_task:
         memory: "2G"
         docker_arguments:
             PACKER_VERSION: *PACKER_VERSION
+    env:
+      # Google Application Credentials (JSON) with access to create VM images
+      GAC_JSON: ENCRYPTED[7fba7fb26ab568ae39f799ab58a476123206576b0135b3d1019117c6d682391370c801e149f29324ff4b50133012aed9]
+
     script: "ci/make_image_builder.sh"
     manifest_artifacts:
         path: image_builder/manifest.json
@@ -160,6 +159,8 @@ base_images_task:
         - <<: *base_image
           env:
             PACKER_BUILDS: "ubuntu"
+    env:
+      GAC_JSON: ENCRYPTED[7fba7fb26ab568ae39f799ab58a476123206576b0135b3d1019117c6d682391370c801e149f29324ff4b50133012aed9]
     script: "ci/make_base_images.sh"
     manifest_artifacts:
         path: base_images/manifest.json
@@ -194,6 +195,8 @@ cache_images_task:
         - <<: *cache_image
           env:
             PACKER_BUILDS: "ubuntu"
+    env:
+      GAC_JSON: ENCRYPTED[7fba7fb26ab568ae39f799ab58a476123206576b0135b3d1019117c6d682391370c801e149f29324ff4b50133012aed9]
     script: "ci/make_cache_images.sh"
     manifest_artifacts:
         path: cache_images/manifest.json
