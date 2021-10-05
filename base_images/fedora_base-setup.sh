@@ -54,7 +54,7 @@ if ! ((CONTAINER)); then
     METADATA_SERVICE_CTX=unconfined_u:unconfined_r:unconfined_t:s0
     METADATA_SERVICE_PATH=systemd/system/google-startup-scripts.service
     sed -r -e \
-        "s/Type=oneshot/Type=oneshot\nSELinuxContext=$METADATA_SERVICE_CTX/" \
+        "s/^Type=oneshot/Type=oneshot\nSELinuxContext=$METADATA_SERVICE_CTX/" \
         /lib/$METADATA_SERVICE_PATH > /etc/$METADATA_SERVICE_PATH
 fi
 
