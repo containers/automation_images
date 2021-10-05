@@ -103,6 +103,8 @@ builders:
         src: '{{user `UBUNTU_BASE_FAMILY`}}'
       # Gotcha: https://www.packer.io/docs/builders/googlecompute#gotchas
       ssh_username: 'packer'
+      temporary_key_pair_type: ed25519
+      ssh_clear_authorized_keys: true
 
 provisioners:  # Ubuntu images come bundled with GCE integrations provisioned
     - type: 'shell'
