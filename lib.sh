@@ -158,6 +158,10 @@ common_finalize() {
     cd /
     clean_automatic_users
     $SUDO cloud-init clean --logs
+    if ! ((CONTAINER)); then
+        # Prevent periodically activated services interfering with testing
+        /bin/bash $(dirname ${BASH_SOURCE[0]})/systemd_banish.sh
+    fi
     $SUDO rm -rf /var/lib/cloud/instanc*
     $SUDO rm -rf /root/.ssh/*
     $SUDO rm -rf /etc/ssh/*key*
@@ -166,6 +170,7 @@ common_finalize() {
     echo -n "" | $SUDO tee /etc/machine-id
     $SUDO sync
     if ! ((CONTAINER)); then
+        # This helps when google goes to compress the image
         $SUDO fstrim -av
     fi
 }
