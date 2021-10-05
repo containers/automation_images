@@ -21,10 +21,9 @@ variables:  # Empty value means it must be passed in on command-line
     # to build from - just as the sources below are the base-images to
     # start from building VM images.
 
-    # Upstream source for Ubuntu image duplication (prevents expiration)
-    # Look these up in the console by searching images for
-    # "Created by: Canonical"
-    UBUNTU_BASE_IMAGE: 'ubuntu-2104-hirsute-v20210511a'
+    # Upstream source for Ubuntu image to duplicate (prevents expiration).
+    # Use the most recent image based on this family name.
+    UBUNTU_BASE_FAMILY: 'ubuntu-2104'
 
     # Latest Fedora release download URL
     FEDORA_IMAGE_URL: "https://dl.fedoraproject.org/pub/fedora/linux/releases/34/Cloud/x86_64/images/Fedora-Cloud-Base-34-1.2.x86_64.qcow2"
@@ -86,13 +85,12 @@ builders:
       iso_url: '{{user `PRIOR_FEDORA_IMAGE_URL`}}'
       iso_checksum: 'file:{{user `PRIOR_FEDORA_CSUM_URL`}}'
 
-    - &imgcopy
-      name: 'ubuntu'
+    - name: 'ubuntu'
       type: 'googlecompute'
       # Prefix IMG_SFX with "b" so this is never confused with a cache_image name
       image_name: 'ubuntu-b{{user `IMG_SFX`}}'
       image_family: '{{build_name}}-base'
-      source_image: '{{user `UBUNTU_BASE_IMAGE`}}'
+      source_image_family: '{{user `UBUNTU_BASE_FAMILY`}}'
       source_image_project_id: 'ubuntu-os-cloud'
       project_id: '{{user `GCP_PROJECT_ID`}}'
       # Can't use env. var for this, googlecompute-import only supports filepath
@@ -102,7 +100,7 @@ builders:
       # Identify the instance
       labels:
         sfx: '{{user `IMG_SFX`}}'
-        src: '{{user `UBUNTU_BASE_IMAGE`}}'
+        src: '{{user `UBUNTU_BASE_FAMILY`}}'
       # Gotcha: https://www.packer.io/docs/builders/googlecompute#gotchas
       ssh_username: 'packer'
 
