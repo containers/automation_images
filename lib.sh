@@ -95,20 +95,6 @@ set_gac_filepath(){
     unset GAC_JSON;
 }
 
-get_kubernetes_version() {
-    local KUBERNETES_VERSION
-    case "$OS_REL_VER" in
-        fedora-32)
-            KUBERNETES_VERSION="1.15" ;;
-        fedora-33)
-            KUBERNETES_VERSION="1.18" ;;
-        fedora-34)
-            KUBERNETES_VERSION="1.20" ;;
-        *) die "Unknown/Unsupported \$OS_REL_VER '$OS_REL_VER'"
-    esac
-    echo "$KUBERNETES_VERSION"
-}
-
 # Warning: DO NOT USE the following functions willy-nilly!
 # They are only intended to be called by other setup scripts, as the very
 # last step during the build process.  They're purpose is to "reset" the
