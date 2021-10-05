@@ -61,7 +61,7 @@ cd "$REG_GOSRC"
 git clone --depth 1 -b "$OSO_TAG" "$OSO_REPO" "$OSO_GOSRC"
 cd "$OSO_GOSRC"
 
-# Edit out a "go < 1.5" check which works incorrectly with go ≥ 1.10.
+# Edit out a "go < 1.5" check which works incorrectly with go >= 1.10.
 sed -i -e 's/\[\[ "\${go_version\[2]}" < "go1.5" ]]/false/' ./hack/common.sh
 
 # Fix a bug in 'options' line processing of resolv.conf when an option is
