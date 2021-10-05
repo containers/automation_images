@@ -24,9 +24,16 @@ declare -a PKGS
 PKGS=(rng-tools git coreutils)
 XSELINUX=
 if ((CONTAINER)); then
-    XSELINUX="--exclude=selinux*"
+    if ((OS_RELEASE_VER<35)); then
+        XSELINUX="--exclude=selinux*"
+    fi
 else
-    PKGS+=(google-compute-engine-tools google-compute-engine-oslogin)
+    PKGS+=(google-compute-engine-oslogin)
+    if ((OS_RELEASE_VER<35)); then
+        PKGS+=(google-compute-engine-tools)
+    else
+        PKGS+=(google-compute-engine-guest-configs)
+    fi
 fi
 
 dnf -y update $XSELINUX

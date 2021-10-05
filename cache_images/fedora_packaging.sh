@@ -154,7 +154,8 @@ INSTALL_PACKAGES=(\
 case "$OS_RELEASE_VER" in
     32) INSTALL_PACKAGES+=( python3-pytoml ) ;;
     33) ;&
-    34) INSTALL_PACKAGES+=( perl-FindBin python-toml ) ;;
+    34) ;&
+    35) INSTALL_PACKAGES+=( perl-FindBin python-toml ) ;;
     *) die "Unknown/Unsupported \$OS_REL_VER '$OS_REL_VER'" ;;
 esac
 
@@ -168,7 +169,9 @@ if ! ((CONTAINER)); then
         policycoreutils
     )
 else
-    EXARG="--exclude=selinux*"
+    if [[ "$OS_RELEASE_VER" -lt 35 ]]; then
+        EXARG="--exclude=selinux*"
+    fi
 fi
 
 
@@ -178,7 +181,7 @@ DOWNLOAD_PACKAGES=(\
     oci-umount
     parallel
     podman-docker
-    python3-pytest4
+    python3-pytest
     python3-virtualenv
 )
 

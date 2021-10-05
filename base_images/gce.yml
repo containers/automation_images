@@ -25,13 +25,16 @@ variables:  # Empty value means it must be passed in on command-line
     # Use the most recent image based on this family name.
     UBUNTU_BASE_FAMILY: 'ubuntu-2110'
 
-    # Latest Fedora release download URL
-    FEDORA_IMAGE_URL: "https://dl.fedoraproject.org/pub/fedora/linux/releases/34/Cloud/x86_64/images/Fedora-Cloud-Base-34-1.2.x86_64.qcow2"
-    FEDORA_CSUM_URL: "https://dl.fedoraproject.org/pub/fedora/linux/releases/34/Cloud/x86_64/images/Fedora-Cloud-34-1.2-x86_64-CHECKSUM"
+    # Latest Fedora release (qcow and CHECKSUM) download URLs
+    # N/B: There are Fedora-Cloud...GCP.tar.gz images available, however
+    #      as of this comment, they lack the cloud-init package which is
+    #      required by GCP for startup resizing of the rootfs.
+    FEDORA_CSUM_URL: "https://dl.fedoraproject.org/pub/fedora/linux/releases/35/Cloud/x86_64/images/Fedora-Cloud-35-1.2-x86_64-CHECKSUM"
+    FEDORA_IMAGE_URL: "https://dl.fedoraproject.org/pub/fedora/linux/releases/35/Cloud/x86_64/images/Fedora-Cloud-Base-35-1.2.x86_64.qcow2"
 
     # Prior Fedora release
-    PRIOR_FEDORA_IMAGE_URL: "https://dl.fedoraproject.org/pub/fedora/linux/releases/33/Cloud/x86_64/images/Fedora-Cloud-Base-33-1.2.x86_64.qcow2"
-    PRIOR_FEDORA_CSUM_URL: "https://dl.fedoraproject.org/pub/fedora/linux/releases/33/Cloud/x86_64/images/Fedora-Cloud-33-1.2-x86_64-CHECKSUM"
+    PRIOR_FEDORA_CSUM_URL: "https://dl.fedoraproject.org/pub/fedora/linux/releases/34/Cloud/x86_64/images/Fedora-Cloud-34-1.2-x86_64-CHECKSUM"
+    PRIOR_FEDORA_IMAGE_URL: "https://dl.fedoraproject.org/pub/fedora/linux/releases/34/Cloud/x86_64/images/Fedora-Cloud-Base-34-1.2.x86_64.qcow2"
 
 
 # Don't leak sensitive values in error messages / output
@@ -143,13 +146,16 @@ post-processors:
         bucket: '{{user `XFERBUCKET`}}'
         gcs_object_name: '{{build_name}}-{{user `IMG_SFX`}}.tar.gz'
         image_name: "fedora-b{{user `IMG_SFX`}}"
-        image_description: 'Based on {{user `FEDORA_IMAGE_URL`}}'
         image_family: '{{build_name}}-base'
+        # Can't save the url in an image_label
+        image_description: '{{user `FEDORA_IMAGE_URL`}}'
+        image_labels:
+          sfx: '{{user `IMG_SFX`}}'
       - <<: *gcp_import
         only: ['prior-fedora']
         image_name: "prior-fedora-b{{user `IMG_SFX`}}"
-        image_description: 'Based on {{user `PRIOR_FEDORA_IMAGE_URL`}}'
         image_family: '{{build_name}}-base'
+        image_description: '{{user `PRIOR_FEDORA_IMAGE_URL`}}'
       - type: 'manifest'
         output: 'base_images/manifest.json'  # Collected by Cirrus-CI
         strip_path: true
