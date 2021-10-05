@@ -164,6 +164,11 @@ common_finalize() {
 # Called during VM Image setup, not intended for general use.
 rh_finalize() {
     set +e  # Don't fail at the very end
+    if ((CONTAINER)); then  # try to save a little space
+        msg "Cleaning up packaging metadata and cache"
+        $SUDO dnf clean all
+        $SUDO rm -rf /var/cache/dnf
+    fi
     set -x
     # Packaging cache is preserved across builds of container images
     $SUDO rm -f /etc/udev/rules.d/*-persistent-*.rules
@@ -174,6 +179,11 @@ rh_finalize() {
 # Called during VM Image setup, not intended for general use.
 ubuntu_finalize() {
     set +e  # Don't fail at the very end
+    if ((CONTAINER)); then  # try to save a little space
+        msg "Cleaning up packaging metadata and cache"
+        $SUDO apt-get clean
+        $SUDO rm -rf /var/cache/apt
+    fi
     set -x
     # Packaging cache is preserved across builds of container images
     common_finalize

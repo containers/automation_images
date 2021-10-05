@@ -5,7 +5,7 @@
 # not be used for any other purpose or from any other context.
 
 echo "Installing runtime tooling"
-export GOPATH
+export GOPATH="${GOPATH:/var/tmp/go}"
 export GOSRC=/var/tmp/go/src/github.com/containers/podman
 export GOCACHE="${GOCACHE:-/root/.cache/go-build}"
 lilto git clone --quiet https://github.com/containers/podman.git "$GOSRC"
@@ -21,6 +21,7 @@ if [[ "$OS_RELEASE_ID" == "ubuntu" ]]; then
     lilto $SUDO make install.libseccomp.sudo
 fi
 
-# Make pristine for other runtime usage/expectations
-$SUDO rm -rf "$GOSRC"
+# Make pristine for other runtime usage/expectations also save a bit
+# of space in the images.
+$SUDO rm -rf "$GOPATH/src" "$GOCACHE"
 $SUDO chown -R root.root /var/tmp/go
