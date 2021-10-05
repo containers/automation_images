@@ -93,6 +93,7 @@ ci_debug: $(_TEMPDIR)/ci_debug.tar ## Build and enter container for local develo
 # Takes 4 arguments: export filepath, FQIN, context dir, package cache key
 define podman_build
 	podman build -t $(2) \
+		--security-opt seccomp=unconfined \
 		-v $(_TEMPDIR)/.cache/$(4):/var/cache/dnf:Z \
 		-v $(_TEMPDIR)/.cache/$(4):/var/cache/apt:Z \
 		--build-arg PACKER_VERSION=$(call err_if_empty,PACKER_VERSION) \
@@ -221,6 +222,7 @@ ubuntu_podman:  ## Build Ubuntu podman development container
 
 $(_TEMPDIR)/%_podman.tar: podman/Containerfile podman/setup.sh $(wildcard base_images/*.sh) $(wildcard cache_images/*.sh) $(_TEMPDIR)/.cache/%
 	podman build -t $*_podman:$(call err_if_empty,IMG_SFX) \
+		--security-opt seccomp=unconfined \
 		--build-arg=BASE_NAME=$(subst prior-,,$*) \
 		--build-arg=BASE_TAG=$(call err_if_empty,BASE_TAG) \
 		--build-arg=PACKER_BUILD_NAME=$(subst _podman,,$*) \
@@ -234,6 +236,7 @@ $(_TEMPDIR)/%_podman.tar: podman/Containerfile podman/setup.sh $(wildcard base_i
 skopeo_cidev: $(_TEMPDIR)/skopeo_cidev.tar  ## Build Skopeo development and CI container
 $(_TEMPDIR)/skopeo_cidev.tar: podman/fedora_release $(wildcard skopeo_base/*) $(_TEMPDIR)/.cache/fedora
 	podman build -t skopeo_cidev:$(call err_if_empty,IMG_SFX) \
+		--security-opt seccomp=unconfined \
 		--build-arg=BASE_TAG=$(_fedora_podman_release) \
 		-v $(_TEMPDIR)/.cache/fedora:/var/cache/dnf:Z \
 		skopeo_cidev
