@@ -28,8 +28,6 @@ if ! ((CONTAINER)); then
     ooe.sh $SUDO setsebool -P container_manage_cgroup true
 fi
 
-custom_cloud_init
-
 # shellcheck disable=SC2154
 if ! ((CONTAINER)) && [[ "$PACKER_BUILD_NAME" =~ prior ]]; then
     warn "Disabling CgroupsV2 kernel command-line option for systemd"

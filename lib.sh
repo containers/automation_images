@@ -67,13 +67,16 @@ install_automation_tooling() {
 
 custom_cloud_init() {
     #shellcheck disable=SC2154
-    CUSTOM_CLOUD_CONFIG_DEFAULTS="$SCRIPT_DIRPATH/cloud-init/$OS_RELEASE_ID/cloud.cfg.d"
-    if [[ -n "$SCRIPT_DIRPATH" ]] && [[ -d "$CUSTOM_CLOUD_CONFIG_DEFAULTS" ]]
+    CUSTOM_CLOUD_CONFIG_DEFAULTS="$REPO_DIRPATH/base_images/cloud-init/$OS_RELEASE_ID/cloud.cfg.d"
+    if [[ -d "$CUSTOM_CLOUD_CONFIG_DEFAULTS" ]]
     then
         echo "Installing custom cloud-init defaults"
-        $SUDO cp -v "$CUSTOM_CLOUD_CONFIG_DEFAULTS"/* /etc/cloud/cloud.cfg.d/
+        $SUDO cp -v --dereference \
+            "$CUSTOM_CLOUD_CONFIG_DEFAULTS"/* \
+            /etc/cloud/cloud.cfg.d/
     else
         echo "Could not find any files in $CUSTOM_CLOUD_CONFIG_DEFAULTS"
+        exit 1
     fi
 }
 

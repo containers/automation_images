@@ -32,8 +32,6 @@ if ! ((CONTAINER)); then
     ooe.sh $SUDO update-grub
 fi
 
-custom_cloud_init
-
 nm_ignore_cni
 
 finalize

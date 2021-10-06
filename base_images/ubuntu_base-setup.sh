@@ -28,7 +28,6 @@ PKGS=( \
 )
 
 $SUDO apt-get -qq -y update
-$SUDO apt-get -qq -y upgrade apt dpkg
 $SUDO apt-get -qq -y upgrade
 $SUDO apt-get -qq -y install "${PKGS[@]}"
 
@@ -37,5 +36,9 @@ $SUDO DEBCONF_DB_OVERRIDE='File{'$SCRIPT_DIRPATH/no_dash.dat'}' \
     dpkg-reconfigure dash
 
 install_automation_tooling
+
+if ! ((CONTAINER)); then
+    custom_cloud_init
+fi
 
 finalize
