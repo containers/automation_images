@@ -28,6 +28,14 @@ PKGS=( \
 )
 
 $SUDO apt-get -qq -y update
+
+# At the time of this commit, upgrading past the stock
+# cloud-init (21.3-1-g6803368d-0ubuntu1~21.04.3) causes
+# failure of login w/ new ssh key after reset + reboot.
+if ! ((CONTAINER)); then
+    $SUDO apt-mark hold cloud-init
+fi
+
 $SUDO apt-get -qq -y upgrade
 $SUDO apt-get -qq -y install "${PKGS[@]}"
 
