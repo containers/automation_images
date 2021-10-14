@@ -174,9 +174,6 @@ fi
 # Download these package files, but don't install them; Any tests
 # wishing to, may install them using their native tools at runtime.
 DOWNLOAD_PACKAGES=(\
-    "cri-o-$(get_kubernetes_version)*"
-    cri-tools
-    "kubernetes-$(get_kubernetes_version)*"
     oci-umount
     parallel
     podman-docker
@@ -187,10 +184,8 @@ DOWNLOAD_PACKAGES=(\
 echo "Installing general build/test dependencies"
 bigto $SUDO dnf install -y $EXARG "${INSTALL_PACKAGES[@]}"
 
-if [[ ${#DOWNLOAD_PACKAGES[@]} -gt 0 ]]; then
+if ((CONTAINER==0)) && [[ ${#DOWNLOAD_PACKAGES[@]} -gt 0 ]]; then
     echo "Downloading packages for optional installation at runtime, as needed."
-    # Required for cri-o
-    ooe.sh $SUDO dnf -y module enable cri-o:$(get_kubernetes_version)
     $SUDO mkdir -p "$PACKAGE_DOWNLOAD_DIR"
     cd "$PACKAGE_DOWNLOAD_DIR"
     lilto ooe.sh $SUDO dnf install -y 'dnf-command(download)'

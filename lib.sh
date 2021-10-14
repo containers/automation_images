@@ -67,13 +67,16 @@ install_automation_tooling() {
 
 custom_cloud_init() {
     #shellcheck disable=SC2154
-    CUSTOM_CLOUD_CONFIG_DEFAULTS="$SCRIPT_DIRPATH/cloud-init/$OS_RELEASE_ID/cloud.cfg.d"
-    if [[ -n "$SCRIPT_DIRPATH" ]] && [[ -d "$CUSTOM_CLOUD_CONFIG_DEFAULTS" ]]
+    CUSTOM_CLOUD_CONFIG_DEFAULTS="$REPO_DIRPATH/base_images/cloud-init/$OS_RELEASE_ID/cloud.cfg.d"
+    if [[ -d "$CUSTOM_CLOUD_CONFIG_DEFAULTS" ]]
     then
         echo "Installing custom cloud-init defaults"
-        $SUDO cp -v "$CUSTOM_CLOUD_CONFIG_DEFAULTS"/* /etc/cloud/cloud.cfg.d/
+        $SUDO cp -v --dereference \
+            "$CUSTOM_CLOUD_CONFIG_DEFAULTS"/* \
+            /etc/cloud/cloud.cfg.d/
     else
         echo "Could not find any files in $CUSTOM_CLOUD_CONFIG_DEFAULTS"
+        exit 1
     fi
 }
 
@@ -93,20 +96,6 @@ set_gac_filepath(){
     trap "rm -f $GAC_FILEPATH" EXIT
     echo "$GAC_JSON" > "$GAC_FILEPATH"
     unset GAC_JSON;
-}
-
-get_kubernetes_version() {
-    local KUBERNETES_VERSION
-    case "$OS_REL_VER" in
-        fedora-32)
-            KUBERNETES_VERSION="1.15" ;;
-        fedora-33)
-            KUBERNETES_VERSION="1.18" ;;
-        fedora-34)
-            KUBERNETES_VERSION="1.20" ;;
-        *) die "Unknown/Unsupported \$OS_REL_VER '$OS_REL_VER'"
-    esac
-    echo "$KUBERNETES_VERSION"
 }
 
 # Warning: DO NOT USE the following functions willy-nilly!
@@ -158,6 +147,10 @@ common_finalize() {
     cd /
     clean_automatic_users
     $SUDO cloud-init clean --logs
+    if ! ((CONTAINER)); then
+        # Prevent periodically activated services interfering with testing
+        /bin/bash $(dirname ${BASH_SOURCE[0]})/systemd_banish.sh
+    fi
     $SUDO rm -rf /var/lib/cloud/instanc*
     $SUDO rm -rf /root/.ssh/*
     $SUDO rm -rf /etc/ssh/*key*
@@ -166,6 +159,7 @@ common_finalize() {
     echo -n "" | $SUDO tee /etc/machine-id
     $SUDO sync
     if ! ((CONTAINER)); then
+        # This helps when google goes to compress the image
         $SUDO fstrim -av
     fi
 }
@@ -173,6 +167,11 @@ common_finalize() {
 # Called during VM Image setup, not intended for general use.
 rh_finalize() {
     set +e  # Don't fail at the very end
+    if ((CONTAINER)); then  # try to save a little space
+        msg "Cleaning up packaging metadata and cache"
+        $SUDO dnf clean all
+        $SUDO rm -rf /var/cache/dnf
+    fi
     set -x
     # Packaging cache is preserved across builds of container images
     $SUDO rm -f /etc/udev/rules.d/*-persistent-*.rules
@@ -183,6 +182,11 @@ rh_finalize() {
 # Called during VM Image setup, not intended for general use.
 ubuntu_finalize() {
     set +e  # Don't fail at the very end
+    if ((CONTAINER)); then  # try to save a little space
+        msg "Cleaning up packaging metadata and cache"
+        $SUDO apt-get clean
+        $SUDO rm -rf /var/cache/apt
+    fi
     set -x
     # Packaging cache is preserved across builds of container images
     common_finalize

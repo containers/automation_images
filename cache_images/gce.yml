@@ -38,6 +38,7 @@ builders:
       ssh_username: packer  # arbitrary, packer will create & setup w/ temp. keypair
       ssh_pty: 'true'
       temporary_key_pair_type: ed25519
+      ssh_clear_authorized_keys: true
       # Permit running nested VM's to support specialized testing
       image_licenses: ["projects/vm-options/global/licenses/enable-vmx"]
 

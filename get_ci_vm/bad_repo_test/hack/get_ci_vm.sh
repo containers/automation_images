@@ -52,9 +52,6 @@ cleanup() {
     set +e
     wait
 
-    # set GCLOUD_DEBUG to leave tmpdir behind for postmortem
-    test -z "$GCLOUD_DEBUG" && rm -rf $TMPDIR
-
     # Not always called from an exit handler, but should always exit when called
     exit $RET
 }
@@ -116,7 +113,6 @@ parse_args(){
         show_usage "No image-name specified."
     fi
 
-    ENVS="$ENVS SPECIALMODE=\"$SPECIALMODE\""
     SETUP_CMD="env $ENVS $GOSRC/contrib/cirrus/setup.sh"
     VMNAME="${VMNAME:-${USER}-${IMAGE_NAME}}"
     CREATE_CMD="$PGCLOUD compute instances create --zone=$ZONE --image-project=libpod-218412 --image=${IMAGE_NAME} --custom-cpu=$CPUS --custom-memory=$MEMORY --boot-disk-size=$DISK --labels=in-use-by=$USER $VMNAME"

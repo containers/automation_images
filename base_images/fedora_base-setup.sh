@@ -38,12 +38,9 @@ fi
 
 install_automation_tooling
 
-# There is a race that can happen on boot between the GCE services configuring
-# the VM, and cloud-init trying to do similar activities.  Use a customized
-# unit file to make sure cloud-init starts after the google-compute-* services.
-cp -v $SCRIPT_DIRPATH/fedora-cloud-init.service /etc/systemd/system/
-
 if ! ((CONTAINER)); then
+    custom_cloud_init
+
     # ref: https://cloud.google.com/compute/docs/startupscript
     # The mechanism used by Cirrus-CI to execute tasks on the system is through an
     # "agent" process launched as a GCP startup-script (from the metadata service).
@@ -54,7 +51,7 @@ if ! ((CONTAINER)); then
     METADATA_SERVICE_CTX=unconfined_u:unconfined_r:unconfined_t:s0
     METADATA_SERVICE_PATH=systemd/system/google-startup-scripts.service
     sed -r -e \
-        "s/Type=oneshot/Type=oneshot\nSELinuxContext=$METADATA_SERVICE_CTX/" \
+        "s/^Type=oneshot/Type=oneshot\nSELinuxContext=$METADATA_SERVICE_CTX/" \
         /lib/$METADATA_SERVICE_PATH > /etc/$METADATA_SERVICE_PATH
 fi
 
