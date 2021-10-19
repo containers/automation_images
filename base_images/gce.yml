@@ -23,7 +23,7 @@ variables:  # Empty value means it must be passed in on command-line
 
     # Upstream source for Ubuntu image to duplicate (prevents expiration).
     # Use the most recent image based on this family name.
-    UBUNTU_BASE_FAMILY: 'ubuntu-2104'
+    UBUNTU_BASE_FAMILY: 'ubuntu-2110'
 
     # Latest Fedora release download URL
     FEDORA_IMAGE_URL: "https://dl.fedoraproject.org/pub/fedora/linux/releases/34/Cloud/x86_64/images/Fedora-Cloud-Base-34-1.2.x86_64.qcow2"
