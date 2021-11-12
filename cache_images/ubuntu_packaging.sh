@@ -187,7 +187,8 @@ echo "Configuring Go environment"
 # a symlink is the appropriate way to "install" a specific version system-wide.
 #
 # Add upstream golang for perf issues
-curl -s -L https://golang.org/dl/go1.15.11.linux-amd64.tar.gz | $SUDO tar xzf - -C /usr/local/
+curl -s -L https://golang.org/dl/go1.17.3.linux-amd64.tar.gz | \
+    $SUDO tar xzf - -C /usr/local/
 # Now linking to upstream golang until ubuntu performance issues are resolved
 $SUDO ln -sf /usr/local/go/bin/* /usr/bin/
 
