@@ -45,6 +45,7 @@ INSTALL_PACKAGES=(\
     btrfs-progs-devel
     buildah
     bzip2
+    catatonit
     conmon
     containernetworking-plugins
     containers-common

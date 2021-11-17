@@ -61,6 +61,7 @@ INSTALL_PACKAGES=(\
     buildah
     bzip2
     ca-certificates
+    catatonit
     conmon
     containernetworking-plugins
     containers-common
