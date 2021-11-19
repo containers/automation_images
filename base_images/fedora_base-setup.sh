@@ -24,9 +24,16 @@ declare -a PKGS
 PKGS=(rng-tools git coreutils)
 XSELINUX=
 if ((CONTAINER)); then
-    XSELINUX="--exclude=selinux*"
+    if ((OS_RELEASE_VER<35)); then
+        XSELINUX="--exclude=selinux*"
+    fi
 else
-    PKGS+=(google-compute-engine-tools google-compute-engine-oslogin)
+    PKGS+=(google-compute-engine-oslogin)
+    if ((OS_RELEASE_VER<35)); then
+        PKGS+=(google-compute-engine-tools)
+    else
+        PKGS+=(google-compute-engine-guest-configs)
+    fi
 fi
 
 dnf -y update $XSELINUX
@@ -41,6 +48,20 @@ install_automation_tooling
 if ! ((CONTAINER)); then
     custom_cloud_init
 
+    # Be kind to humans, indicate where generated files came from
+    sourcemsg="### File generated during VM Image build by $(basename $SCRIPT_FILEPATH)"
+
+    if ((OS_RELEASE_VER<35)); then
+        echo "Overriding cloud-init service file"
+        # The packaged cloud-init.service unit has a dependency loop
+        # vs google-network-daemon.service.  Fix this with a custom
+        # cloud-init service file.
+        CLOUD_SERVICE_PATH="systemd/system/cloud-init.service"
+        echo "$sourcemsg" > /etc/$CLOUD_SERVICE_PATH
+        cat $SCRIPT_DIRPATH/fedora-cloud-init.service >> /etc/$CLOUD_SERVICE_PATH
+    fi
+
+    echo "Setting GCP startup service (for Cirrus-CI agent) SELinux unconfined"
     # ref: https://cloud.google.com/compute/docs/startupscript
     # The mechanism used by Cirrus-CI to execute tasks on the system is through an
     # "agent" process launched as a GCP startup-script (from the metadata service).
@@ -50,9 +71,10 @@ if ! ((CONTAINER)); then
     # run with the proper contexts.
     METADATA_SERVICE_CTX=unconfined_u:unconfined_r:unconfined_t:s0
     METADATA_SERVICE_PATH=systemd/system/google-startup-scripts.service
+    echo "$sourcemsg" > /etc/$METADATA_SERVICE_PATH
     sed -r -e \
         "s/^Type=oneshot/Type=oneshot\nSELinuxContext=$METADATA_SERVICE_CTX/" \
-        /lib/$METADATA_SERVICE_PATH > /etc/$METADATA_SERVICE_PATH
+        /lib/$METADATA_SERVICE_PATH >> /etc/$METADATA_SERVICE_PATH
 fi
 
 if [[ "$OS_RELEASE_ID" == "fedora" ]] && ((OS_RELEASE_VER>=33)); then

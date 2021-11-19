@@ -53,7 +53,7 @@ set +x  # protect username/password values
 # These both come in from Cirrus-CI
 # shellcheck disable=SC2154
 echo "$REG_PASSWORD" | \
-    podman login --password-stdin --username "$REG_USERNAME" "$DEST_FQIN"
+    podman login --password-stdin --username "$REG_USERNAME" "${DEST_FQIN%%:*}"
 
 set -x  # Easier than echo'ing out status for everything
 # DEST_FQIN comes in from Cirrus-CI
