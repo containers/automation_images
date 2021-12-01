@@ -21,25 +21,36 @@ source "$REPO_DIRPATH/lib.sh"
 # for both VM and container image build workflows.
 req_env_vars PACKER_BUILD_NAME
 
-bash $SCRIPT_DIRPATH/fedora_packaging.sh
-
-if ! ((CONTAINER)); then
-    msg "Enabling cgroup management from containers"
-    ooe.sh $SUDO setsebool -P container_manage_cgroup true
+# shellcheck disable=SC2154
+if [[ "$PACKER_BUILD_NAME" =~ "netavark" ]]; then
+    bash $SCRIPT_DIRPATH/fedora-netavark_packaging.sh
+else
+    bash $SCRIPT_DIRPATH/fedora_packaging.sh
 fi
 
-# shellcheck disable=SC2154
-if ! ((CONTAINER)) && [[ "$PACKER_BUILD_NAME" =~ prior ]]; then
-    warn "Disabling CgroupsV2 kernel command-line option for systemd"
-    SEDCMD='s/^GRUB_CMDLINE_LINUX="(.*)"/GRUB_CMDLINE_LINUX="\1 systemd.unified_cgroup_hierarchy=0"/'
-    ooe.sh $SUDO sed -re "$SEDCMD" -i /etc/default/grub
-    # This is always a symlink to the correct location under /boot/...
-    ooe.sh $SUDO grub2-mkconfig -o $($SUDO realpath --physical /etc/grub2.cfg)
-    # This is needed to update the /boot/loader/entries/... file to match grub
-    # config (bug?).  Discovered Jul 28, 2021 on newly build F33 images.  Never
-    # a problem before this point :(
-    ooe.sh $SUDO grubby --grub2 --update-kernel=$($SUDO grubby --default-kernel) \
-        --args="systemd.unified_cgroup_hierarchy=0"
+# Only on VMs
+if ! ((CONTAINER)); then
+    if [[ ! "$PACKER_BUILD_NAME" =~ netavark ]]; then
+        msg "Enabling cgroup management from containers"
+        ooe.sh $SUDO setsebool -P container_manage_cgroup true
+    else
+        msg "Setting up VM for netavark testing"
+        echo -e '# Added during VM Image build\nsctp' |
+            $SUDO tee /etc/modules-load.d/netavark_ci_sctp
+    fi
+
+    if [[ "$PACKER_BUILD_NAME" =~ prior ]]; then
+        warn "Disabling CgroupsV2 kernel command-line option for systemd"
+        SEDCMD='s/^GRUB_CMDLINE_LINUX="(.*)"/GRUB_CMDLINE_LINUX="\1 systemd.unified_cgroup_hierarchy=0"/'
+        ooe.sh $SUDO sed -re "$SEDCMD" -i /etc/default/grub
+        # This is always a symlink to the correct location under /boot/...
+        ooe.sh $SUDO grub2-mkconfig -o $($SUDO realpath --physical /etc/grub2.cfg)
+        # This is needed to update the /boot/loader/entries/... file to match grub
+        # config (bug?).  Discovered Jul 28, 2021 on newly build F33 images.  Never
+        # a problem before this point :(
+        ooe.sh $SUDO grubby --grub2 --update-kernel=$($SUDO grubby --default-kernel) \
+            --args="systemd.unified_cgroup_hierarchy=0"
+    fi
 fi
 
 nm_ignore_cni

@@ -50,6 +50,11 @@ builders:
       name: 'prior-fedora'
       source_image_family: 'prior-fedora-base'
 
+    - <<: *gce_hosted_image
+      name: 'fedora-netavark'
+      source_image: 'fedora-b{{user `IMG_SFX`}}'
+      source_image_family: 'fedora-base'
+
 provisioners:
     - type: 'shell'
       inline:
@@ -60,7 +65,7 @@ provisioners:
       source: '{{ pwd }}/'
       destination: "/tmp/automation_images"
 
-    - only: ['fedora', 'prior-fedora']
+    - only: ['fedora', 'prior-fedora', 'fedora-netavark']
       type: 'shell'
       inline:
         - 'set -e'
