@@ -182,7 +182,10 @@ rh_finalize() {
 # Called during VM Image setup, not intended for general use.
 ubuntu_finalize() {
     set +e  # Don't fail at the very end
-    if ((CONTAINER)); then  # try to save a little space
+    # N/B: Several CI setups depend on VMs with downloaded/cached
+    # packages under /var/cache/download a.k.a. /var/cache/apt/archives.
+    # Avoid apt cache cleaning on Ubuntu VMs!
+    if ((CONTAINER)); then  # try to save a little space for containers
         msg "Cleaning up packaging metadata and cache"
         $SUDO apt-get clean
         $SUDO rm -rf /var/cache/apt
