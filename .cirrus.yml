@@ -120,9 +120,11 @@ tooling_images_task:
         TARGET_NAMES: imgts imgobsolete imgprune gcsupld get_ci_vm orphanvms
         PUSH_LATEST: 1  # scripts force to 0 if $CIRRUS_PR
     script: |
+        make --jobs=8 --output-sync=target $TARGET_NAMES IMG_SFX=$IMG_SFX
         for TARGET_NAME in $TARGET_NAMES; do
             export TARGET_NAME
             export DEST_FQIN="quay.io/libpod/${TARGET_NAME}:c${IMG_SFX}";
+            # Only used for the push
             ci/make_container_images.sh;
         done
     package_cache:

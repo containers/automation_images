@@ -82,8 +82,8 @@ ci_debug: $(_TEMPDIR)/ci_debug.tar ## Build and enter container for local develo
 	/usr/bin/podman run -it --rm \
 		--security-opt label=disable \
 		-v $(_MKFILE_DIR):$(_MKFILE_DIR) -w $(_MKFILE_DIR) \
-		-v $(_TEMPDIR):$(_TEMPDIR):Z \
-		-v $(call err_if_empty,GAC_FILEPATH):$(GAC_FILEPATH):Z \
+		-v $(_TEMPDIR):$(_TEMPDIR):z \
+		-v $(call err_if_empty,GAC_FILEPATH):$(GAC_FILEPATH):z \
 		-e PACKER_INSTALL_DIR=/usr/local/bin \
 		-e PACKER_VERSION=$(call err_if_empty,PACKER_VERSION) \
 		-e GAC_FILEPATH=$(call err_if_empty,GAC_FILEPATH) \
@@ -94,8 +94,8 @@ ci_debug: $(_TEMPDIR)/ci_debug.tar ## Build and enter container for local develo
 define podman_build
 	podman build -t $(2) \
 		--security-opt seccomp=unconfined \
-		-v $(_TEMPDIR)/.cache/$(4):/var/cache/dnf:Z \
-		-v $(_TEMPDIR)/.cache/$(4):/var/cache/apt:Z \
+		-v $(_TEMPDIR)/.cache/$(4):/var/cache/dnf:z \
+		-v $(_TEMPDIR)/.cache/$(4):/var/cache/apt:z \
 		--build-arg PACKER_VERSION=$(call err_if_empty,PACKER_VERSION) \
 		-f $(3)/Containerfile .
 	rm -f $(1)
@@ -177,8 +177,8 @@ image_builder/manifest.json: image_builder/gce.json image_builder/setup.sh lib.s
 image_builder_debug: $(_TEMPDIR)/image_builder_debug.tar ## Build and enter container for local development/debugging of targets requiring packer + virtualization
 	/usr/bin/podman run -it --rm \
 		--security-opt label=disable -v $$HOME:$$HOME -w $(_MKFILE_DIR) \
-		-v $(_TEMPDIR):$(_TEMPDIR):Z \
-		-v $(call err_if_empty,GAC_FILEPATH):$(GAC_FILEPATH):Z \
+		-v $(_TEMPDIR):$(_TEMPDIR):z \
+		-v $(call err_if_empty,GAC_FILEPATH):$(GAC_FILEPATH):z \
 		-v /dev/kvm:/dev/kvm \
 		-e PACKER_INSTALL_DIR=/usr/local/bin \
 		-e PACKER_VERSION=$(call err_if_empty,PACKER_VERSION) \
@@ -226,8 +226,8 @@ $(_TEMPDIR)/%_podman.tar: podman/Containerfile podman/setup.sh $(wildcard base_i
 		--build-arg=BASE_NAME=$(subst prior-,,$*) \
 		--build-arg=BASE_TAG=$(call err_if_empty,BASE_TAG) \
 		--build-arg=PACKER_BUILD_NAME=$(subst _podman,,$*) \
-		-v $(_TEMPDIR)/.cache/$*:/var/cache/dnf:Z \
-		-v $(_TEMPDIR)/.cache/$*:/var/cache/apt:Z \
+		-v $(_TEMPDIR)/.cache/$*:/var/cache/dnf:z \
+		-v $(_TEMPDIR)/.cache/$*:/var/cache/apt:z \
 		-f podman/Containerfile .
 	rm -f $@
 	podman save --quiet -o $@ $*_podman:$(IMG_SFX)
@@ -238,7 +238,7 @@ $(_TEMPDIR)/skopeo_cidev.tar: podman/fedora_release $(wildcard skopeo_base/*) $(
 	podman build -t skopeo_cidev:$(call err_if_empty,IMG_SFX) \
 		--security-opt seccomp=unconfined \
 		--build-arg=BASE_TAG=$(_fedora_podman_release) \
-		-v $(_TEMPDIR)/.cache/fedora:/var/cache/dnf:Z \
+		-v $(_TEMPDIR)/.cache/fedora:/var/cache/dnf:z \
 		skopeo_cidev
 	rm -f $@
 	podman save --quiet -o $@ skopeo_cidev:$(IMG_SFX)
