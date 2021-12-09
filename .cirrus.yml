@@ -113,7 +113,8 @@ tooling_images_task:
     skip: &ci_docs $CIRRUS_CHANGE_TITLE =~ '.*CI:DOCS.*'
     depends_on:
         - validate
-    timeout_in: 30m
+    # TODO: This should not take this long, but it can :(
+    timeout_in: 40m
     gce_instance: *ibi_vm
     env:
         <<: *image_env
