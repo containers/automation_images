@@ -1,7 +1,5 @@
 FROM imgts:latest
 
-RUN yum -y --setopt=keepcache=true update
-
 COPY /orphanvms/entrypoint.sh /usr/local/bin/entrypoint.sh
 RUN chmod 755 /usr/local/bin/entrypoint.sh
 
