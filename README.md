@@ -39,7 +39,6 @@ magic strings in their *title* text:
 
 # Building VM Images
 
-
 ## Process Overview
 
 There are four parts to the automated (and manual) process.  For the [vast
