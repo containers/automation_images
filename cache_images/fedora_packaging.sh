@@ -63,6 +63,7 @@ INSTALL_PACKAGES=(\
     fuse3-devel
     gcc
     git
+    git-daemon
     glib2-devel
     glibc-devel
     glibc-static

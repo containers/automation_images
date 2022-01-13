@@ -73,6 +73,7 @@ INSTALL_PACKAGES=(\
     emacs-nox
     file
     fuse3
+    git-daemon-run
     gcc
     gettext
     gnupg2
