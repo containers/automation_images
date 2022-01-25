@@ -1,92 +1,92 @@
 ---
 
+# See also:
+# https://github.com/containers/podman/blob/main/.github/workflows/check_cirrus_cron.yml
+
 # Format Ref: https://docs.github.com/en/free-pro-team@latest/actions/reference/workflow-syntax-for-github-actions
 
 # Required to un-FUBAR default ${{github.workflow}} value
-name: check_orphan_vms
+name: check_cirrus_cron
 
 on:
     # Note: This only applies to the default branch.
     schedule:
-        # Nobody is around to respond to weekend e-mails
-        - cron:  '59 23 * * 0-4'
+        # N/B: This should correspond to a period slightly after
+        # the last job finishes running.  See job defs. at:
+        # https://cirrus-ci.com/settings/repository/6680102350094336
+        - cron:  '59 23 * * 1-5'
     # Debug: Allow triggering job manually in github-actions WebUI
     workflow_dispatch: {}
 
 env:
     # Debug-mode can reveal secrets, only enable by a secret value.
-    # Ref: https://docs.github.com/en/actions/managing-workflow-runs/enabling-debug-logging#enabling-runner-diagnostic-logging
+    # Ref: https://help.github.com/en/actions/configuring-and-managing-workflows/managing-a-workflow-run#enabling-step-debug-logging
     ACTIONS_STEP_DEBUG: '${{ secrets.ACTIONS_STEP_DEBUG }}'
-    ACTIONS_RUNNER_DEBUG: '${{ secrets.ACTIONS_RUNNER_DEBUG }}'
     # CSV listing of e-mail addresses for delivery failure or error notices
     RCPTCSV: rh.container.bot@gmail.com,podman-monitor@lists.podman.io
+    # Filename for table of cron-name to build-id data
+    # (must be in $GITHUB_WORKSPACE/artifacts/)
+    NAME_ID_FILEPATH: './artifacts/name_id.txt'
 
 jobs:
-    orphan_vms:
+    cron_failures:
         runs-on: ubuntu-latest
         steps:
             - uses: actions/checkout@v2
               with:
                   persist-credentials: false
 
-            # Avoid duplicating cron-fail_addrs.csv
+            # Avoid duplicating cron_failures.sh in buildah repo.
             - uses: actions/checkout@v2
               with:
                   repository: containers/podman
                   path: '_podman'
                   persist-credentials: false
 
-            - name: Collect listing of orphaned VMs
-              id: orphans
-              run: |
-                env_file=$(mktemp -p '' env_file_XXXXXXXX)
-                cat << EOF >> $env_file
-                    GCPPROJECTS=$(egrep -vx '^#+.*$' $GITHUB_WORKSPACE/gcpprojects.txt | tr -s '[:space:]' ' ')
-                    GCPNAME=${{ secrets.GCPNAME }}
-                    GCPJSON=${{ secrets.GCPJSON }}
-                EOF
-                podman run --rm \
-                    --env-file=$env_file \
-                    quay.io/libpod/orphanvms:latest \
-                    | tee /tmp/output.txt
+            - name: Get failed cron names and Build IDs
+              id: cron
+              run: './_podman/.github/actions/${{ github.workflow }}/${{ github.job }}.sh'
 
-                printf "::set-output name=count::%d\n" \
-                    $(egrep -x '\* VM .+' /tmp/output.txt | wc -l - | awk '{print $1}')
-
-            - if: steps.orphans.outputs.count > 0
+            - if: steps.cron.outputs.failures > 0
               shell: bash
+              # Must be inline, since context expressions are used.
+              # Ref: https://docs.github.com/en/free-pro-team@latest/actions/reference/context-and-expression-syntax-for-github-actions
               run: |
                 set -eo pipefail
                 (
-                echo "Detected ${{ steps.orphans.outputs.count }} Orphan GCP VM(s):"
+                echo "Detected one or more Cirrus-CI cron-triggered jobs have failed recently:"
                 echo ""
-                cat /tmp/output.txt
+
+                while read -r NAME BID; do
+                    echo "Cron build '$NAME' Failed: https://cirrus-ci.com/build/$BID"
+                done < "$NAME_ID_FILEPATH"
+
                 echo ""
                 echo "# Source: ${{ github.workflow }} workflow on ${{ github.repository }}."
                 # Separate content from sendgrid.com automatic footer.
                 echo ""
                 echo ""
-                ) > /tmp/email_body.txt
+                ) > ./artifacts/email_body.txt
 
-            - if: steps.orphans.outputs.count > 0
-              name: Send orphan notification e-mail
+            - if: steps.cron.outputs.failures > 0
+              name: Send failure notification e-mail
               # Ref: https://github.com/dawidd6/action-send-mail
               uses: dawidd6/action-send-mail@v2.2.2
               with:
-                server_address: ${{ secrets.ACTION_MAIL_SERVER }}
+                server_address: ${{secrets.ACTION_MAIL_SERVER}}
                 server_port: 465
-                username: ${{ secrets.ACTION_MAIL_USERNAME }}
-                password: ${{ secrets.ACTION_MAIL_PASSWORD }}
-                subject: Orphaned GCP VMs
+                username: ${{secrets.ACTION_MAIL_USERNAME}}
+                password: ${{secrets.ACTION_MAIL_PASSWORD}}
+                subject: Cirrus-CI cron build failures on ${{github.repository}}
                 to: ${{env.RCPTCSV}}
-                from: ${{ secrets.ACTION_MAIL_SENDER }}
-                body: file:///tmp/email_body.txt
+                from: ${{secrets.ACTION_MAIL_SENDER}}
+                body: file://./artifacts/email_body.txt
 
             - if: always()
               uses: actions/upload-artifact@v2
               with:
                   name: ${{ github.job }}_artifacts
-                  path: /tmp/output.txt
+                  path: artifacts/*
 
             - if: failure()
               name: Send error notification e-mail
