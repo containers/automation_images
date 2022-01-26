@@ -55,6 +55,11 @@ builders:
       source_image: 'fedora-b{{user `IMG_SFX`}}'
       source_image_family: 'fedora-base'
 
+    - <<: *gce_hosted_image
+      name: 'fedora-podman-py'
+      source_image: 'fedora-b{{user `IMG_SFX`}}'
+      source_image_family: 'fedora-base'
+
 provisioners:
     - type: 'shell'
       inline:
@@ -65,7 +70,7 @@ provisioners:
       source: '{{ pwd }}/'
       destination: "/tmp/automation_images"
 
-    - only: ['fedora', 'prior-fedora', 'fedora-netavark']
+    - only: ['fedora', 'prior-fedora', 'fedora-netavark', 'fedora-podman-py']
       type: 'shell'
       inline:
         - 'set -e'

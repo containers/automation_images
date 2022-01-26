@@ -198,6 +198,9 @@ cache_images_task:
             PACKER_BUILDS: "fedora-netavark"
         - <<: *cache_image
           env:
+            PACKER_BUILDS: "fedora-podman-py"
+        - <<: *cache_image
+          env:
             PACKER_BUILDS: "ubuntu"
     env:
       GAC_JSON: ENCRYPTED[7fba7fb26ab568ae39f799ab58a476123206576b0135b3d1019117c6d682391370c801e149f29324ff4b50133012aed9]
@@ -233,6 +236,7 @@ imgts_task:
             fedora-c${IMG_SFX}
             prior-fedora-c${IMG_SFX}
             fedora-netavark-c${IMG_SFX}
+            fedora-podman-py-c${IMG_SFX}
             ubuntu-c${IMG_SFX}
     clone_script: &noop mkdir -p "${CIRRUS_WORKING_DIR}"  # source is not needed
     script: "/usr/local/bin/entrypoint.sh"
