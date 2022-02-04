@@ -53,10 +53,11 @@ INSTALL_PACKAGES=(\
     crun
     curl
     device-mapper-devel
-    docker-compose
     dnsmasq
+    docker-compose
     e2fsprogs-devel
     emacs-nox
+    fakeroot
     file
     findutils
     fuse3
@@ -139,6 +140,7 @@ INSTALL_PACKAGES=(\
     skopeo
     slirp4netns
     socat
+    squashfs-tools
     tar
     time
     unzip

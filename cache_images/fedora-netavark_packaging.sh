@@ -20,6 +20,7 @@ bigto ooe.sh $SUDO dnf update -y
 
 INSTALL_PACKAGES=(\
     bats
+    bind-utils
     bridge-utils
     bzip2
     cargo
@@ -41,6 +42,7 @@ INSTALL_PACKAGES=(\
     nmap-ncat
     openssl
     openssl-devel
+    podman
     policycoreutils
     podman
     redhat-rpm-config
@@ -49,6 +51,7 @@ INSTALL_PACKAGES=(\
     rust
     rustfmt
     sed
+    slirp4netns
     tar
     time
     xz
