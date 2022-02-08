@@ -54,8 +54,11 @@ INSTALL_PACKAGES=(\
     zip
 )
 
+# TODO: Remove this when all CI should test with Netavark/Aardvark by default
+EXARG="--exclude=netavark --exclude=aardvark-dns"
+
 msg "Installing general build/test dependencies"
-bigto $SUDO dnf install -y "${INSTALL_PACKAGES[@]}"
+bigto $SUDO dnf install -y $EXARG "${INSTALL_PACKAGES[@]}"
 
 msg "Installing netavark-specific toolchain dependencies"
 export CARGO_HOME="/var/cache/cargo"  # must match .cirrus.yml in netavark repo

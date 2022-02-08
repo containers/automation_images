@@ -160,6 +160,9 @@ case "$OS_RELEASE_VER" in
     *) die "Unknown/Unsupported \$OS_REL_VER '$OS_REL_VER'" ;;
 esac
 
+# TODO: Remove this when all CI should test with Netavark/Aardvark by default
+EXARG="--exclude=netavark --exclude=aardvark-dns"
+
 # When installing during a container-build, having this present
 # will seriously screw up future dnf operations in very non-obvious ways.
 if ! ((CONTAINER)); then
@@ -171,7 +174,7 @@ if ! ((CONTAINER)); then
     )
 else
     if [[ "$OS_RELEASE_VER" -lt 35 ]]; then
-        EXARG="--exclude=selinux*"
+        EXARG="$EXARG --exclude=selinux*"
     fi
 fi
 
