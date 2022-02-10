@@ -19,50 +19,78 @@ msg "Updating/Installing repos and packages for $OS_REL_VER"
 bigto ooe.sh $SUDO dnf update -y
 
 INSTALL_PACKAGES=(\
-    bats
+    bash-completion
     bridge-utils
+    buildah
     bzip2
-    cargo
-    clippy
     curl
-    dbus-daemon
     findutils
-    firewalld
+    fuse3
+    gcc
     git
-    gzip
+    git-daemon
+    glib2-devel
+    glibc-devel
     hostname
+    httpd-tools
     iproute
     iptables
-    iputils
     jq
-    kernel-modules
+    libtool
+    lsof
     make
-    nftables
     nmap-ncat
     openssl
     openssl-devel
+    pkgconfig
+    podman
     policycoreutils
+    protobuf
+    protobuf-devel
+    python-pip-wheel
+    python-setuptools-wheel
+    python-toml
+    python-wheel-wheel
+    python3-PyYAML
+    python3-coverage
+    python3-dateutil
+    python3-docker
+    python3-fixtures
+    python3-libselinux
+    python3-libsemanage
+    python3-libvirt
+    python3-pip
+    python3-psutil
+    python3-pylint
+    python3-pytest
+    python3-pyxdg
+    python3-requests
+    python3-requests-mock
+    python3-virtualenv
+    python3.6
+    python3.8
+    python3.9
     redhat-rpm-config
-    rpm-build
     rsync
-    rust
-    rustfmt
     sed
+    skopeo
+    socat
     tar
     time
+    tox
+    unzip
+    vim
+    wget
     xz
     zip
+    zstd
 )
 
 # TODO: Remove this when all CI should test with Netavark/Aardvark by default
 EXARG="--exclude=netavark --exclude=aardvark-dns"
 
-msg "Installing general build/test dependencies"
+echo "Installing general build/test dependencies"
 bigto $SUDO dnf install -y $EXARG "${INSTALL_PACKAGES[@]}"
-
-msg "Installing netavark-specific toolchain dependencies"
-export CARGO_HOME="/var/cache/cargo"  # must match .cirrus.yml in netavark repo
-$SUDO env CARGO_HOME=$CARGO_HOME cargo install mandown sccache
 
 # It was observed in F33, dnf install doesn't always get you the latest/greatest
 lilto $SUDO dnf update -y

@@ -24,19 +24,21 @@ req_env_vars PACKER_BUILD_NAME
 # shellcheck disable=SC2154
 if [[ "$PACKER_BUILD_NAME" =~ "netavark" ]]; then
     bash $SCRIPT_DIRPATH/fedora-netavark_packaging.sh
+elif [[ "$PACKER_BUILD_NAME" =~ "podman-py" ]]; then
+    bash $SCRIPT_DIRPATH/fedora-podman-py_packaging.sh
 else
     bash $SCRIPT_DIRPATH/fedora_packaging.sh
 fi
 
 # Only on VMs
 if ! ((CONTAINER)); then
-    if [[ ! "$PACKER_BUILD_NAME" =~ netavark ]]; then
-        msg "Enabling cgroup management from containers"
-        ooe.sh $SUDO setsebool -P container_manage_cgroup true
-    else
+    if [[ "$PACKER_BUILD_NAME" =~ netavark ]]; then
         msg "Setting up VM for netavark testing"
         echo -e '# Added during VM Image build\nsctp' |
             $SUDO tee /etc/modules-load.d/netavark_ci_sctp
+    else
+        msg "Enabling cgroup management from containers"
+        ooe.sh $SUDO setsebool -P container_manage_cgroup true
     fi
 
     if [[ "$PACKER_BUILD_NAME" =~ prior ]]; then
