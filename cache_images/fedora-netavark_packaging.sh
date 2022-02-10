@@ -20,6 +20,7 @@ bigto ooe.sh $SUDO dnf update -y
 
 INSTALL_PACKAGES=(\
     bats
+    bind-utils
     bridge-utils
     bzip2
     cargo
@@ -41,13 +42,16 @@ INSTALL_PACKAGES=(\
     nmap-ncat
     openssl
     openssl-devel
+    podman
     policycoreutils
+    podman
     redhat-rpm-config
     rpm-build
     rsync
     rust
     rustfmt
     sed
+    slirp4netns
     tar
     time
     xz
@@ -62,7 +66,7 @@ bigto $SUDO dnf install -y $EXARG "${INSTALL_PACKAGES[@]}"
 
 msg "Installing netavark-specific toolchain dependencies"
 export CARGO_HOME="/var/cache/cargo"  # must match .cirrus.yml in netavark repo
-$SUDO env CARGO_HOME=$CARGO_HOME cargo install mandown sccache
+$SUDO env CARGO_HOME=$CARGO_HOME cargo install mandown cross
 
 # It was observed in F33, dnf install doesn't always get you the latest/greatest
 lilto $SUDO dnf update -y
