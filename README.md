@@ -108,6 +108,7 @@ see step 4 below.
   "extra" code, remember these VM images are shared by automation in multiple
   repositories.
 
+
 ### Process: ###
 
 1. After you make your script changes, push to a PR.  They will be
@@ -132,6 +133,7 @@ see step 4 below.
 
 9. After all the PRs are merged, you're done.
 
+
 ### Looking up an image ID: ###
 
 An *image ID* is simplya big number prefixed by the letter 'c'.  You may
@@ -153,6 +155,7 @@ fails.
 4. The new *image ID* is formed by prefixing the **big number** with the
    the letter *"c*".  For example, if the url was `http://.../12345`
    the *image ID* would be `c12345`.
+
 
 ## The image-builder image (overview step 1)
 
