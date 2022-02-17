@@ -61,7 +61,6 @@ INSTALL_PACKAGES=(\
     zip
 )
 
-# TODO: Remove this when all CI should test with Netavark/Aardvark by default
 EXARG="--exclude=netavark --exclude=aardvark-dns --exclude=cargo --exclude=rust"
 
 msg "Installing general build/test dependencies"
