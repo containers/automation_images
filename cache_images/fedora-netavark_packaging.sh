@@ -23,8 +23,6 @@ INSTALL_PACKAGES=(\
     bind-utils
     bridge-utils
     bzip2
-    cargo
-    clippy
     curl
     dbus-daemon
     findutils
@@ -45,11 +43,7 @@ INSTALL_PACKAGES=(\
     podman
     policycoreutils
     podman
-    redhat-rpm-config
-    rpm-build
     rsync
-    rust
-    rustfmt
     sed
     slirp4netns
     tar
@@ -59,14 +53,16 @@ INSTALL_PACKAGES=(\
 )
 
 # TODO: Remove this when all CI should test with Netavark/Aardvark by default
-EXARG="--exclude=netavark --exclude=aardvark-dns"
+EXARG="--exclude=netavark --exclude=aardvark-dns --exclude=cargo --exclude=rust"
 
 msg "Installing general build/test dependencies"
 bigto $SUDO dnf install -y $EXARG "${INSTALL_PACKAGES[@]}"
 
-msg "Installing netavark-specific toolchain dependencies"
-export CARGO_HOME="/var/cache/cargo"  # must match .cirrus.yml in netavark repo
-$SUDO env CARGO_HOME=$CARGO_HOME cargo install mandown cross
-
 # It was observed in F33, dnf install doesn't always get you the latest/greatest
 lilto $SUDO dnf update -y
+
+msg "Initializing upstream rust environment."
+export CARGO_HOME="/var/cache/cargo"  # must match .cirrus.yml in netavark repo
+$SUDO mkdir -p $CARGO_HOME
+# CI Runtime takes care of recovering $CARGO_HOME/env
+curl https://sh.rustup.rs -sSf | $SUDO env CARGO_HOME=$CARGO_HOME sh -s -- -y
