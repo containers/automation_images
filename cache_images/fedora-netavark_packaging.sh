@@ -19,6 +19,7 @@ msg "Updating/Installing repos and packages for $OS_REL_VER"
 bigto ooe.sh $SUDO dnf update -y
 
 INSTALL_PACKAGES=(\
+    automake
     bats
     bind-utils
     bridge-utils
@@ -27,6 +28,8 @@ INSTALL_PACKAGES=(\
     dbus-daemon
     findutils
     firewalld
+    gcc
+    gcc-c++
     git
     gzip
     hostname
@@ -34,6 +37,7 @@ INSTALL_PACKAGES=(\
     iptables
     iputils
     jq
+    kernel-devel
     kernel-modules
     make
     nftables
@@ -42,7 +46,6 @@ INSTALL_PACKAGES=(\
     openssl-devel
     podman
     policycoreutils
-    podman
     rsync
     sed
     slirp4netns
