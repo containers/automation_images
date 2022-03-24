@@ -20,9 +20,7 @@ builders:
     - &gce_hosted_image
       name: 'ubuntu'
       type: 'googlecompute'
-      source_image_family: '{{ build_name }}-base'  # Coordinated w/ base_images
       # N/B: This implies base images always built with same IMG_SFX.
-      # Alt: Only specify family for 'latest' image: Possible race w/ concurrent bulds
       source_image: '{{ build_name }}-b{{user `IMG_SFX`}}'
       # Prefix IMG_SFX with "c" so this is never confused with a base_image name
       image_name: '{{ build_name }}-c{{user `IMG_SFX`}}'
@@ -44,21 +42,21 @@ builders:
 
     - <<: *gce_hosted_image
       name: 'fedora'
-      source_image_family: 'fedora-base'
 
     - <<: *gce_hosted_image
       name: 'prior-fedora'
-      source_image_family: 'prior-fedora-base'
 
-    - <<: *gce_hosted_image
-      name: 'fedora-netavark'
+    - &aux_fed_img
+      <<: *gce_hosted_image
+      name: 'build-push'
       source_image: 'fedora-b{{user `IMG_SFX`}}'
       source_image_family: 'fedora-base'
 
-    - <<: *gce_hosted_image
+    - <<: *aux_fed_img
       name: 'fedora-podman-py'
-      source_image: 'fedora-b{{user `IMG_SFX`}}'
-      source_image_family: 'fedora-base'
+
+    - <<: *aux_fed_img
+      name: 'fedora-netavark'
 
 provisioners:
     - type: 'shell'
@@ -81,6 +79,12 @@ provisioners:
       inline:
         - 'set -e'
         - '/bin/bash /tmp/automation_images/cache_images/ubuntu_setup.sh'
+
+    - only: ['build-push']
+      type: 'shell'
+      inline:
+        - 'set -e'
+        - '/bin/bash /tmp/automation_images/cache_images/build-push_setup.sh'
 
 post-processors:
     - - type: 'manifest'  # writes packer-manifest.json

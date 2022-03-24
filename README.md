@@ -99,6 +99,13 @@ see step 4 below.
 * The bulk of the packaging work occurs next, from the `cache_images/*_packaging.sh`
   scripts.  **This is most likely what you want to modify.**
 
+* Unlike the Fedora and Ubuntu scripts, the `build-push` VM image is not
+  for general-purpose use.  It's intended to be used by it's embedded
+  `main.sh` script, in downstream repositories for building container images.
+  The image and `main.sh` are both tightly coupled with `build-push` tool
+  in the
+  [containers/automation repository](https://github.com/containers/automation).
+
 * Some non-packaged/source-based tooling is installed using the
   `cache_images/podman_tooling.sh` script.  These are slightly fragile, as
   they always come from upstream (master) podman.  Avoid adding/changing

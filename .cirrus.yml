@@ -202,6 +202,9 @@ cache_images_task:
         - <<: *cache_image
           env:
             PACKER_BUILDS: "ubuntu"
+        - <<: *cache_image
+          env:
+            PACKER_BUILDS: "build-push"
     env:
       GAC_JSON: ENCRYPTED[7fba7fb26ab568ae39f799ab58a476123206576b0135b3d1019117c6d682391370c801e149f29324ff4b50133012aed9]
     script: "ci/make_cache_images.sh"
@@ -238,6 +241,7 @@ imgts_task:
             fedora-netavark-c${IMG_SFX}
             fedora-podman-py-c${IMG_SFX}
             ubuntu-c${IMG_SFX}
+            build-push-c${IMG_SFX}
     clone_script: &noop mkdir -p "${CIRRUS_WORKING_DIR}"  # source is not needed
     script: "/usr/local/bin/entrypoint.sh"
 
@@ -311,6 +315,21 @@ test_get_ci_vm_task:
     test_script: "get_ci_vm/test.sh"
 
 
+test_build-push_task:
+    name: "Test build-push VM functions"
+    alias: test_build-push
+    depends_on:
+        - cache_images
+    gce_instance:
+        image_project: "libpod-218412"
+        image_name: "build-push-c${IMG_SFX}"
+        zone: "us-central1-a"
+        disk: 200
+        # More muscle to emulate multi-arch
+        type: "n2-standard-4"
+    script: bash ./build-push/test.sh
+
+
 # N/B: "latest" image produced after PR-merge (branch-push)
 cron_imgobsolete_task: &lifecycle_cron
     name: "Periodicly mark old images obsolete"
@@ -353,6 +372,7 @@ success_task:
         - cron_imgprune
         - test_gcsupld
         - test_get_ci_vm
+        - test_build-push
     container:
         <<: *ci_container
     clone_script: *noop
