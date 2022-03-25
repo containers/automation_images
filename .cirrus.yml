@@ -318,6 +318,8 @@ test_get_ci_vm_task:
 test_build-push_task:
     name: "Test build-push VM functions"
     alias: test_build-push
+    only_if: *not_cron
+    skip: *ci_docs
     depends_on:
         - cache_images
     gce_instance:
