@@ -357,9 +357,14 @@ init_gcevm() {
     _dbg_envars INST_NAME GCLOUD SSH_CMD SCP_CMD CREATE_CMD CLEANUP_CMD
 
     if ! has_valid_credentials; then
-        warn "Can't find valid GCP credentials, attempting to (re)initialize.
-If asked, please choose \"#1: Re-initialize\", \"login\", and \"$GCLOUD_ZONE\" GCLOUD_ZONE,
-otherwise simply follow the prompts"
+        warn "\
+Can't find valid GCP credentials, attempting to (re)initialize.
+If asked, please choose '#1: Re-initialize', 'login', and a nearby
+GCLOUD_ZONE, otherwise simply follow the prompts.
+
+Note: If asked to set a SSH-key passphrase, DO NOT SET ONE, it
+      will make your life miserable! Set an empty password for the key.
+"
         $GCLOUD init --project=$GCLOUD_PROJECT --console-only --skip-diagnostics
         if ! has_valid_credentials; then
             die "Unable to obtain GCP access credentials, please seek assistance."
