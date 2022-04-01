@@ -22,9 +22,17 @@ if [[ -r "/etc/automation_environment" ]]; then
     source /etc/automation_environment  # defines AUTOMATION_LIB_PATH
     #shellcheck disable=SC1090,SC2154
     source "$AUTOMATION_LIB_PATH/common_lib.sh"
+    #shellcheck source=../lib/autoupdate.sh
+    source "$AUTOMATION_LIB_PATH/autoupdate.sh"
 else
     echo "Expecting to find automation common library installed."
     exit 1
+fi
+
+# Careful: Changing the error message below could break auto-update test.
+if [[ $# -ne 2 ]]; then
+    #shellcheck disable=SC2145
+    die "Must be called with exactly two arguments, got '$@'"
 fi
 
 if [[ -z $(type -P build-push.sh) ]]; then
