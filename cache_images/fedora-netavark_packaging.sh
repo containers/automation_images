@@ -19,16 +19,11 @@ msg "Updating/Installing repos and packages for $OS_REL_VER"
 bigto ooe.sh $SUDO dnf update -y
 
 INSTALL_PACKAGES=(\
-	btrfs-progs-devel
-	golang
-	gpgme-devel
-	libassuan-devel
-	libseccomp-devel
-	systemd-devel
     automake
     bats
     bind-utils
     bridge-utils
+    btrfs-progs-devel
     bzip2
     curl
     dbus-daemon
@@ -37,6 +32,8 @@ INSTALL_PACKAGES=(\
     gcc
     gcc-c++
     git
+    golang
+    gpgme-devel
     gzip
     hostname
     iproute
@@ -45,6 +42,8 @@ INSTALL_PACKAGES=(\
     jq
     kernel-devel
     kernel-modules
+    libassuan-devel
+    libseccomp-devel
     make
     nftables
     nmap-ncat
@@ -55,6 +54,7 @@ INSTALL_PACKAGES=(\
     rsync
     sed
     slirp4netns
+    systemd-devel
     tar
     time
     xz

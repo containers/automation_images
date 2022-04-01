@@ -41,7 +41,7 @@ git config --local commit.gpgsign "false"
 # is tested here, since it involves the most complex workflow.
 mkdir -vp "contrib/testimage/stable"
 cd "contrib/testimage/stable"
-echo "build-push-test version $FAKE_VERSION" | tee "FAKE_VERSION"
+echo "build-push-test version v$FAKE_VERSION" | tee "FAKE_VERSION"
 cat <<EOF | tee "Containerfile"
 FROM registry.fedoraproject.org/fedora:latest
 ADD /FAKE_VERSION /
@@ -70,10 +70,10 @@ for _fqin in $TEST_FQIN $TEST_FQIN2; do
         # looking up the image in local storage.  This bug is fixed in later
         # versions.  For now, query the manifest directly for the image sha256.
         _q='.manifests[] | select(.platform.architecture == "'"$_arch"'") | .digest'
-        _s=$(podman manifest inspect $_fqin:$FAKE_VERSION | jq -r "$_q")
-        msg "Found '$_arch' in manifest-list $_fqin:$FAKE_VERSION as digest $_s"
+        _s=$(podman manifest inspect $_fqin:v$FAKE_VERSION | jq -r "$_q")
+        msg "Found '$_arch' in manifest-list $_fqin:v$FAKE_VERSION as digest $_s"
         if [[ -z "$_s" ]]; then
-            die "Failed to get sha256 for FQIN '$_fqin:$FAKE_VERSION' ($_arch)"
+            die "Failed to get sha256 for FQIN '$_fqin:v$FAKE_VERSION' ($_arch)"
         fi
         msg "Testing container can ping localhost"
         showrun podman run -i --rm "$_fqin@$_s" ping -q -c 1 127.0.0.1

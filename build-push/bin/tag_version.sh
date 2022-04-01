@@ -36,8 +36,8 @@ if [[ "$CTX_NAME" == "stable" ]]; then
     # shellcheck disable=SC2154
     msg "Found image command version '$img_cmd_version'"
     # shellcheck disable=SC2154
-    $RUNTIME tag $FQIN:latest $FQIN:$img_cmd_version
-    msg "Successfully tagged $FQIN:$img_cmd_version"
+    $RUNTIME tag $FQIN:latest $FQIN:v${img_cmd_version#v}
+    msg "Successfully tagged $FQIN:v${img_cmd_version#v}"
 else
     warn "Not tagging '$CTX_NAME' context of '$FQIN'"
 fi
