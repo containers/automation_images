@@ -40,6 +40,7 @@ lilto $SUDO dnf update -y
 install_automation_tooling build-push
 
 # Install main scripts into directory on $PATH
+cd $REPO_DIRPATH/build-push
 set -x
-$SUDO cp $REPO_DIRPATH/build-push/bin/* $AUTOMATION_LIB_PATH/../bin/
-$SUDO chmod +x $AUTOMATION_LIB_PATH/../bin/*
+# Do not auto-update to allow testing inside a PR
+$SUDO env BUILDPUSHAUTOUPDATED=1 bash ./.install.sh
