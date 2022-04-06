@@ -24,6 +24,7 @@ bigto ooe.sh $SUDO dnf update -y
 
 INSTALL_PACKAGES=(\
     buildah
+    git
     jq
     podman
     qemu-user-static

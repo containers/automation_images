@@ -24,11 +24,14 @@ SRC_TMP=$(mktemp -p '' -d tmp-build-push-test-XXXX)
 TEST_FQIN=example.com/testing/stable
 # Stable build should result in manifest list tagged this
 TEST_FQIN2=example.com/containers/testing
+# Don't allow main.sh or tag_version.sh to auto-update at runtime
+export BUILDPUSHAUTOUPDATED=1
 
 trap "rm -rf $SRC_TMP" EXIT
 
 # main.sh expects $PWD to be a git repository.
-msg "Constructing local test repository"
+msg "
+##### Constructing local test repository #####"
 cd $SRC_TMP
 showrun git init -b main testing
 cd testing
@@ -51,7 +54,8 @@ cd $SRC_TMP/testing
 git add --all
 git commit -m 'test repo initial commit'
 
-msg "Building test image '$TEST_FQIN' (in debug/dry-run mode)"
+msg "
+##### Testing build-push multi-arch build of '$TEST_FQIN'/'$TEST_FQIN2' #####"
 buildah --version
 export DRYRUN=1  # Force main.sh not to push anything
 req_env_vars ARCHES DRYRUN
@@ -61,7 +65,8 @@ env DEBUG=1 main.sh git://testing contrib/testimage/stable
 
 # Because this is a 'stable' image, verify that main.sh will properly
 # version-tagged both FQINs.  No need to check 'latest'.
-msg "Testing 'stable' images tagged '$FAKE_VERSION' for arches $TESTARCHES"
+msg "
+##### Testing execution of images arches $TESTARCHES #####"
 podman --version
 req_env_vars TESTARCHES FAKE_VERSION TEST_FQIN TEST_FQIN2
 for _fqin in $TEST_FQIN $TEST_FQIN2; do
@@ -86,3 +91,35 @@ for _fqin in $TEST_FQIN $TEST_FQIN2; do
         #showrun test $_v -eq $FAKE_VERSION
     done
 done
+
+# This script verifies it's only/ever running inside CI.  Use a fake
+# main.sh to verify it auto-updates itself w/o actually performing
+# a build.  N/B: This test must be run last, in a throw-away environment,
+# it _WILL_ modify on-disk contents!
+msg "
+##### Testing auto-update capability #####"
+cd $SRC_TMP
+#shellcheck disable=SC2154
+cat >main.sh<< EOF
+#!/bin/bash
+
+source /etc/automation_environment  # defines AUTOMATION_LIB_PATH
+source "$AUTOMATION_LIB_PATH/common_lib.sh"
+source "$AUTOMATION_LIB_PATH/autoupdate.sh"
+EOF
+chmod +x main.sh
+
+# Expect the real main.sh to bark one of two error messages
+# and exit non-zero.
+EXP_RX1="Must.be.called.with.exactly.two.arguments"
+EXP_RX2="does.not.appear.to.be.the.root.of.a.git.repo"
+if output=$(env BUILDPUSHAUTOUPDATED=0 ./main.sh 2>&1); then
+    die "Fail.  Expected main.sh to exit non-zero"
+else
+    if [[ "$output" =~ $EXP_RX1 ]] || [[ "$output" =~ $EXP_RX2 ]]; then
+        echo "PASS"
+    else
+        die "Fail.  Expecting match to '$EXP_RX1' or '$EXP_RX2', got:
+$output"
+    fi
+fi
