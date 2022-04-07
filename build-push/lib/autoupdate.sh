@@ -6,7 +6,8 @@
 # main.sh.  This allows the scripts to be updated without requiring new VM
 # images to be composed and deployed.
 
-BUILDPUSHAUTOUPDATED="${BUILDPUSHAUTOUPDATED:-0}"
+# Must be exported - .install.sh checks this is set.
+export BUILDPUSHAUTOUPDATED="${BUILDPUSHAUTOUPDATED:-0}"
 
 if ! ((BUILDPUSHAUTOUPDATED)); then
     msg "Auto-updating build-push operational scripts..."
