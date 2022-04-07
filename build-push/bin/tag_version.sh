@@ -33,11 +33,26 @@ if [[ "$CTX_NAME" == "stable" ]]; then
     # retrieving it from the image content is beyond the scope
     # of this script.
     req_env_vars img_cmd_version
+    img_cmd_version=v${img_cmd_version#v}
+    if egrep -q '^v[0-9]+\.[0-9]+\.[0-9]+'<<<"$img_cmd_version"; then
+        msg "Found image command version '$img_cmd_version'"
+    else
+        die "Encountered unexpected/non-conforming version '$img_cmd_version'"
+    fi
+
     # shellcheck disable=SC2154
-    msg "Found image command version '$img_cmd_version'"
-    # shellcheck disable=SC2154
-    $RUNTIME tag $FQIN:latest $FQIN:v${img_cmd_version#v}
-    msg "Successfully tagged $FQIN:v${img_cmd_version#v}"
+    $RUNTIME tag $FQIN:latest $FQIN:$img_cmd_version
+    msg "Successfully tagged $FQIN:$img_cmd_version"
+
+    # Tag as x.y to provide a consistent tag even for a future z+1
+    xy_ver=$(awk -F '.' '{print $1"."$2}'<<<"$img_cmd_version")
+    $RUNTIME tag $FQIN:latest $FQIN:$xy_ver
+    msg "Successfully tagged $FQIN:$xy_ver"
+
+    # Tag as x to provide consistent tag even for a future y+1
+    x_ver=$(awk -F '.' '{print $1}'<<<"$xy_ver")
+    $RUNTIME tag $FQIN:latest $FQIN:$x_ver
+    msg "Successfully tagged $FQIN:$x_ver"
 else
     warn "Not tagging '$CTX_NAME' context of '$FQIN'"
 fi

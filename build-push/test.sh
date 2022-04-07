@@ -17,7 +17,10 @@ TESTARCHES="amd64 arm64"
 ARCHES=$(tr " " ","<<<"$TESTARCHES")
 export ARCHES
 # Contrived "version" for testing purposes
-FAKE_VERSION=$RANDOM
+FAKE_VER_X=$RANDOM
+FAKE_VER_Y=$RANDOM
+FAKE_VER_Z=$RANDOM
+FAKE_VERSION="$FAKE_VER_X.$FAKE_VER_Y.$FAKE_VER_Z"
 # Contrived source repository for testing
 SRC_TMP=$(mktemp -p '' -d tmp-build-push-test-XXXX)
 # Do not change, main.sh is sensitive to the 'testing' name
@@ -82,6 +85,18 @@ for _fqin in $TEST_FQIN $TEST_FQIN2; do
         fi
         msg "Testing container can ping localhost"
         showrun podman run -i --rm "$_fqin@$_s" ping -q -c 1 127.0.0.1
+
+        xy_ver="v$FAKE_VER_X.$FAKE_VER_Y"
+        msg "Testing tag '$xy_ver'"
+        if ! podman manifest inspect $_fqin:$xy_ver &> /dev/null; then
+            die "Failed to find manifest-list tagged '$xy_ver'"
+        fi
+
+        x_ver="v$FAKE_VER_X"
+        msg "Testing tag '$x_ver'"
+        if ! podman manifest inspect $_fqin:$x_ver &> /dev/null; then
+            die "Failed to find manifest-list tagged '$x_ver'"
+        fi
 
         #TODO: Test org.opencontainers.image.source value
         #TODO: fails, returns null for some reason
