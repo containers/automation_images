@@ -5,6 +5,9 @@
 # it will download the latest version of the build-push scripts and re-exec
 # main.sh.  This allows the scripts to be updated without requiring new VM
 # images to be composed and deployed.
+#
+# WARNING: Changes to this script _do_ require new VM images as auto-updating
+# the auto-update script would be complex and hard to test.
 
 # Must be exported - .install.sh checks this is set.
 export BUILDPUSHAUTOUPDATED="${BUILDPUSHAUTOUPDATED:-0}"
@@ -22,7 +25,8 @@ if ! ((BUILDPUSHAUTOUPDATED)); then
     msg "Installing..."
     cd $GITTMP/build-push || exit 1
     bash ./.install.sh
-    cd /
+    # Important: Return to directory main.sh was started from
+    cd - || exit 1
     rm -rf "$GITTMP"
 
     #shellcheck disable=SC2145
