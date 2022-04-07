@@ -324,7 +324,7 @@ test_build-push_task:
         - cache_images
     gce_instance:
         image_project: "libpod-218412"
-        image_name: "build-push-c${IMG_SFX}"
+        image_family: 'build-push-cache'
         zone: "us-central1-a"
         disk: 200
         # More muscle to emulate multi-arch
