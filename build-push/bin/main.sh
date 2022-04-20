@@ -44,7 +44,12 @@ if ! [[ -d "$PWD/.git" ]]; then
 fi
 
 # Assume transitive debugging state for build-push.sh if set
-export DEBUG
+if [[ "$(automation_version | cut -d '.' -f 1)" -ge 4 ]]; then
+    # Valid for version 4.0.0 and above only
+    export A_DEBUG
+else
+    export DEBUG
+fi
 
 # Arches to build by default - may be overridden for testing
 ARCHES="${ARCHES:-amd64,ppc64le,s390x,arm64}"
