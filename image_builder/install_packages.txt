@@ -4,6 +4,7 @@ curl
 findutils
 gawk
 genisoimage
+git
 google-cloud-sdk
 jq
 libvirt
