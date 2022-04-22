@@ -21,8 +21,17 @@ fi
 
 set_gac_filepath
 
+
+unset BUILD_PFX
+labels=$(get_pr_labels)
+# Importing Beta ubuntu or prior-fedora images is not supported.
+if [[ "$labels" =~ Beta ]] && [[ "$PACKER_BUILDS" == fedora ]]; then
+    echo "Found 'Beta' label on PR, will build Fedora beta VM images."
+    BUILD_PFX="beta-"
+fi
+
 set -exo pipefail
 cd "$REPO_DIRPATH"
 export IMG_SFX=$IMG_SFX
-export PACKER_BUILDS=$PACKER_BUILDS
+export PACKER_BUILDS="${BUILD_PFX}${PACKER_BUILDS}"
 make base_images

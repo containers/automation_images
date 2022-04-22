@@ -21,29 +21,61 @@ variables:  # Empty value means it must be passed in on command-line
     # to build from - just as the sources below are the base-images to
     # start from building VM images.
 
-    # Upstream source for Ubuntu image to duplicate (prevents expiration).
-    # Use the most recent image based on this family name.
+    # Upstream sources to duplicate (prevents expiration).
+    # Use the most recent image based on family names
     UBUNTU_BASE_FAMILY: 'ubuntu-2204-lts'
+    FEDORA_BASE_FAMILY: "fedora-cloud-36"
+    PRIOR_FEDORA_BASE_FAMILY: "fedora-cloud-35"
 
-    # Latest Fedora release (qcow and CHECKSUM) download URLs
-    # N/B: There are Fedora-Cloud...GCP.tar.gz images available, however
-    #      as of this comment, they lack the cloud-init package which is
-    #      required by GCP for startup resizing of the rootfs.
+    # These are only needed for the 'beta-*' builders
     FEDORA_CSUM_URL: "https://dl.fedoraproject.org/pub/fedora/linux/releases/36/Cloud/x86_64/images/Fedora-Cloud-36-1.5-x86_64-CHECKSUM"
     FEDORA_IMAGE_URL: "https://dl.fedoraproject.org/pub/fedora/linux/releases/36/Cloud/x86_64/images/Fedora-Cloud-Base-36-1.5.x86_64.qcow2"
-
-    # Prior Fedora release
-    PRIOR_FEDORA_CSUM_URL: "https://dl.fedoraproject.org/pub/fedora/linux/releases/35/Cloud/x86_64/images/Fedora-Cloud-35-1.2-x86_64-CHECKSUM"
-    PRIOR_FEDORA_IMAGE_URL: "https://dl.fedoraproject.org/pub/fedora/linux/releases/35/Cloud/x86_64/images/Fedora-Cloud-Base-35-1.2.x86_64.qcow2"
-
 
 # Don't leak sensitive values in error messages / output
 sensitive-variables:
     - 'GAC_FILEPATH'
 
 builders:
-    - &qemu_virt
+    - &imgcpy
+      name: 'ubuntu'
+      type: 'googlecompute'
+      # Prefix IMG_SFX with "b" so this is never confused with a cache_image name
+      image_name: '{{build_name}}-b{{user `IMG_SFX`}}'
+      image_family: '{{build_name}}-base'
+      image_description: 'Built in https://cirrus-ci.com/build/{{user `IMG_SFX`}}'
+      source_image_family: '{{user `UBUNTU_BASE_FAMILY`}}'
+      source_image_project_id: 'ubuntu-os-cloud'
+      project_id: '{{user `GCP_PROJECT_ID`}}'
+      # Can't use env. var for this, googlecompute-import only supports filepath
+      account_file: '{{user `GAC_FILEPATH`}}'
+      zone: 'us-central1-a'
+      disk_size: 20
+      # Identify the instance
+      labels: &imgcpylabels
+        sfx: '{{user `IMG_SFX`}}'
+        src: '{{user `UBUNTU_BASE_FAMILY`}}'
+      # Gotcha: https://www.packer.io/docs/builders/googlecompute#gotchas
+      ssh_username: 'packer'
+      temporary_key_pair_type: ed25519
+      ssh_clear_authorized_keys: true
+
+    - <<: *imgcpy
       name: 'fedora'
+      source_image_family: '{{user `FEDORA_BASE_FAMILY`}}'
+      source_image_project_id: 'fedora-cloud'
+      labels:
+        <<: *imgcpylabels
+        src: '{{user `FEDORA_BASE_FAMILY`}}'
+
+    - <<: *imgcpy
+      name: 'prior-fedora'
+      source_image_family: '{{user `PRIOR_FEDORA_BASE_FAMILY`}}'
+      source_image_project_id: 'fedora-cloud'
+      labels:
+        <<: *imgcpylabels
+        src: '{{user `PRIOR_FEDORA_BASE_FAMILY`}}'
+
+    - name: 'beta-fedora'
       type: 'qemu'
       accelerator: "kvm"
       qemu_binary: '/usr/libexec/qemu-kvm'  # Unique to CentOS, not fedora :(
@@ -53,7 +85,7 @@ builders:
       disk_size: 10240
       iso_checksum: 'file:{{user `FEDORA_CSUM_URL`}}'
       vm_name: "disk.raw"  # actually qcow2, name required for post-processing
-      output_directory: '{{ user `TEMPDIR` }}/{{build_name}}' # /<vm_name>.disk.raw
+      output_directory: '{{ user `TEMPDIR` }}/fedora' # /<vm_name>.disk.raw
       boot_wait: '5s'
       shutdown_command: 'shutdown -h now'
       headless: true
@@ -83,33 +115,7 @@ builders:
       ssh_timeout: '5m'
       vnc_bind_address: 0.0.0.0
 
-    - <<: *qemu_virt
-      name: 'prior-fedora'
-      iso_url: '{{user `PRIOR_FEDORA_IMAGE_URL`}}'
-      iso_checksum: 'file:{{user `PRIOR_FEDORA_CSUM_URL`}}'
-
-    - name: 'ubuntu'
-      type: 'googlecompute'
-      # Prefix IMG_SFX with "b" so this is never confused with a cache_image name
-      image_name: 'ubuntu-b{{user `IMG_SFX`}}'
-      image_family: '{{build_name}}-base'
-      source_image_family: '{{user `UBUNTU_BASE_FAMILY`}}'
-      source_image_project_id: 'ubuntu-os-cloud'
-      project_id: '{{user `GCP_PROJECT_ID`}}'
-      # Can't use env. var for this, googlecompute-import only supports filepath
-      account_file: '{{user `GAC_FILEPATH`}}'
-      zone: 'us-central1-a'
-      disk_size: 20
-      # Identify the instance
-      labels:
-        sfx: '{{user `IMG_SFX`}}'
-        src: '{{user `UBUNTU_BASE_FAMILY`}}'
-      # Gotcha: https://www.packer.io/docs/builders/googlecompute#gotchas
-      ssh_username: 'packer'
-      temporary_key_pair_type: ed25519
-      ssh_clear_authorized_keys: true
-
-provisioners:  # Ubuntu images come bundled with GCE integrations provisioned
+provisioners:
     - type: 'shell'
       inline:
         - 'set -e'
@@ -119,7 +125,7 @@ provisioners:  # Ubuntu images come bundled with GCE integrations provisioned
       source: '{{ pwd }}/'
       destination: '/tmp/automation_images/'
 
-    - only: ['fedora', 'prior-fedora']
+    - only: ['beta-fedora', 'fedora', 'prior-fedora']
       type: 'shell'
       inline:
         - 'set -e'
@@ -133,29 +139,26 @@ provisioners:  # Ubuntu images come bundled with GCE integrations provisioned
 
 post-processors:
     # Must be double-nested to guarantee execution order
-    - - type: "compress"
-        only: ['fedora', 'prior-fedora']
-        output: '{{ user `TEMPDIR` }}/{{build_name}}/disk.raw.tar.gz'
+    - - only: ['beta-fedora']
+        type: "compress"
+        output: '{{ user `TEMPDIR` }}/fedora/disk.raw.tar.gz'
         format: '.tar.gz'
         compression_level: 9
-      - &gcp_import
-        only: ['fedora']
+
+      - only: ['beta-fedora']
         type: "googlecompute-import"
         project_id: '{{user `GCP_PROJECT_ID`}}'
         account_file: '{{user `GAC_FILEPATH`}}'
         bucket: '{{user `XFERBUCKET`}}'
-        gcs_object_name: '{{build_name}}-{{user `IMG_SFX`}}.tar.gz'
+        gcs_object_name: 'fedora-{{user `IMG_SFX`}}.tar.gz'
         image_name: "fedora-b{{user `IMG_SFX`}}"
-        image_family: '{{build_name}}-base'
+        image_family: 'fedora-base'
         # Can't save the url in an image_label
         image_description: '{{user `FEDORA_IMAGE_URL`}}'
         image_labels:
           sfx: '{{user `IMG_SFX`}}'
-      - <<: *gcp_import
-        only: ['prior-fedora']
-        image_name: "prior-fedora-b{{user `IMG_SFX`}}"
-        image_family: '{{build_name}}-base'
-        image_description: '{{user `PRIOR_FEDORA_IMAGE_URL`}}'
+          src: "beta"
+
       - type: 'manifest'
         output: 'base_images/manifest.json'  # Collected by Cirrus-CI
         strip_path: true

@@ -21,7 +21,7 @@ source "$REPO_DIRPATH/lib.sh"
 # with rpm debugging.
 # Ref: https://github.com/rpm-software-management/rpm/commit/8cbe8baf9c3ff4754369bcd29441df14ecc6889d
 declare -a PKGS
-PKGS=(rng-tools git coreutils)
+PKGS=(rng-tools git coreutils cloud-init)
 XSELINUX=
 if ((CONTAINER)); then
     if ((OS_RELEASE_VER<35)); then
@@ -36,11 +36,11 @@ else
     fi
 fi
 
-dnf -y update $XSELINUX
-dnf -y install $XSELINUX "${PKGS[@]}"
+$SUDO dnf -y update $XSELINUX
+$SUDO dnf -y install $XSELINUX "${PKGS[@]}"
 
 if ! ((CONTAINER)); then
-    systemctl enable rngd
+    $SUDO systemctl enable rngd
 fi
 
 install_automation_tooling
@@ -57,8 +57,9 @@ if ! ((CONTAINER)); then
         # vs google-network-daemon.service.  Fix this with a custom
         # cloud-init service file.
         CLOUD_SERVICE_PATH="systemd/system/cloud-init.service"
-        echo "$sourcemsg" > /etc/$CLOUD_SERVICE_PATH
-        cat $SCRIPT_DIRPATH/fedora-cloud-init.service >> /etc/$CLOUD_SERVICE_PATH
+        echo -e "$sourcemsg" | $SUDO tee /etc/$CLOUD_SERVICE_PATH
+        cat $SCRIPT_DIRPATH/fedora-cloud-init.service | \
+            $SUDO tee -a /etc/$CLOUD_SERVICE_PATH
     fi
 
     echo "Setting GCP startup service (for Cirrus-CI agent) SELinux unconfined"
@@ -71,10 +72,10 @@ if ! ((CONTAINER)); then
     # run with the proper contexts.
     METADATA_SERVICE_CTX=unconfined_u:unconfined_r:unconfined_t:s0
     METADATA_SERVICE_PATH=systemd/system/google-startup-scripts.service
-    echo "$sourcemsg" > /etc/$METADATA_SERVICE_PATH
+    echo "$sourcemsg" | $SUDO tee -a /etc/$METADATA_SERVICE_PATH
     sed -r -e \
         "s/^Type=oneshot/Type=oneshot\nSELinuxContext=$METADATA_SERVICE_CTX/" \
-        /lib/$METADATA_SERVICE_PATH >> /etc/$METADATA_SERVICE_PATH
+        /lib/$METADATA_SERVICE_PATH | $SUDO tee -a /etc/$METADATA_SERVICE_PATH
 fi
 
 if [[ "$OS_RELEASE_ID" == "fedora" ]] && ((OS_RELEASE_VER>=33)); then

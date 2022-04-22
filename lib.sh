@@ -71,6 +71,7 @@ custom_cloud_init() {
     if [[ -d "$CUSTOM_CLOUD_CONFIG_DEFAULTS" ]]
     then
         echo "Installing custom cloud-init defaults"
+        $SUDO mkdir -p /etc/cloud/cloud.cfg.d/
         $SUDO cp -v --dereference \
             "$CUSTOM_CLOUD_CONFIG_DEFAULTS"/* \
             /etc/cloud/cloud.cfg.d/

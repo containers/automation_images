@@ -36,6 +36,10 @@ magic strings in their *title* text:
 * `[CI:TOOLING]` - Only perform validation steps, then [build and test
   the tooling container images](README.md#tooling) only.
 
+* ***OR***
+
+* Tag the pull-request with `Beta` to alter the workflow to building
+  [pre-release VM *base images*](#the-base-images-overview-step-3).
 
 # Building VM Images
 
@@ -43,7 +47,7 @@ magic strings in their *title* text:
 
 There are four parts to the automated (and manual) process.  For the [vast
 majority of cases, **you will likely only be interested in the forth (final)
-step**](README.md#the-last-part-first-overview-step-4).
+step**](#the-last-part-first-overview-step-4).
 However, all steps are listed below for completeness.
 
 For more information on the overall process of importing custom GCE VM
@@ -51,30 +55,30 @@ Images, please [refer to the documentation](https://cloud.google.com/compute/doc
 (*packer*) used for this process, please [see it's
 documentation](https://www.packer.io/docs).
 
-1. [Build and import a VM image](README.md#the-image-builder-image-overview-step-1)
+1. [Build and import a VM image](#the-image-builder-image-overview-step-1)
     with necessary packages and metadata for
    running nested VMs.  For details on why this step is necessary,
    please [refer to the
    documentation](https://cloud.google.com/compute/docs/instances/enable-nested-virtualization-vm-instances#enablenestedvirt).
 
 2. Two types of container images are built. The [first set includes both
-   current and "prior" flavor of Fedora](README.md#podman). The
+   current and "prior" flavor of Fedora](#podman). The
    [second set is of tooling container
-   images](README.md#tooling).  Tooling required for VM image
+   images](#tooling).  Tooling required for VM image
    maintenance, artifact uploads, and debugging.
 
 3. [Boot a *GCE VM* running the image-builder-image (from step
-   1)](README.md#the-base-images-overview-step-3).
+   1)](#the-base-images-overview-step-3).
    Use this VM to
    [build and then import base-level VM
-   image](README.md#the-base-images-overview-step-3) for supported platforms
+   image](#the-base-images-overview-step-3) for supported platforms
    (Fedora or Ubuntu; as of this writing).  In other words, convert
    generic distribution provided VM Images, into a form capable of being
    booted as *GCE VMs*.  In parallel, build Fedora and Ubuntu container
    images and push them to ``quay.io/libpod/<name>_podman``
 
 4. [Boot a *GCE VM* from each image produced in step
-   3](README.md#the-last-part-first-overview-step-4).
+   3](#the-last-part-first-overview-step-4).
    Execute necessary
    scripts to customize image for use by containers-project automation.
    In other words, install packages and scripts needed for Future incarnations
@@ -87,7 +91,7 @@ a.k.a. ***Cache Images***
 
 These are the VM Images actually used by other repositories for automated
 testing.  So, assuming you just need to update packages or tweak the list,
-[start here](README.md#process).  Though be aware, this repository does not
+[start here](#process).  Though be aware, this repository does not
 yet perform any testing of the images.  That's your secondary responsibility,
 see step 4 below.
 
@@ -126,7 +130,7 @@ see step 4 below.
    [github-action](.github/workflows/pr_image_id.yml)
    will post the new *image ID* as a comment in the PR.  If this automation
    breaks, you may need to [figure the ID out the hard
-   way](README.md#Looking-up-an-image-ID).
+   way](#Looking-up-an-image-ID).
 
 3. Go over to whatever other containers/repository needed the image update.
    Open the `.cirrus.yml` file, and find the 'env' line referencing the *image
@@ -240,7 +244,7 @@ a new VM image version.
 In addition to the "podman" container images, several automation tooling images
 are also built.  These are always referenced by downstream using their
 "latest" tag (unlike the podman and VM images).  In addition to
-the [VM lifecycle tooling images](README.md#vm-image-lifecycle-management),
+the [VM lifecycle tooling images](#vm-image-lifecycle-management),
 the following are built:
 
 * `gcsupld` image is used for publishing artifacts into google cloud storage.
@@ -250,42 +254,47 @@ the following are built:
 
 In all cases, when automation runs on a branch (i.e. after a PR is merged)
 the actual image tagged `latest` will be pushed.  When running in a PR,
-only validation and test images are produced.  This behavior is controled
+only validation and test images are produced.  This behavior is controlled
 by a combination of the `$PUSH_LATEST` and `$CIRRUS_PR` variables.
 
 
 ## The Base Images (overview step 3)
 
-VM Images in GCE depend upon certain google-specific systemd-services to be
-running on boot.  Additionally, in order to import external OS images,
-google needs a specific partition and archive file layout.  Lastly,
-importing images must be done indirectly, through [Google Cloud
-Storage (GCS)](https://cloud.google.com/storage/docs/introduction).  As with
-the image-builder image, this process is mainly orchestrated by Packer:
+Two mutually-exclusive builders are supported: *mainline* and *beta*.  The
+selection is based on presence/absence of the 'beta-' prefix in the
+builder name passed by `$PACKER_BUILDERS` from make -> Packer.  When
+executing from pull-request automation, this is simply done by ensuring
+the `Beta` label is present.
 
-1. A GCE VM is booted from the image-builder image, produced in *overview step 1*.
+* *mainline* (No `Beta` label): In this mode, pre-built GCE images are
+  imported for all distributions.  Modifications made on top of pre-built
+  images is minimal, using the same set of shell scripts (`base_images/*.sh`)
+  as the *beta* workflow.
 
-2. On the image-builder VM, the (upstream) generic-cloud images for each
-   distribution are downloaded and verified.  *This is very networking-intense.*
+* *beta* (`Beta` label present): Beta images are not available in GCE, a
+  complex import process must be used.  This begins with qcow's, goes
+  through nested-virt, then google-cloud storage, and finally a bootable
+  cloud image.
 
-3. The image-builder VM then boots (nested) KVM VMs for the downloaded
-   images.  These local VMs are then updated, installed, and prepared
-   with the necessary packages and services as described above. *This
-   is very disk and CPU intense*.
+The image build process is controlled by the Packer tool, as dictated by
+YAML in the `base_images` directory.  A summary of the process follows.
 
-4. All the automation-deities pray with us, that the nested VMs setup
-   correctly and completely.  Debugging them can be incredibly difficult
-   and painful.
+1. A GCE VM is booted from the image-builder image, produced in
+[overview step 1](#the-image-builder-image-overview-step-1)
 
-5. Packer (running on the image-builder VM), shuts down the nested VMs,
-   and performs the import/conversion process.  Creating compressed tarballs,
-   uploading to GCS, then importing into GCP VM images.
+1. (*beta*) On the image-builder VM, the (upstream) generic-cloud images for each
+   distribution are downloaded and verified.  The image-builder VM then boots
+   (nested) QEMU VMs for the downloaded images.
 
-7. Packer deletes the VM, and writes the freshly created image name and other
-   metadata details into a `image_builder/manifest.json` file for reference.
+1. (*mainline*) The pre-built GCE image is booted.
 
-8. Automation scoops up the `manifest.json` file and archives it along with
-   the build logs.
+1. The VMs are updated, installed, and prepared with the necessary packages using
+   shell scripts in the `base_images` directory.
+
+1. The VM is shut down and deleted while preserving the modified disk.
+
+1. Packer coordinates conversion of the modified disk into a reusable VM
+   image.
 
 
 ## VM Image lifecycle management
