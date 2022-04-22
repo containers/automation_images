@@ -81,7 +81,7 @@ custom_cloud_init() {
 }
 
 # This function may only/ever be used within Cirrus-CI
-set_gac_filepath(){
+set_gac_filepath() {
     # shellcheck disable=SC2154
     if [[ -z "$CI" ]] || [[ "$CI" != "true" ]] || [[ "$CIRRUS_CI" != "$CI" ]]; then
         die "Unexpected \$CI=$CI and/or \$CIRRUS_CI=$CIRRUS_CI"
@@ -96,6 +96,58 @@ set_gac_filepath(){
     trap "rm -f $GAC_FILEPATH" EXIT
     echo "$GAC_JSON" > "$GAC_FILEPATH"
     unset GAC_JSON;
+}
+
+# print a space-separated list of labels when run under Cirrus-CI for a PR
+get_pr_labels() {
+    req_env_vars CIRRUS_CI CIRRUS_PR CIRRUS_REPO_CLONE_TOKEN
+    req_env_vars CIRRUS_REPO_OWNER CIRRUS_REPO_NAME
+
+    local query h_accept h_content api result fltrpfx
+    local filter labels h_auth h_accept h_content
+
+    # shellcheck disable=SC2154
+    h_auth="Authorization: bearer $CIRRUS_REPO_CLONE_TOKEN"
+    h_accept='Accept: application/vnd.github.antiope-preview+json'
+    h_content='Content-Type: application/json'
+    api="https://api.github.com/graphql"
+    # shellcheck disable=SC2154
+    query="{
+        \"query\": \"query {
+          repository(owner: \\\"$CIRRUS_REPO_OWNER\\\",
+                     name: \\\"$CIRRUS_REPO_NAME\\\") {
+            pullRequest(number: $CIRRUS_PR) {
+              labels(first: 100) {
+                nodes {
+                  name
+                }
+              }
+            }
+          }
+        }\"
+    }"
+    # Used to check that properly formated result was returned
+    fltrpfx=".data.repository.pullRequest.labels"
+    # Used to get the actual list of labels
+    filter="${fltrpfx}.nodes[].name"
+
+    dbg "Issuing '$query'"
+    result=$(curl --silent --location \
+             -H "$h_auth" -H "$h_accept" -H "$h_content" \
+             --request POST --data @- --url "$api" <<<"$query") \
+             || \
+             die "Error communicating with GraphQL API $api: $result"
+    # GraphQL sometimes returns errors inline, try to detect this.
+    if ! jq -e "$fltrpfx" <<<"$result" &> /dev/null; then
+        die "Received unexpected reply: $result"
+    fi
+
+    dbg "Filtering & formatting line-separated result: '$result'"
+    labels=$(jq --raw-output "$filter" <<<"$result" | \
+             tr '[:space:]' ' ' | sed -e 's/ $//')
+
+    dbg "Outputting space-separated labels: '$labels'"
+    echo -n "$labels"
 }
 
 # Warning: DO NOT USE the following functions willy-nilly!

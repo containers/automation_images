@@ -34,3 +34,5 @@ if (("${CONTAINER:-0}")); then
     dnf mark install dnf yum $(<"$INST_PKGS_FP")
     dnf autoremove -y
 fi
+
+install_automation_tooling
