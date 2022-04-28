@@ -27,6 +27,9 @@ else  # Fedora
     $SUDO curl --fail -s -o /usr/local/bin/swagger -L'#' "$download_url"
     $SUDO chmod +x /usr/local/bin/swagger
     /usr/local/bin/swagger version
+
+    # This is needed for rootless testing
+    $SUDO make install.modules-load
 fi
 
 # Make pristine for other runtime usage/expectations also save a bit

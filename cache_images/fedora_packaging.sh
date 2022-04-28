@@ -107,6 +107,7 @@ INSTALL_PACKAGES=(\
     ostree-devel
     pandoc
     parallel
+    perl-FindBin
     pkgconfig
     podman
     procps-ng
@@ -117,6 +118,7 @@ INSTALL_PACKAGES=(\
     python-pip-wheel
     python-setuptools-wheel
     python-wheel-wheel
+    python-toml
     python2
     python3-PyYAML
     python3-coverage
@@ -153,17 +155,11 @@ INSTALL_PACKAGES=(\
     zstd
 )
 
-# Perl module packaging changes between F32 and F33
-case "$OS_RELEASE_VER" in
-    32) INSTALL_PACKAGES+=( python3-pytoml ) ;;
-    33) ;&
-    34) ;&
-    35) INSTALL_PACKAGES+=( perl-FindBin python-toml ) ;;
-    *) die "Unknown/Unsupported \$OS_REL_VER '$OS_REL_VER'" ;;
-esac
-
-# TODO: Remove this when all CI should test with Netavark/Aardvark by default
-EXARG="--exclude=netavark --exclude=aardvark-dns"
+# test with CNI in F35 and lower
+EXARG=""
+if [[ "$OS_RELEASE_VER" -le 35 ]]; then
+    EXARG="--exclude=netavark --exclude=aardvark-dns"
+fi
 
 # When installing during a container-build, having this present
 # will seriously screw up future dnf operations in very non-obvious ways.
@@ -174,10 +170,6 @@ if ! ((CONTAINER)); then
         selinux-policy-devel
         policycoreutils
     )
-else
-    if [[ "$OS_RELEASE_VER" -lt 35 ]]; then
-        EXARG="$EXARG --exclude=selinux*"
-    fi
 fi
 
 
