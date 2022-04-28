@@ -138,7 +138,7 @@ nm_ignore_cni() {
     $SUDO mkdir -p /etc/NetworkManager/conf.d/
     cat << EOF | $SUDO tee /etc/NetworkManager/conf.d/podman-cni.conf
 [keyfile]
-unmanaged-devices=interface-name:cni-podman*;interface-name:veth*
+unmanaged-devices=interface-name:*podman*;interface-name:veth*
 EOF
 }
 
