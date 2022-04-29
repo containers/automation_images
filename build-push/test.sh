@@ -64,7 +64,7 @@ export DRYRUN=1  # Force main.sh not to push anything
 req_env_vars ARCHES DRYRUN
 # main.sh is sensitive to 'testing' value.
 # also confirms main.sh is on $PATH
-env DEBUG=1 main.sh git://testing contrib/testimage/stable
+env A_DEBUG=1 main.sh git://testing contrib/testimage/stable
 
 # Because this is a 'stable' image, verify that main.sh will properly
 # version-tagged both FQINs.  No need to check 'latest'.

@@ -28,7 +28,7 @@ DO_CLEANUP="${DO_CLEANUP:-0}"
 READING_DELAY="${READING_DELAY:-5s}"
 
 # Set non-zero to enable debugging
-DEBUG="${DEBUG:-0}"
+A_DEBUG="${A_DEBUG:-0}"
 
 # apiv1 expects to receive the following env. vars. when called with --config
 # and $GET_CI_VM is set to 1
@@ -90,7 +90,7 @@ supports_apiv1() {
 
 init() {
     dbg "Initial env. vars:"
-    if ((DEBUG)); then show_env_vars; fi
+    if ((A_DEBUG)); then show_env_vars; fi
     status "Initializing get_ci_vm"
     # These are passed in by hack/get_ci_vm.sh script
     req_env_vars NAME SRCDIR

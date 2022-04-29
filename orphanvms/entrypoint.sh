@@ -10,8 +10,8 @@ set -eo pipefail
 source /usr/local/bin/lib_entrypoint.sh
 
 # set this to 1 to enable
-DEBUG="${DEBUG:-0}"
-if ((DEBUG)); then msg "Warning: Debugging is enabled"; fi
+A_DEBUG="${A_DEBUG:-0}"
+if ((A_DEBUG)); then msg "Warning: Debugging is enabled"; fi
 EVERYTHING=${EVERYTHING:-0}  # set to '1' for testing
 
 req_env_var GCPJSON GCPNAME GCPPROJECTS
@@ -40,7 +40,7 @@ for GCPPROJECT in $GCPPROJECTS; do
     # command to follow will complain loudly if the credentials aren't sufficient.
     gcloud_init |& grep -Eiv '^Activated service account credentials for:' || true
 
-    if ((DEBUG)); then msg "Examining $GCPPROJECT"; fi
+    if ((A_DEBUG)); then msg "Examining $GCPPROJECT"; fi
     OUTPUT=$(mktemp -p '' orphanvms_${GCPPROJECT}_XXXXX)
     echo "Orphaned $GCPPROJECT VMs:" > $OUTPUT
 
@@ -48,18 +48,18 @@ for GCPPROJECT in $GCPPROJECTS; do
     $GCLOUD compute instances list --format="$FORMAT" --filter="$FILTER" | \
         while read name lastStartTimestamp labels
         do
-            if ((DEBUG)); then
+            if ((A_DEBUG)); then
                 msg "    VM $name started $lastStartTimestamp labeled $labels"
             fi
             if [[ -z "$name" ]] || [[ -z "$lastStartTimestamp" ]]; then
-                if ((DEBUG)); then msg "    IGNORING EMPTY NAME OR TIMESTAMP"; fi
+                if ((A_DEBUG)); then msg "    IGNORING EMPTY NAME OR TIMESTAMP"; fi
                 continue
             fi
             started_at=$(date --date=$lastStartTimestamp +%s)
             age_days=$((($NOW - $started_at) / (60 * 60 * 24)))
             # running in a child-process, must buffer into file.
             echo -e "* VM $name running $age_days days with labels '$labels'" >> $OUTPUT
-            if ((DEBUG)); then msg "    FLAGGING VM AS ORPHANED"; fi
+            if ((A_DEBUG)); then msg "    FLAGGING VM AS ORPHANED"; fi
         done
 
     if [[ $(wc -l $OUTPUT | awk '{print $1}') -gt 1 ]]; then
