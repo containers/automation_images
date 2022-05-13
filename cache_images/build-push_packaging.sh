@@ -24,11 +24,13 @@ bigto ooe.sh $SUDO dnf update -y
 
 INSTALL_PACKAGES=(\
     buildah
+    bzip2
     git
     jq
     podman
     qemu-user-static
     skopeo
+    tar
 )
 
 echo "Installing general build/test dependencies"
