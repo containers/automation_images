@@ -179,6 +179,7 @@ DOWNLOAD_PACKAGES=(\
     oci-umount
     parallel
     podman-docker
+    podman-plugins
     python3-pytest
     python3-virtualenv
 )
