@@ -33,15 +33,15 @@ fi
 # automated testing.  These packages are not otherwise intended for
 # end-user consumption.
 VERSION_ID=$(source /etc/os-release; echo $VERSION_ID)
-# Overview: https://build.opensuse.org/project/show/devel:kubic:libcontainers:testing
-REPO_URL="https://download.opensuse.org/repositories/devel:/kubic:/libcontainers:/testing/xUbuntu_$VERSION_ID/"
-GPG_URL="https://download.opensuse.org/repositories/devel:kubic:libcontainers:testing/xUbuntu_$VERSION_ID/Release.key"
+# Overview: https://build.opensuse.org/project/show/devel:kubic:libcontainers:unstable
+REPO_URL="https://download.opensuse.org/repositories/devel:/kubic:/libcontainers:/unstable/xUbuntu_$VERSION_ID/"
+GPG_URL="https://download.opensuse.org/repositories/devel:kubic:libcontainers:unstable/xUbuntu_$VERSION_ID/Release.key"
 
 echo "deb $REPO_URL /" | ooe.sh $SUDO \
-    tee /etc/apt/sources.list.d/devel:kubic:libcontainers:testing:ci.list
+    tee /etc/apt/sources.list.d/devel:kubic:libcontainers:unstable:ci.list
 curl --fail --silent --location --url "$GPG_URL" | \
     gpg --dearmor | \
-    $SUDO tee /etc/apt/trusted.gpg.d/devel_kubic_libcontainers_testing_ci.gpg &> /dev/null
+    $SUDO tee /etc/apt/trusted.gpg.d/devel_kubic_libcontainers_unstable_ci.gpg &> /dev/null
 
 
 # Removed golang-1.14 from install packages due to known
@@ -51,7 +51,6 @@ INSTALL_PACKAGES=(\
     apache2-utils
     apparmor
     apt-transport-https
-    aufs-tools
     autoconf
     automake
     bash-completion
@@ -65,7 +64,6 @@ INSTALL_PACKAGES=(\
     conmon
     containernetworking-plugins
     containers-common
-    cri-o-runc
     criu
     crun
     dnsmasq
@@ -128,6 +126,7 @@ INSTALL_PACKAGES=(\
     python3-requests
     python3-setuptools
     rsync
+    runc
     scons
     skopeo
     slirp4netns

@@ -17,9 +17,7 @@ lilto $SUDO ./hack/install_catatonit.sh
 bigto $SUDO make install.tools
 
 # shellcheck disable=SC2154
-if [[ "$OS_RELEASE_ID" == "ubuntu" ]]; then
-    lilto $SUDO make install.libseccomp.sudo
-else  # Fedora
+if [[ "$OS_RELEASE_ID" == "fedora" ]]; then
     msg "Installing swagger binary"
     download_url=$(\
         curl -s https://api.github.com/repos/go-swagger/go-swagger/releases/latest | \
