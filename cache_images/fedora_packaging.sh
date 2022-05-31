@@ -198,10 +198,5 @@ fi
 # It was observed in F33, dnf install doesn't always get you the latest/greatest
 lilto $SUDO dnf update -y
 
-echo "Configuring Go environment"
-export GOPATH=/var/tmp/go
-mkdir -p "$GOPATH"
-eval $(go env | tee /dev/stderr)
-export PATH="$GOPATH/bin:$PATH"
-# shellcheck source=./podman_tooling.sh
-source $SCRIPT_DIRPATH/podman_tooling.sh
+chmod +x $SCRIPT_DIRPATH/podman_tooling.sh
+$SUDO $SCRIPT_DIRPATH/podman_tooling.sh

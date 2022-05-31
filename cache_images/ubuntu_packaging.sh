@@ -193,10 +193,5 @@ curl -s -L https://golang.org/dl/go1.17.3.linux-amd64.tar.gz | \
 # Now linking to upstream golang until ubuntu performance issues are resolved
 $SUDO ln -sf /usr/local/go/bin/* /usr/bin/
 
-export GOPATH=/var/tmp/go
-mkdir -p "$GOPATH"
-eval $(go env | tee /dev/stderr)
-export PATH="$GOPATH/bin:$PATH"
-
-# shellcheck source=./podman_tooling.sh
-source $SCRIPT_DIRPATH/podman_tooling.sh
+chmod +x $SCRIPT_DIRPATH/podman_tooling.sh
+$SUDO bash $SCRIPT_DIRPATH/podman_tooling.sh
