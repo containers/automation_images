@@ -24,6 +24,7 @@ PKGS=( \
     git
     openssh-client
     openssh-server
+    rng-tools5
     software-properties-common
 )
 
@@ -47,6 +48,7 @@ install_automation_tooling
 
 if ! ((CONTAINER)); then
     custom_cloud_init
+    $SUDO systemctl enable rngd
 fi
 
 finalize
