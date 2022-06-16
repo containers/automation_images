@@ -25,6 +25,7 @@ RUN dnf update -y && \
         curl \
         findutils \
         gawk \
+        git \
         jq \
         make \
         openssh-clients \
@@ -39,6 +40,11 @@ RUN dnf update -y && \
     dnf mark install dnf sudo $_ && \
     dnf autoremove -y && \
     dnf clean all
+
+ADD /lib.sh /tmp/lib.sh
+RUN source /tmp/lib.sh && \
+    rm -f /tmp/lib.sh && \
+    install_automation_tooling
 
 # Must duplicate this from Makefile to avoid using any COPY|ADD instructions
 RUN curl -L --silent --show-error -o /tmp/packer.zip \
