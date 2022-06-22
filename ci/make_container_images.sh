@@ -26,6 +26,7 @@ req_vars=(\
     DEST_FQIN
     REG_USERNAME
     REG_PASSWORD
+    TEMPDIR
 )
 for req_var in "${req_vars[@]}"; do
     if [[ -z "${!req_var}" ]]; then
@@ -39,6 +40,12 @@ done
 SRC_FQIN="$TARGET_NAME:$IMG_SFX"
 
 make "$TARGET_NAME" IMG_SFX=$IMG_SFX
+
+# Cirrus-CI will try to collect up the package cache, but fails
+# on special files (like gpg agent sockets).  Remove them.
+echo "Clearing special files from package cache"
+# shellcheck disable=SC2154
+find $TEMPDIR/.cache -type s -exec rm -vf '{}' +
 
 # Prevent pushing 'latest' images from PRs, only branches and tags
 # shellcheck disable=SC2154

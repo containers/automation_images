@@ -6,10 +6,10 @@ FROM ${BASE_NAME}:${BASE_TAG}
 ENV LC_ALL="C"
 
 COPY /packages.txt /root/
-RUN dnf -y update && \
+RUN echo 'keepcache=true' >> /etc/dnf/dnf.conf && \
+    dnf -y update && \
     dnf -y install $(sed -r -e '/^#/d' -e '/^$/d' /root/packages.txt) && \
-    dnf -y upgrade && \
-    dnf clean all
+    dnf -y upgrade
 
 ENV REG_REPO="https://github.com/docker/distribution.git" \
     REG_COMMIT="b5ca020cfbe998e5af3457fda087444cf5116496" \

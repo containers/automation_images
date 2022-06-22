@@ -13,9 +13,14 @@ REPO_DIRPATH=$(realpath "$SCRIPT_DIRPATH/../")
 source "$REPO_DIRPATH/lib.sh"
 
 if   [[ "$OS_RELEASE_ID" == "ubuntu" ]]; then
+    cat > /etc/apt/apt.conf.d/01keep-debs << EOF
+Binary::apt::APT::Keep-Downloaded-Packages "true";
+APT::Keep-Downloaded-Packages "false";
+EOF
     bash base_images/ubuntu_base-setup.sh
     bash cache_images/ubuntu_setup.sh
 elif [[ "$OS_RELEASE_ID" == "fedora" ]]; then
+    echo 'keepcache=true' >> /etc/dnf/dnf.conf
     bash base_images/fedora_base-setup.sh
     bash cache_images/fedora_setup.sh
 else

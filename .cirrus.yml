@@ -12,6 +12,7 @@ env:
     PACKER_VERSION: &PACKER_VERSION "1.8.0"
     # Unique suffix label to use for all images produced by _this_ run (build)
     IMG_SFX: "${CIRRUS_BUILD_ID}"
+    TEMPDIR: "/tmp/automation_images_tmp"  # needed by Makefile & caching
 
 gcp_credentials: ENCRYPTED[823fdbc2fee3c27fa054ba1e9cfca084829b5e71572f1703a28e0746b1a924ee5860193f931adce197d40bf89e7027fe]
 
@@ -102,8 +103,9 @@ container_images_task: &container_images
         REG_PASSWORD: ENCRYPTED[52268944bb0d6642c33efb1c5d7fb82d0c40f9e6988448de35827f9be2cc547c1383db13e8b21516dbd7a0a69a7ae536]
     script: ci/make_container_images.sh;
     package_cache: &package_cache
-        folder: "/tmp/automation_images_tmp/.cache/**"
-        fingerprint_key: "${TARGET_NAME}-cache-version-1"
+        folder: "$TEMPDIR/.cache/**/*"
+        fingerprint_key: "${TARGET_NAME}-cache-version-2"
+        reupload_on_changes: true
 
 
 tooling_images_task:
@@ -127,8 +129,8 @@ tooling_images_task:
             ci/make_container_images.sh;
         done
     package_cache:
-        folder: "/tmp/automation_images_tmp/.cache/**"
-        fingerprint_key: "tooling-cache-version-1"
+        <<: *package_cache
+        fingerprint_key: "tooling-cache-version-2"
 
 
 base_images_task:
