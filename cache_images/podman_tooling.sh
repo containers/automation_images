@@ -6,13 +6,27 @@
 # as root or through sudo.  The script should not be used for any other
 # purpose or from any other context.
 
-set -e
+set -eo pipefail
 
 SCRIPT_FILEPATH=$(realpath "${BASH_SOURCE[0]}")
 SCRIPT_DIRPATH=$(dirname "$SCRIPT_FILEPATH")
 REPO_DIRPATH=$(realpath "$SCRIPT_DIRPATH/../")
 # shellcheck source=./lib.sh
 source "$REPO_DIRPATH/lib.sh"
+
+if [[ "$OS_RELEASE_ID" == "ubuntu" ]]; then
+    if [[ -n "$(type -P bats)" ]]; then
+        die "Bats _MUST_ not be installed on ubuntu until fixed: https://bugs.launchpad.net/ubuntu/+source/bats/+bug/1882542"
+    fi
+    bats_version="1.7.0"
+    dl_url="https://github.com/bats-core/bats-core/archive/v${bats_version}.tar.gz"
+    echo "Installing bats $bats_version"
+    curl --fail --location "$dl_url" | tar xzv -C /tmp
+    pushd /tmp/bats-core-$bats_version
+    $SUDO ./install.sh /usr/local  # prints install location
+    popd
+    rm -rf /tmp/bats-core-$bats_version
+fi
 
 echo "Configuring Go environment"
 export GOPATH="${GOPATH:-/var/tmp/go}"
