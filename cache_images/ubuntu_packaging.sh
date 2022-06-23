@@ -143,7 +143,7 @@ INSTALL_PACKAGES=(\
 # Necessary to update cache of newly added repos
 lilto $SUDO apt-get -q -y update
 
-if (($OS_RELEASE_VER>=2104)); then
+if (($OS_RELEASE_VER==2104)); then
     echo "Blocking golang-* package interfearance with kubik containers-common"
     $SUDO apt-mark hold golang-github-containers-common golang-github-containers-image
 fi

@@ -21,7 +21,7 @@ if [[ "$OS_RELEASE_ID" == "ubuntu" ]]; then
     bats_version="1.7.0"
     dl_url="https://github.com/bats-core/bats-core/archive/v${bats_version}.tar.gz"
     echo "Installing bats $bats_version"
-    curl --fail --location "$dl_url" | tar xzv -C /tmp
+    curl --fail --location "$dl_url" | tar xz -C /tmp
     pushd /tmp/bats-core-$bats_version
     $SUDO ./install.sh /usr/local  # prints install location
     popd
