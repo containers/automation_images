@@ -243,6 +243,16 @@ $(_TEMPDIR)/skopeo_cidev.tar: podman/fedora_release $(wildcard skopeo_base/*) $(
 	rm -f $@
 	podman save --quiet -o $@ skopeo_cidev:$(IMG_SFX)
 
+.PHONY: ccia
+ccia: $(_TEMPDIR)/ccia.tar  ## Build the Cirrus-CI Artifacts container image
+$(_TEMPDIR)/ccia.tar: ccia/Containerfile
+	podman build -t ccia:$(call err_if_empty,IMG_SFX) \
+		--security-opt seccomp=unconfined \
+		--build-arg=BASE_TAG=$(_fedora_podman_release) \
+		ccia
+	rm -f $@
+	podman save --quiet -o $@ ccia:$(IMG_SFX)
+
 .PHONY: imgts
 imgts: $(_TEMPDIR)/imgts.tar  ## Build the VM image time-stamping container image
 $(_TEMPDIR)/imgts.tar: imgts/Containerfile imgts/entrypoint.sh imgts/google-cloud-sdk.repo imgts/lib_entrypoint.sh $(_TEMPDIR)/.cache/centos
