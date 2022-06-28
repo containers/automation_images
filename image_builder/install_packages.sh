@@ -21,18 +21,8 @@ source "$REPO_DIRPATH/lib.sh"
 [[ -n "$PACKER_VERSION" ]] || \
     die "Expecting a non-empty \$PACKER_VERSION value"
 
-set -x
-    dnf update -y
-    dnf -y install epel-release
-    dnf mark remove $(rpm -qa | grep -Ev '(gpg-pubkey)|(dnf)|(sudo)')
-
-    dnf install -y $(<"$INST_PKGS_FP")
-set +x
-
-# Only for containers do we care about saving every ounce of disk-space
-if (("${CONTAINER:-0}")); then
-    dnf mark install dnf yum $(<"$INST_PKGS_FP")
-    dnf autoremove -y
-fi
+dnf update -y
+dnf -y install epel-release
+dnf install -y $(<"$INST_PKGS_FP")
 
 install_automation_tooling
