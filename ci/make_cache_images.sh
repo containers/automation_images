@@ -1,5 +1,7 @@
 #!/bin/bash
 
+set -eo pipefail
+
 # This script is intended to be used by Cirrus-CI, from the container
 # built by the ContainerFile in this directory.  Use of this script
 # in any other context/environment is unlikely to function as intended.
@@ -19,8 +21,9 @@ elif [[ -z "$IMG_SFX" ]] || [[ -z "$PACKER_BUILDS" ]]; then
 fi
 
 set_gac_filepath
+set_aws_filepath
 
-set -exo pipefail
+set -x
 cd "$REPO_DIRPATH"
 export IMG_SFX=$IMG_SFX
 export PACKER_BUILDS=$PACKER_BUILDS

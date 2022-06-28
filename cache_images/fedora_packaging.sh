@@ -181,6 +181,7 @@ DOWNLOAD_PACKAGES=(\
     parallel
     podman-docker
     podman-plugins
+    podman-gvproxy
     python3-pytest
     python3-virtualenv
 )

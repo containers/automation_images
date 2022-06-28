@@ -6,14 +6,13 @@ variables:  # Empty value means it must be passed in on command-line
     # Pre-existing google storage bucket w/ very short lifecycle enabled
     XFERBUCKET: "packer-import"
     # Required path to service account credentials file
-    GAC_FILEPATH:
+    GAC_FILEPATH: "{{env `GAC_FILEPATH`}}"
     # Required for presenting output from qemu builders
     TTYDEV:
     # Required for 'make clean' support and not clobbering a memory-backed /tmp
     TEMPDIR:
-    # Naming suffix for images to prevent clashes (default to timestamp)
-    # N/B: There are length/character limitations in GCE for image names
-    IMG_SFX: '{{ timestamp }}'
+    # Naming suffix for images to prevent clashes
+    IMG_SFX:
 
     # BIG-FAT-WARNING:  When updating the image names and/or URLs below,
     # ensure the distro version numbers contained in the `podman/*_release`
@@ -24,6 +23,11 @@ variables:  # Empty value means it must be passed in on command-line
     # Upstream source for Ubuntu image to duplicate (prevents expiration).
     # Use the most recent image based on this family name.
     UBUNTU_BASE_FAMILY: 'ubuntu-2204-lts'
+
+    # AWS base image in 'US East (N. Virginia)' region
+    # from https://alt.fedoraproject.org/cloud
+    FEDORAPROJECT_AMI: "ami-08b7bda26f4071b80"
+    FEDORAPROJECT_AARCH64_AMI: "ami-01925eb0821988986"
 
     # Latest Fedora release (qcow and CHECKSUM) download URLs
     # N/B: There are Fedora-Cloud...GCP.tar.gz images available, however
@@ -37,11 +41,31 @@ variables:  # Empty value means it must be passed in on command-line
     PRIOR_FEDORA_IMAGE_URL: "https://dl.fedoraproject.org/pub/fedora/linux/releases/35/Cloud/x86_64/images/Fedora-Cloud-Base-35-1.2.x86_64.qcow2"
 
 
-# Don't leak sensitive values in error messages / output
-sensitive-variables:
-    - 'GAC_FILEPATH'
-
 builders:
+    - name: 'ubuntu'
+      type: 'googlecompute'
+      # Prefix IMG_SFX with "b" so this is never confused with a cache_image name
+      image_name: '{{build_name}}-b{{user `IMG_SFX`}}'
+      image_family: '{{build_name}}-base'
+      image_description: 'Built in https://cirrus-ci.com/build/{{user `IMG_SFX`}}'
+      source_image_family: '{{user `UBUNTU_BASE_FAMILY`}}'
+      source_image_project_id: 'ubuntu-os-cloud'
+      project_id: '{{user `GCP_PROJECT_ID`}}'
+      # Can't use env. var for this, googlecompute-import only supports filepath
+      account_file: '{{user `GAC_FILEPATH`}}'
+      zone: 'us-central1-a'
+      disk_size: 20
+      # Identify the instance
+      labels: &imgcpylabels
+        sfx: '{{user `IMG_SFX`}}'
+        src: '{{user `UBUNTU_BASE_FAMILY`}}'
+        stage: 'base'
+        arch: 'x86_64'
+      # Gotcha: https://www.packer.io/docs/builders/googlecompute#gotchas
+      ssh_username: 'packer'
+      temporary_key_pair_type: ed25519
+      ssh_clear_authorized_keys: true
+
     - &qemu_virt
       name: 'fedora'
       type: 'qemu'
@@ -88,26 +112,66 @@ builders:
       iso_url: '{{user `PRIOR_FEDORA_IMAGE_URL`}}'
       iso_checksum: 'file:{{user `PRIOR_FEDORA_CSUM_URL`}}'
 
-    - name: 'ubuntu'
-      type: 'googlecompute'
-      # Prefix IMG_SFX with "b" so this is never confused with a cache_image name
-      image_name: 'ubuntu-b{{user `IMG_SFX`}}'
-      image_family: '{{build_name}}-base'
-      source_image_family: '{{user `UBUNTU_BASE_FAMILY`}}'
-      source_image_project_id: 'ubuntu-os-cloud'
-      project_id: '{{user `GCP_PROJECT_ID`}}'
-      # Can't use env. var for this, googlecompute-import only supports filepath
-      account_file: '{{user `GAC_FILEPATH`}}'
-      zone: 'us-central1-a'
-      disk_size: 20
-      # Identify the instance
-      labels:
-        sfx: '{{user `IMG_SFX`}}'
-        src: '{{user `UBUNTU_BASE_FAMILY`}}'
-      # Gotcha: https://www.packer.io/docs/builders/googlecompute#gotchas
-      ssh_username: 'packer'
-      temporary_key_pair_type: ed25519
+    # ref: https://www.packer.io/plugins/builders/amazon/ebs
+    - &fedora-aws
+      name: 'fedora-aws'
+      type: 'amazon-ebs'
+      source_ami: '{{user `FEDORAPROJECT_AMI`}}'
+      instance_type: 'm5zn.metal'
+      # In case of packer problem or ungraceful exit, don't wait for shutdown.
+      # This doesn't always work properly, sometimes leaving EC2 instances in
+      # a 'stopped' instead of terminated state :(
+      shutdown_behavior: 'terminate'
+      # If something goes wrong, remove the broken AMI.
+      force_deregister: true  # Remove AMI with same name if exists
+      force_delete_snapshot: true  # Also remove snapshots of force-removed AMI
+      # Required for network access, must be the 'default' group used by Cirrus-CI
+      security_group_id: "sg-042c75677872ef81c"
+      # Prefix IMG_SFX with "b" so this is never confused with a cache_image
+      ami_name: 'fedora-aws-b{{user `IMG_SFX`}}'
+      ami_description: 'Built in https://cirrus-ci.com/build/{{user `IMG_SFX`}}'
+      ebs_optimized: true
+      launch_block_device_mappings:
+        - device_name: '/dev/sda1'
+          volume_size: 20
+          volume_type: 'gp2'
+          delete_on_termination: true
+      # These are critical and used by security-polciy to enforce instance launch limits.
+
+      tags: &awstags
+        <<: *imgcpylabels
+        # EC2 expects "Name" to be capitalized
+        Name: 'fedora-aws-b{{user `IMG_SFX`}}'
+        src: '{{user `FEDORAPROJECT_AMI`}}'
+        automation: 'true'
+      run_tags: *awstags
+      run_volume_tags: *awstags
+      snapshot_tags: *awstags
+      # Docs are wrong, specifying the Account ID required to make AMIs private.
+      # This is necessary for security - The CI service accounts are not permitted
+      # to use AMI's from any other account, including public ones.  The Account
+      # ID is hard-coded here out of expediency, since passing in more packer args
+      # from the command-line (in Makefile) is non-trivial.
+      ami_users: ["449134212816"]
+      ssh_username: 'fedora'
       ssh_clear_authorized_keys: true
+      # N/B: Required Packer >= 1.8.0
+      # https://github.com/hashicorp/packer/issues/10074#issuecomment-1070469367
+      temporary_key_pair_type: 'ed25519'
+
+    - <<: *fedora-aws
+      name: 'fedora-aws-arm64'
+      source_ami: '{{user `FEDORAPROJECT_AARCH64_AMI`}}'
+      instance_type: 't4g.medium'  # arm64 type
+      ami_name: 'fedora-aws-arm64-b{{user `IMG_SFX`}}'  # must be unique
+      tags: &awsarm64tags
+        <<: *awstags
+        src: '{{user `FEDORAPROJECT_AARCH64_AMI`}}'
+        arch: 'arm64'
+      run_tags: *awsarm64tags
+      run_volume_tags: *awsarm64tags
+      snapshot_tags: *awsarm64tags
+
 
 provisioners:  # Ubuntu images come bundled with GCE integrations provisioned
     - type: 'shell'
@@ -119,7 +183,7 @@ provisioners:  # Ubuntu images come bundled with GCE integrations provisioned
       source: '{{ pwd }}/'
       destination: '/tmp/automation_images/'
 
-    - only: ['fedora', 'prior-fedora']
+    - except: ['ubuntu']
       type: 'shell'
       inline:
         - 'set -e'
@@ -133,8 +197,8 @@ provisioners:  # Ubuntu images come bundled with GCE integrations provisioned
 
 post-processors:
     # Must be double-nested to guarantee execution order
-    - - type: "compress"
-        only: ['fedora', 'prior-fedora']
+    - - only: ['fedora', 'prior-fedora']
+        type: "compress"
         output: '{{ user `TEMPDIR` }}/{{build_name}}/disk.raw.tar.gz'
         format: '.tar.gz'
         compression_level: 9
@@ -149,15 +213,20 @@ post-processors:
         image_family: '{{build_name}}-base'
         # Can't save the url in an image_label
         image_description: '{{user `FEDORA_IMAGE_URL`}}'
-        image_labels:
-          sfx: '{{user `IMG_SFX`}}'
+        image_labels: &importlabels
+          <<: *imgcpylabels
+          src: 'fedoraproject'
       - <<: *gcp_import
         only: ['prior-fedora']
         image_name: "prior-fedora-b{{user `IMG_SFX`}}"
         image_family: '{{build_name}}-base'
         image_description: '{{user `PRIOR_FEDORA_IMAGE_URL`}}'
+      # This is critical, especially for the aws builders.
+      # Producing the cache-images from these base images
+      # needs to lookup the runtime-produced AMI ID.
       - type: 'manifest'
         output: 'base_images/manifest.json'  # Collected by Cirrus-CI
         strip_path: true
         custom_data:
             IMG_SFX: '{{ user `IMG_SFX` }}'
+            STAGE: base

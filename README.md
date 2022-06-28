@@ -47,9 +47,11 @@ step**](README.md#the-last-part-first-overview-step-4).
 However, all steps are listed below for completeness.
 
 For more information on the overall process of importing custom GCE VM
-Images, please [refer to the documentation](https://cloud.google.com/compute/docs/import/import-existing-image).  For more information on the primary tool
-(*packer*) used for this process, please [see it's
-documentation](https://www.packer.io/docs).
+Images, please [refer to the documentation](https://cloud.google.com/compute/docs/import/import-existing-image).  For references to the latest pre-build AWS
+EC2 Fedora AMI's see [the
+upstream cloud page](https://alt.fedoraproject.org/cloud/).
+For more information on the primary tool (*packer*) used for this process,
+please [see it's documentation page](https://www.packer.io/docs).
 
 1. [Build and import a VM image](README.md#the-image-builder-image-overview-step-1)
     with necessary packages and metadata for
@@ -68,17 +70,18 @@ documentation](https://www.packer.io/docs).
    Use this VM to
    [build and then import base-level VM
    image](README.md#the-base-images-overview-step-3) for supported platforms
-   (Fedora or Ubuntu; as of this writing).  In other words, convert
-   generic distribution provided VM Images, into a form capable of being
-   booted as *GCE VMs*.  In parallel, build Fedora and Ubuntu container
-   images and push them to ``quay.io/libpod/<name>_podman``
+   (Fedora or Ubuntu; as of this writing).  For GCE use, convert the
+   generic distribution provided QCOW files, into bootable *GCE VMs*.  For
+   AWS, boot the pre-build AMI's, add minimal tooling, and save them as
+   private, non-expiring AMIs.  In parallel, build Fedora and Ubuntu
+   container images and push them to ``quay.io/libpod/<name>_podman``
 
-4. [Boot a *GCE VM* from each image produced in step
+4. [Boot *VMs* from each image produced in step
    3](README.md#the-last-part-first-overview-step-4).
-   Execute necessary
-   scripts to customize image for use by containers-project automation.
-   In other words, install packages and scripts needed for Future incarnations
-   of the VM to run automated tests.
+   Execute the necessary scripts to customize images for use by
+   various containers-project automation.  Mainly this involves
+   installing build & test dependencies, but also includes some
+   kernel and systemd services configuration.
 
 
 ## The last part first (overview step 4)
@@ -88,7 +91,7 @@ a.k.a. ***Cache Images***
 These are the VM Images actually used by other repositories for automated
 testing.  So, assuming you just need to update packages or tweak the list,
 [start here](README.md#process).  Though be aware, this repository does not
-yet perform any testing of the images.  That's your secondary responsibility,
+perform much/any testing of the images.  That's your secondary responsibility,
 see step 4 below.
 
 **Notes:**
@@ -121,17 +124,20 @@ see step 4 below.
 1. After you make your script changes, push to a PR.  They will be
    validated and linted before VM image production begins.
 
-2. The name of all output images will share a common suffix (*image ID*).
+2. The name of all output GCE images will share a common suffix (*image ID*).
    Assuming a successful image-build, a
    [github-action](.github/workflows/pr_image_id.yml)
    will post the new *image ID* as a comment in the PR.  If this automation
    breaks, you may need to [figure the ID out the hard
-   way](README.md#Looking-up-an-image-ID).
+   way](README.md#Looking-up-an-image-ID).  For AWS EC2 images, every one
+   will have a unique AMI ID assigned.  You'll need to
+   [look these up separately](README.md#Looking-up-an-image-ID)
+   until the github action is updated.
 
 3. Go over to whatever other containers/repository needed the image update.
    Open the `.cirrus.yml` file, and find the 'env' line referencing the *image
-   ID*.  It will likely be named `IMAGE_SUFFIX:` or something similar.
-   Paste in the *image ID*.
+   ID* and/or *AMI*.  It will likely be named `IMAGE_SUFFIX:` or something
+   similar.  Paste in the *image ID* or *AMI*.
 
 4. Open up a PR with this change, and push it.  Once all tests pass and you're
    satisfied with the image changes, ask somebody to review/approve both
@@ -143,25 +149,29 @@ see step 4 below.
 
 ### Looking up an image ID: ###
 
-An *image ID* is simplya big number prefixed by the letter 'c'.  You may
+A GCE *image ID* is simply big number prefixed by the letter 'c'.  You may
 need to look it up in a PR for example, if
 [the automated comment posting github-action](.github/workflows/pr_image_id.yml)
-fails.
+fails.  For AWS EC2 images, you'll need to look up the AMI ID (string) for each
+cache-image produced.
 
-1. In a PR, find and click one of the `View more details on Cirrus CI`
-   links (bottom of the *Checks* tab in github). Any **Cirrus-CI** task
-   will do, it doesn't matter which you pick.
+1. In a PR, find and click the build task for the image you're interested in.
+   Near the top of the Cirrus-CI WebUI, will be a section labeled 'Artifacts'.
 
-2. Toward the top of the page, is a button labeled *VIEW ALL TASKS*.
-   Click this button.
+2. Click the `manifest` artifact
 
-3. Look at the URL in your browser, it will be of the form
-   `https://cirrus-ci.com/build/<big number>`.  Copy-paste (or otherwise
-   record in stone) the **big number**, you'll need it for the next step.
+3. Click the `cache_images` folder
 
-4. The new *image ID* is formed by prefixing the **big number** with the
-   the letter *"c*".  For example, if the url was `http://.../12345`
-   the *image ID* would be `c12345`.
+4. Click the `manifest.json` file, it should open in your browser window.
+
+5. For *GCE images* look at the `artifact_id` field.  It will end in a
+   `c<big number` suffix.  This is the *image ID* for all GCE images.
+
+6. For *AWS EC2 images* look at the `artifact_id` field.  It will contain
+   a region prefix, like `us-east-1`, ignore this.  At the end of the value
+   will be the AMI ID, similar to `ami-<big number>`.  This is the ID for
+   this one, specific image.  **Every AWS image will have a unique AMI ID**
+   (unlike the shared ID for GCE images).
 
 
 ## The image-builder image (overview step 1)
@@ -172,6 +182,11 @@ to prepare, properly format, and import external VM images for use.  In order
 to perform these steps within automation, a dedicated VM image is needed which
 itself has been prepared with the necessary incantations, packages, configuration,
 and magic license keys.
+
+The Fedora project does provide AWS Elastic Compute Cloud (EC2) images for all
+supported releases (the two most recent ones).  These are ready to go, but
+have depreciation times set on them.  This is no good for direct use, as the
+image may get deleted if not used frequently enough.  So copies must be made.
 
 For normal day-to-day use, this process should not need to be modified or
 maintained much.  However, on the off-chance that's ever not true, here is
@@ -260,26 +275,35 @@ VM Images in GCE depend upon certain google-specific systemd-services to be
 running on boot.  Additionally, in order to import external OS images,
 google needs a specific partition and archive file layout.  Lastly,
 importing images must be done indirectly, through [Google Cloud
-Storage (GCS)](https://cloud.google.com/storage/docs/introduction).  As with
-the image-builder image, this process is mainly orchestrated by Packer:
+Storage (GCS)](https://cloud.google.com/storage/docs/introduction).
+
+VM images in AWS EC2 are basically ready-to go as-is.  Only a copy needs to
+be made to remove the depreciation metadata and install some basic
+automation tooling libraries used by nearly all downstream automation.
+
+As with the image-builder image, this process is mainly orchestrated by
+Packer:
 
 1. A GCE VM is booted from the image-builder image, produced in *overview step 1*.
 
 2. On the image-builder VM, the (upstream) generic-cloud images for each
    distribution are downloaded and verified.  *This is very networking-intense.*
 
-3. The image-builder VM then boots (nested) KVM VMs for the downloaded
+3. For GCE, the image-builder VM then boots (nested) KVM VMs for the downloaded
    images.  These local VMs are then updated, installed, and prepared
    with the necessary packages and services as described above. *This
    is very disk and CPU intense*.
+
+4. For AWS, the pre-built Fedora project AMI's are simply booted in EC2.
 
 4. All the automation-deities pray with us, that the nested VMs setup
    correctly and completely.  Debugging them can be incredibly difficult
    and painful.
 
-5. Packer (running on the image-builder VM), shuts down the nested VMs,
+5. Packer (running on the image-builder VM), shuts down the VMs,
    and performs the import/conversion process.  Creating compressed tarballs,
-   uploading to GCS, then importing into GCP VM images.
+   uploading to GCS, then importing into GCP VM images.  AWS EC2 instances
+   are snapshotted, and an AMI is created from the snapshot.
 
 7. Packer deletes the VM, and writes the freshly created image name and other
    metadata details into a `image_builder/manifest.json` file for reference.
@@ -290,27 +314,28 @@ the image-builder image, this process is mainly orchestrated by Packer:
 
 ## VM Image lifecycle management
 
-There is no built-in mechanism for removing disused VM images in GCP. Nor is
-there any built-in tracking information, recording which VM images are
-currently being used by one or more containers-repository automation.
-Three containers and two asynchronous processes are responsible for tracking
-and preventing infinite-growth of the VM image count.
+There is no built-in mechanism for removing disused VM images. In GCE, there
+isn't any built-in tracking information, recording which VM images are
+currently being used by one or more containers-repository automation.  In AWS
+'Last launched' metadata is recorded automatically.  Three containers and
+two asynchronous processes are responsible for tracking and preventing
+infinite-growth of the VM image count.
 
 * `imgts` Runs as part of automation for every repository, every time any
   VM is utilized.  It records the usage details, along with a timestamp
-  into the utilized VM image "labels" (metadata).  Failure to update
+  into the GCE VM image "labels" (metadata).  Failure to update
   metadata is considered critical, and the task will fail to prompt
   immediate corrective action by automation maintainers.
 
-* `imgobsolete` is triggered periodically by cron *only* on this
-  repository. It scans through all VM Images, filtering any which
+* `imgobsolete` is triggered periodically by cirrus-cron *only* on this
+  repository. It scans through all GCE VM Images, filtering any which
   haven't been used within the last 30 days (according to `imgts`
   updated labels). Identified images are deprecated by marking them
   `obsolete` in GCE.  This status blocks them from being used, but
   does not actually remove them.
 
 * `imgprune` also runs periodically, immediately following `imgobsolete`.
-  It scans all currently obsolete images, filtering any which were
+  It scans all currently obsolete GCE images, filtering any which were
   deprecated more than 30 days ago (according to deprecation metadata).
   Images which have been obsolete for more than 30 days, are permanently
   removed.
@@ -320,8 +345,8 @@ and preventing infinite-growth of the VM image count.
 
 Because the entire automated build process is containerized, it may easily be
 performed locally on your laptop/workstation.  However, this process will
-still involve interfacing with GCP and GCS.  Therefore, you must be in possession
-of a *Google Application Credentials* (GAC) JSON file.
+still involve interfacing with GCE and AWS.  Therefore, you must be in possession
+of a *Google Application Credentials* (GAC) JSON and AWS credentials INI file.
 
 The GAC JSON file should represent a service account (contrasted to a user account,
 which always uses OAuth2).  The name of the service account doesn't matter,
@@ -333,20 +358,30 @@ but it must have the following roles granted to it:
 * Storage Admin
 * Storage Object Admin
 
-Somebody familiar with Google IAM will need to provide you with the GAC JSON
-file and ensure correct service account configuration.  Having this file
+The service account for AWS may be personal or a shared account.  It must have
+one the following (custom) IAM policies enabled:
+
+* Admin
+* Packer
+
+Somebody familiar with Google and AWS IAM will need to provide you with the
+credential files and ensure correct account configuration.  Having these files
 stored *in your home directory* on your laptop/workstation, the process of
 producing images proceeds as follows:
 
 1. Invent some unique identity suffix for your images.  It may contain (***only***)
    lowercase letters, numbers and dashes; nothing else.  Some suggestions
-   of useful values would be your name and todays date.  If you manage to screw
+   of useful values would be your name and today's date.  If you manage to screw
    this up somehow, stern errors will be presented without causing any real harm.
 
 2. Ensure you have podman installed, and lots of available network and CPU
    resources (i.e. turn off YouTube, shut down background VMs and other hungry
    tasks).  Build the image-builder container image, by executing
-   ``make image_builder_debug GAC_FILEPATH=</home/path/to/gac.json> IMG_SFX=<UUID chosen in step 1>``
+   ```
+   make image_builder_debug GAC_FILEPATH=</home/path/to/gac.json> \
+                            AWS_SHARED_CREDENTIALS_FILE=</path/to/credentials>
+                            IMG_SFX=<ID chosen in step 1>
+   ```
 
 3. You will be dropped into a debugging container, inside a volume-mount of
    the repository root.  This container is practically identical to the VM
@@ -371,7 +406,7 @@ producing images proceeds as follows:
    as before, packer will force-overwrite any broken/partially created
    images automatically.
 
-6. Produce the GCE VM Cache Images, equivalent to the operations outlined
+6. Produce the VM Cache Images, equivalent to the operations outlined
    in *overview step 3*.  Execute the following command (still within the
    debug image-builder container): ``make cache_images``.
 

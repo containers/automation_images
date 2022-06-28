@@ -20,6 +20,10 @@ if_ci_else = $(if $(findstring true,$(CI)),$(1),$(2))
 # VM images, and storage objects.
 export GAC_FILEPATH
 
+# Ditto for AWS credentials (INI file) with access to create VMs and images.
+# ref: https://docs.aws.amazon.com/cli/latest/userguide/cli-configure-files.html#cli-configure-files-where
+export AWS_SHARED_CREDENTIALS_FILE
+
 PACKER_LOG ?=
 # Uncomment the following to enable additional logging from packer.
 #override PACKER_LOG := 1
@@ -82,11 +86,13 @@ ci_debug: $(_TEMPDIR)/ci_debug.tar ## Build and enter container for local develo
 	/usr/bin/podman run -it --rm \
 		--security-opt label=disable \
 		-v $(_MKFILE_DIR):$(_MKFILE_DIR) -w $(_MKFILE_DIR) \
-		-v $(_TEMPDIR):$(_TEMPDIR):Z \
-		-v $(call err_if_empty,GAC_FILEPATH):$(GAC_FILEPATH):Z \
+		-v $(_TEMPDIR):$(_TEMPDIR) \
+		-v $(call err_if_empty,GAC_FILEPATH):$(GAC_FILEPATH) \
+		-v $(call err_if_empty,AWS_SHARED_CREDENTIALS_FILE):$(AWS_SHARED_CREDENTIALS_FILE) \
 		-e PACKER_INSTALL_DIR=/usr/local/bin \
 		-e PACKER_VERSION=$(call err_if_empty,PACKER_VERSION) \
-		-e GAC_FILEPATH=$(call err_if_empty,GAC_FILEPATH) \
+		-e GAC_FILEPATH=$(GAC_FILEPATH) \
+		-e AWS_SHARED_CREDENTIALS_FILE=$(AWS_SHARED_CREDENTIALS_FILE) \
 		-e TEMPDIR=$(_TEMPDIR) \
 		docker-archive:$<
 
@@ -102,7 +108,7 @@ define podman_build
 	podman save --quiet -o $(1) $(2)
 endef
 
-$(_TEMPDIR)/ci_debug.tar: $(_TEMPDIR)/.cache/fedora ci/Containerfile ci/install_packages.txt ci/install_packages.sh lib.sh
+$(_TEMPDIR)/ci_debug.tar: $(_TEMPDIR)/.cache/fedora $(wildcard ci/*)
 	$(call podman_build,$@,ci_debug,ci,fedora)
 
 $(_TEMPDIR):
@@ -150,13 +156,17 @@ $(_TEMPDIR)/user-data: $(_TEMPDIR) $(_TEMPDIR)/cidata.ssh.pub $(_TEMPDIR)/cidata
 .PHONY: cidata
 cidata: $(_TEMPDIR)/user-data $(_TEMPDIR)/meta-data
 
+# First argument is the path to the template JSON, second
+# argument is the path to AWS_SHARED_CREDENTIALS_FILE
+# when required.  N/B: GAC_FILEPATH is always required.
 define packer_build
 	env PACKER_CACHE_DIR="$(_TEMPDIR)" \
+		AWS_SHARED_CREDENTIALS_FILE="$(2)" \
+		GAC_FILEPATH="$(call err_if_empty,GAC_FILEPATH)" \
 		CHECKPOINT_DISABLE=1 \
 			$(PACKER_INSTALL_DIR)/packer build \
 			-force \
 			-var TEMPDIR="$(_TEMPDIR)" \
-			-var GAC_FILEPATH="$(call err_if_empty,GAC_FILEPATH)" \
 			$(if $(PACKER_BUILDS),-only=$(PACKER_BUILDS)) \
 			$(if $(IMG_SFX),-var IMG_SFX=$(IMG_SFX)) \
 			$(if $(DEBUG_NESTED_VM),-var TTYDEV=$(shell tty),-var TTYDEV=/dev/null) \
@@ -167,7 +177,7 @@ endef
 .PHONY: image_builder
 image_builder: image_builder/manifest.json ## Create image-building image and import into GCE (needed for making all other images)
 image_builder/manifest.json: image_builder/gce.json image_builder/setup.sh lib.sh systemd_banish.sh $(PACKER_INSTALL_DIR)/packer
-	$(call packer_build,$<)
+	$(call packer_build,$<,)
 
 # Note: We assume this repo is checked out somewhere under the caller's
 # home-dir for bind-mounting purposes.  Otherwise possibly necessary
@@ -177,29 +187,31 @@ image_builder/manifest.json: image_builder/gce.json image_builder/setup.sh lib.s
 image_builder_debug: $(_TEMPDIR)/image_builder_debug.tar ## Build and enter container for local development/debugging of targets requiring packer + virtualization
 	/usr/bin/podman run -it --rm \
 		--security-opt label=disable -v $$HOME:$$HOME -w $(_MKFILE_DIR) \
-		-v $(_TEMPDIR):$(_TEMPDIR):Z \
-		-v $(call err_if_empty,GAC_FILEPATH):$(GAC_FILEPATH):Z \
+		-v $(_TEMPDIR):$(_TEMPDIR) \
+		-v $(call err_if_empty,GAC_FILEPATH):$(GAC_FILEPATH) \
+		-v $(call err_if_empty,AWS_SHARED_CREDENTIALS_FILE):$(AWS_SHARED_CREDENTIALS_FILE) \
 		-v /dev/kvm:/dev/kvm \
 		-e PACKER_INSTALL_DIR=/usr/local/bin \
 		-e PACKER_VERSION=$(call err_if_empty,PACKER_VERSION) \
 		-e IMG_SFX=$(call err_if_empty,IMG_SFX) \
-		-e GAC_FILEPATH=$(call err_if_empty,GAC_FILEPATH) \
+		-e GAC_FILEPATH=$(GAC_FILEPATH) \
+		-e AWS_SHARED_CREDENTIALS_FILE=$(AWS_SHARED_CREDENTIALS_FILE) \
 		docker-archive:$<
 
-$(_TEMPDIR)/image_builder_debug.tar: $(_TEMPDIR)/.cache/centos image_builder/Containerfile image_builder/install_packages.txt ci/install_packages.sh lib.sh
+$(_TEMPDIR)/image_builder_debug.tar: $(_TEMPDIR)/.cache/centos $(wildcard image_builder/*)
 	$(call podman_build,$@,image_builder_debug,image_builder,centos)
 
 .PHONY: base_images
 # This needs to run in a virt/nested-virt capable environment
 base_images: base_images/manifest.json ## Create, prepare, and import base-level images into GCE.  Optionally, set PACKER_BUILDS=<csv> to select builder(s).
 
-base_images/manifest.json: base_images/gce.json base_images/fedora_base-setup.sh cidata $(_TEMPDIR)/cidata.ssh $(PACKER_INSTALL_DIR)/packer
-	$(call packer_build,$<)
+base_images/manifest.json: base_images/cloud.json $(wildcard base_images/*.sh) cidata $(_TEMPDIR)/cidata.ssh $(PACKER_INSTALL_DIR)/packer
+	$(call packer_build,base_images/cloud.json,$(call err_if_empty,AWS_SHARED_CREDENTIALS_FILE))
 
 .PHONY: cache_images
 cache_images: cache_images/manifest.json ## Create, prepare, and import top-level images into GCE.  Optionally, set PACKER_BUILDS=<csv> to select builder(s).
-cache_images/manifest.json: cache_images/gce.json $(wildcard cache_images/*.sh) $(PACKER_INSTALL_DIR)/packer
-	$(call packer_build,$<)
+cache_images/manifest.json: cache_images/cloud.json $(wildcard cache_images/*.sh) $(PACKER_INSTALL_DIR)/packer
+	$(call packer_build,cache_images/cloud.json,$(call err_if_empty,AWS_SHARED_CREDENTIALS_FILE))
 
 override _fedora_podman_release := $(file < podman/fedora_release)
 override _prior-fedora_podman_release := $(file < podman/prior-fedora_release)
