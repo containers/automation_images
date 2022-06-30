@@ -20,6 +20,7 @@ elif [[ -z "$IMG_SFX" ]] || [[ -z "$PACKER_BUILDS" ]]; then
 fi
 
 set_gac_filepath
+set_aws_filepath
 
 set -exo pipefail
 cd "$REPO_DIRPATH"

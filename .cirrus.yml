@@ -9,7 +9,7 @@ env:
     # No need to go crazy, but grab enough to cover most PRs
     CIRRUS_CLONE_DEPTH: 50
     # Version of packer to use when building images
-    PACKER_VERSION: &PACKER_VERSION "1.7.0"
+    PACKER_VERSION: &PACKER_VERSION "1.8.0"
     # Unique suffix label to use for all images produced by _this_ run (build)
     IMG_SFX: "${CIRRUS_BUILD_ID}"
 
@@ -32,8 +32,8 @@ validate_task:
         - "make clean"
         - "make help"
         - "make image_builder/gce.json"
-        - "make base_images/gce.json"
-        - "make cache_images/gce.json"
+        - "make base_images/cloud.json"
+        - "make cache_images/cloud.json"
 
 
 image_builder_task:
@@ -138,10 +138,11 @@ base_images_task:
     skip: *ci_docs_tooling
     depends_on:
         - container_images
+        - image_builder
     # Packer needs time to clean up partially created VM images
     auto_cancellation: $CI != "true"
     stateful: true
-    timeout_in: 30m
+    timeout_in: 45m
     # Cannot use a container for this task, virt required for fedora image conversion
     gce_instance:
         <<: *ibi_vm
@@ -159,9 +160,16 @@ base_images_task:
             PACKER_BUILDS: "prior-fedora"
         - <<: *base_image
           env:
+            PACKER_BUILDS: "fedora-aws"
+        - <<: *base_image
+          env:
+            PACKER_BUILDS: "fedora-aws-arm64"
+        - <<: *base_image
+          env:
             PACKER_BUILDS: "ubuntu"
     env:
       GAC_JSON: ENCRYPTED[7fba7fb26ab568ae39f799ab58a476123206576b0135b3d1019117c6d682391370c801e149f29324ff4b50133012aed9]
+      AWS_INI: ENCRYPTED[4cd69097cd29a9899e51acf3bbacceeb83cb5c907d272ca1e2a8ccd515b03f2368a0680870c0d120fc32bc578bb0a930]
     script: "ci/make_base_images.sh"
     manifest_artifacts:
         path: base_images/manifest.json
@@ -174,11 +182,12 @@ cache_images_task:
     only_if: *is_pr
     skip: *ci_docs_tooling
     depends_on:
+        - image_builder
         - base_images
     # Packer needs time to clean up partially created VM images
     auto_cancellation: $CI != "true"
     stateful: true
-    timeout_in: 40m
+    timeout_in: 45m
     container:
         dockerfile: "image_builder/Containerfile"
         cpu: 2
@@ -201,12 +210,19 @@ cache_images_task:
             PACKER_BUILDS: "fedora-podman-py"
         - <<: *cache_image
           env:
-            PACKER_BUILDS: "ubuntu"
+            PACKER_BUILDS: "fedora-aws"
+        - <<: *cache_image
+          env:
+            PACKER_BUILDS: "fedora-netavark-aws"
         - <<: *cache_image
           env:
             PACKER_BUILDS: "build-push"
+        - <<: *cache_image
+          env:
+            PACKER_BUILDS: "ubuntu"
     env:
       GAC_JSON: ENCRYPTED[7fba7fb26ab568ae39f799ab58a476123206576b0135b3d1019117c6d682391370c801e149f29324ff4b50133012aed9]
+      AWS_INI: ENCRYPTED[4cd69097cd29a9899e51acf3bbacceeb83cb5c907d272ca1e2a8ccd515b03f2368a0680870c0d120fc32bc578bb0a930]
     script: "ci/make_cache_images.sh"
     manifest_artifacts:
         path: cache_images/manifest.json
@@ -220,6 +236,7 @@ imgts_task:
     only_if: *is_pr
     skip: *ci_docs_tooling
     depends_on:
+        - base_images
         - cache_images
     container:
         image: 'quay.io/libpod/imgts:c$IMG_SFX'

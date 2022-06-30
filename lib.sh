@@ -23,6 +23,9 @@ INSTALL_AUTOMATION_VERSION="4.0.0"
 
 PUSH_LATEST="${PUSH_LATEST:-0}"
 
+# Mask secrets in show_env_vars() from automation library
+SECRET_ENV_RE='(ACCOUNT)|(.+_JSON)|(AWS.+)|(SSH)|(PASSWORD)|(TOKEN)'
+
 # Some platforms set and make this read-only
 [[ -n "$UID" ]] || \
     UID=$(getent passwd $USER | cut -d : -f 3)
@@ -80,12 +83,22 @@ custom_cloud_init() {
     fi
 }
 
+clear_cred_files() {
+    set +ex
+    if ((${#GAC_FILEPATH}>0)); then
+        rm -f "$GAC_FILEPATH"
+    fi
+    if ((${#AWS_SHARED_CREDENTIALS_FILE}>0)); then
+        rm -f "$AWS_SHARED_CREDENTIALS_FILE"
+    fi
+}
+
 # This function may only/ever be used within Cirrus-CI
 set_gac_filepath() {
     # shellcheck disable=SC2154
     if [[ -z "$CI" ]] || [[ "$CI" != "true" ]] || [[ "$CIRRUS_CI" != "$CI" ]]; then
         die "Unexpected \$CI=$CI and/or \$CIRRUS_CI=$CIRRUS_CI"
-    elif ((${#GAC_JSON}<=0)); then
+    elif ((${#GAC_JSON}<=2)); then
         die "Required (secret) \$GAC_JSON value appears to be empty"
     elif grep -iq "ENCRYPTED" <<<"$GAC_JSON"; then
         die "Decrpytion of \$GAC_JSON failed."
@@ -93,9 +106,28 @@ set_gac_filepath() {
     set +x;
     GAC_FILEPATH=$(mktemp -p '' '.XXXXXXXX.')
     export GAC_FILEPATH
-    trap "rm -f $GAC_FILEPATH" EXIT
+    trap clear_cred_files EXIT
     echo "$GAC_JSON" > "$GAC_FILEPATH"
     unset GAC_JSON;
+}
+
+# This function may only/ever be used within Cirrus-CI
+set_aws_filepath() {
+    # shellcheck disable=SC2154
+    if [[ -z "$CI" ]] || [[ "$CI" != "true" ]] || [[ "$CIRRUS_CI" != "$CI" ]]; then
+        die "Unexpected \$CI=$CI and/or \$CIRRUS_CI=$CIRRUS_CI"
+    elif ((${#AWS_INI}<=2)); then
+        die "Required (secret) \$AWS_INI value appears to be empty"
+    elif grep -iq "ENCRYPTED" <<<"$AWS_INI"; then
+        die "Decrpytion of \$AWS_INI failed."
+    fi
+    set +x;
+    # Magic filename packer is sensitive to
+    AWS_SHARED_CREDENTIALS_FILE=$(mktemp -p '' '.XXXXXXXX.')
+    export AWS_SHARED_CREDENTIALS_FILE
+    trap clear_cred_files EXIT
+    echo "$AWS_INI" > "$AWS_SHARED_CREDENTIALS_FILE"
+    unset AWS_INI;
 }
 
 # print a space-separated list of labels when run under Cirrus-CI for a PR

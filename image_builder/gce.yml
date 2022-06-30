@@ -3,17 +3,17 @@
 variables:
     # GCE Project ID where images will be produced
     GCP_PROJECT_ID: "libpod-218412"
+
     # Pre-existing google storage bucket w/ very short lifecycle enabled
     XFERBUCKET: "packer-import"
+
     # Required path to service account credentials file
-    GAC_FILEPATH:
+    GAC_FILEPATH: "{{env `GAC_FILEPATH`}}"
+
     # Naming suffix for images to prevent clashes (default to timestamp)
     # N/B: There are length/character limitations in GCE for image names
     IMG_SFX: '{{ timestamp }}'
 
-# Don't leak sensitive values in error messages / output
-sensitive-variables:
-    - 'GAC_FILEPATH'
 
 builders:
     - name: 'image-builder'

@@ -1,0 +1,169 @@
+---
+
+variables:  # Empty value means it must be passed in on command-line
+    # For produced images, to prevent name clashes
+    IMG_SFX:
+
+    # Required for ssh private key access
+    TEMPDIR:
+
+    # GCE Project ID where images will be produced
+    GCP_PROJECT_ID: "libpod-218412"
+
+    # Required path to service account credentials file
+    GAC_FILEPATH: "{{env `GAC_FILEPATH`}}"
+
+
+builders:
+    - &gce_hosted_image
+      name: 'ubuntu'
+      type: 'googlecompute'
+      # N/B: This implies base images always built with same IMG_SFX.
+      source_image: '{{ build_name }}-b{{user `IMG_SFX`}}'
+      # Prefix IMG_SFX with "c" so this is never confused with a base_image name
+      image_name: '{{ build_name }}-c{{user `IMG_SFX`}}'
+      image_family: '{{ build_name }}-cache'
+      project_id: '{{user `GCP_PROJECT_ID`}}'
+      account_file: '{{user `GAC_FILEPATH`}}'
+      zone: 'us-central1-a'
+      disk_size: 20  # REQUIRED: Runtime allocation > this value
+      disable_default_service_account: true
+      labels:  # For the VM
+        sfx: '{{user `IMG_SFX`}}'
+        src: '{{ build_name }}-b{{user `IMG_SFX` }}'
+        stage: cache
+      ssh_username: packer  # arbitrary, packer will create & setup w/ temp. keypair
+      ssh_pty: 'true'
+      temporary_key_pair_type: ed25519
+      ssh_clear_authorized_keys: true
+      # Permit running nested VM's to support specialized testing
+      image_licenses: ["projects/vm-options/global/licenses/enable-vmx"]
+
+    - <<: *gce_hosted_image
+      name: 'fedora'
+
+    - <<: *gce_hosted_image
+      name: 'prior-fedora'
+
+    - &aux_fed_img
+      <<: *gce_hosted_image
+      name: 'build-push'
+      source_image: 'fedora-b{{user `IMG_SFX`}}'
+      source_image_family: 'fedora-base'
+
+    - <<: *aux_fed_img
+      name: 'fedora-podman-py'
+
+    - <<: *aux_fed_img
+      name: 'fedora-netavark'
+
+    # ref: https://www.packer.io/plugins/builders/amazon/ebs
+    - &fedora-aws
+      name: 'fedora-aws'
+      type: 'amazon-ebs'
+      instance_type: 'm5zn.metal'
+      source_ami_filter:  # Will fail if >1 or no AMI found
+        owners:
+            # Docs are wrong, specifying the Account ID required to make AMIs private.
+            # The Account ID is hard-coded here out of expediency, since passing in
+            # more packer args from the command-line (in Makefile) is non-trivial.
+            - &accountid '449134212816'
+        # It's necessary to 'search' for the base-image by these criteria.  If
+        # more than one image is found, Packer will fail the build (and display
+        # the conflicting AMI IDs).
+        filters: &ami_filters
+            architecture: 'x86_64'
+            image-type: 'machine'
+            is-public: 'false'
+            name: '{{build_name}}-b{{user `IMG_SFX`}}'
+            root-device-type: 'ebs'
+            state: 'available'
+            virtualization-type: 'hvm'
+      # In case of packer problem or ungraceful exit, don't wait for shutdown.
+      # This doesn't always work properly, sometimes leaving EC2 instances in
+      # a 'stopped' instead of terminated state :(
+      shutdown_behavior: 'terminate'
+      # If something goes wrong, remove the broken AMI.
+      force_deregister: true  # Remove AMI with same name if exists
+      force_delete_snapshot: true  # Also remove snapshots of force-removed AMI
+      # Required for network access, must be the 'default' group used by Cirrus-CI
+      security_group_id: "sg-042c75677872ef81c"
+      # Prefix IMG_SFX with "b" so this is never confused with a cache_image
+      ami_name: '{{build_name}}-c{{user `IMG_SFX`}}'
+      ami_description: 'Built in https://cirrus-ci.com/build/{{user `IMG_SFX`}}'
+      ebs_optimized: true
+      launch_block_device_mappings:
+        - device_name: '/dev/sda1'
+          volume_size: 200
+          volume_type: 'gp2'
+          delete_on_termination: true
+      # These are critical and used by security-polciy to enforce instance launch limits.
+      tags: &tags
+        # EC2 expects "Name" tag to be capitalized
+        Name: '{{build_name}}-c{{user `IMG_SFX`}}'
+        sfx: '{{user `IMG_SFX`}}'
+        src: '{{.SourceAMI}}'  # Generated AMI ID looked up at runtime
+        automation: 'true'
+        stage: 'cache'
+        arch: 'x86_64'
+      run_tags: *tags
+      run_volume_tags: *tags
+      snapshot_tags: *tags
+      # Also required to make AMI private
+      ami_users:
+        - *accountid
+      ssh_username: 'root'
+      ssh_clear_authorized_keys: true
+      # N/B: Required Packer >= 1.8.0
+      # https://github.com/hashicorp/packer/issues/10074#issuecomment-1070469367
+      temporary_key_pair_type: 'ed25519'
+
+    - <<: *fedora-aws
+      name: 'fedora-netavark-aws'
+      source_ami_filter:
+        owners:
+            - *accountid
+        filters:
+            <<: *ami_filters
+            architecture: 'arm64'
+            name: 'fedora-aws-arm64-b{{user `IMG_SFX`}}'
+      instance_type: 't4g.medium'  # arm64 type
+      tags: &netavark_tags
+        <<: *tags
+        Name: '{{build_name}}-c{{user `IMG_SFX`}}'
+        arch: 'arm64'
+      run_tags: *netavark_tags
+      run_volume_tags: *netavark_tags
+      snapshot_tags: *netavark_tags
+
+provisioners:
+    - type: 'shell'
+      inline:
+        - 'set -e'
+        - 'mkdir -p /tmp/automation_images'
+
+    - type: 'file'
+      source: '{{ pwd }}/'
+      destination: "/tmp/automation_images"
+
+    - except: ['ubuntu']
+      type: 'shell'
+      inline:
+        - 'set -e'
+        - '/bin/bash /tmp/automation_images/cache_images/fedora_setup.sh'
+
+    - only: ['ubuntu']
+      type: 'shell'
+      inline:
+        - 'set -e'
+        - '/bin/bash /tmp/automation_images/cache_images/ubuntu_setup.sh'
+
+post-processors:
+    # This is critical for human-interaction.  Copntents will be used
+    # to provide the image names and IDs to the user's PR.
+    - - type: 'manifest'  # writes packer-manifest.json
+        output: 'cache_images/manifest.json'
+        strip_path: true
+        custom_data:
+            IMG_SFX: '{{ user `IMG_SFX` }}'
+            STAGE: 'cache'

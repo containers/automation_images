@@ -1,7 +1,8 @@
-# This dockerfile mimics locally, the environment used for
-# making base_images.  It's intended to be created and used
-# by the relevant target in the Makefile at the root of this
-# repository.
+# This Containerfile produces the environment necessary for
+# building CI VM images.  It's intended to be created and used
+# by humans or CI, to build targets defined in the Makefile
+# at the root of this repository.  It should be built with
+# the repository root as the context directory.
 
 ARG CENTOS_RELEASE=stream8
 FROM quay.io/centos/centos:${CENTOS_RELEASE}
