@@ -21,7 +21,6 @@ bigto ooe.sh $SUDO apt-get -qq -y upgrade
 
 echo "Configuring additional package repositories"
 
-
 # Useful version of criu is only available from launchpad repo
 if [[ "$OS_RELEASE_VER" -le 2004 ]]; then
     lilto ooe.sh $SUDO add-apt-repository --yes ppa:criu/ppa
@@ -44,9 +43,8 @@ curl --fail --silent --location --url "$GPG_URL" | \
     $SUDO tee /etc/apt/trusted.gpg.d/devel_kubic_libcontainers_unstable_ci.gpg &> /dev/null
 
 
-# Removed golang-1.14 from install packages due to known
-# performance reason.  Reinstall when ubuntu has 1.16.
-
+# N/B: DO NOT install the bats package on Ubuntu VMs, it's broken.
+# ref: (still open) https://bugs.launchpad.net/ubuntu/+source/bats/+bug/1882542
 INSTALL_PACKAGES=(\
     apache2-utils
     apparmor
@@ -145,7 +143,7 @@ INSTALL_PACKAGES=(\
 # Necessary to update cache of newly added repos
 lilto $SUDO apt-get -q -y update
 
-if (($OS_RELEASE_VER>=2104)); then
+if (($OS_RELEASE_VER==2104)); then
     echo "Blocking golang-* package interfearance with kubik containers-common"
     $SUDO apt-mark hold golang-github-containers-common golang-github-containers-image
 fi

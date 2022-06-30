@@ -41,6 +41,7 @@ INSTALL_PACKAGES=(\
     autoconf
     automake
     bash-completion
+    bats
     bridge-utils
     btrfs-progs-devel
     buildah
