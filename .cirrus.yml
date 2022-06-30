@@ -216,6 +216,9 @@ cache_images_task:
             PACKER_BUILDS: "fedora-netavark-aws"
         - <<: *cache_image
           env:
+            PACKER_BUILDS: "fedora-podman-aws"
+        - <<: *cache_image
+          env:
             PACKER_BUILDS: "build-push"
         - <<: *cache_image
           env:

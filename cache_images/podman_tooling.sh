@@ -46,13 +46,15 @@ bigto make install.tools
 
 # shellcheck disable=SC2154
 if [[ "$OS_RELEASE_ID" == "fedora" ]]; then
-    msg "Installing swagger binary"
-    download_url=$(\
-        curl -s https://api.github.com/repos/go-swagger/go-swagger/releases/latest | \
-        jq -r '.assets[] | select(.name | contains("linux_amd64")) | .browser_download_url')
-    curl --fail -s -o /usr/local/bin/swagger -L'#' "$download_url"
-    chmod +x /usr/local/bin/swagger
-    /usr/local/bin/swagger version
+    if [[ $(uname -m) == "x86_64" ]]; then
+        msg "Installing swagger binary"
+        download_url=$(\
+            curl -s https://api.github.com/repos/go-swagger/go-swagger/releases/latest | \
+            jq -r '.assets[] | select(.name | contains("linux_amd64")) | .browser_download_url')
+        curl --fail -s -o /usr/local/bin/swagger -L'#' "$download_url"
+        chmod +x /usr/local/bin/swagger
+        /usr/local/bin/swagger version
+    fi
 
     # This is needed for rootless testing
     make install.modules-load

@@ -136,6 +136,24 @@ builders:
       run_volume_tags: *netavark_tags
       snapshot_tags: *netavark_tags
 
+    - <<: *fedora-aws
+      name: 'fedora-podman-aws'
+      source_ami_filter:
+        owners:
+            - *accountid
+        filters:
+            <<: *ami_filters
+            architecture: 'arm64'
+            name: 'fedora-aws-arm64-b{{user `IMG_SFX`}}'
+      instance_type: 't4g.medium'  # arm64 type
+      tags: &podman_tags
+        <<: *tags
+        Name: '{{build_name}}-c{{user `IMG_SFX`}}'
+        arch: 'arm64'
+      run_tags: *podman_tags
+      run_volume_tags: *podman_tags
+      snapshot_tags: *podman_tags
+
 provisioners:
     - type: 'shell'
       inline:
