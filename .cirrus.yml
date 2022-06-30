@@ -56,6 +56,7 @@ image_builder_task:
         docker_arguments:
             PACKER_VERSION: *PACKER_VERSION
     env:
+      PACKER_BUILDS: 'image-builder'
       # Google Application Credentials (JSON) with access to create VM images
       GAC_JSON: ENCRYPTED[7fba7fb26ab568ae39f799ab58a476123206576b0135b3d1019117c6d682391370c801e149f29324ff4b50133012aed9]
 

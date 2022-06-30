@@ -130,6 +130,41 @@ set_aws_filepath() {
     unset AWS_INI;
 }
 
+# Almost every CI-driven image build includes a `$PACKER_BUILDS`
+# or `$TARTGET_NAME` specifier.  Leverage appearance of a `no_*`
+# PR-label prefix to bypass certain builds when running under CI.
+skip_on_pr_label() {
+    req_env_vars AUTOMATION_LIB_PATH  # Automation library is required
+
+    local build_spec pr_labels pr_label
+
+    if [[ -z "$CI" ]] || [[ "$CI" != 'true' ]]; then
+        warn "Skipping builds by PR-label only works under CI"
+        return 1  # reverse-logic: DO NOT SKIP
+    fi
+
+    build_spec="${TARGET_NAME:-$PACKER_BUILDS}"
+    pr_labels=$(get_pr_labels)  # Will fail if not running under CI
+    if [[ -z "$build_spec" ]]; then
+        warn "Both \$TARGET_NAME and \$PACKER_BUILDS found empty, continuing anyway."
+        return 1
+    elif [[ -z "$pr_labels" ]]; then
+        warn "No labels found on PR, continuing with build."
+        return 1
+    fi
+
+    # N/B: Labels can contain spaces, assume maintainers are smart enough
+    #      to not do this, or they're not important for this usage.
+    for pr_label in $pr_labels; do
+        if [[ "$pr_label" =~ no_.+ ]] && [[ "${pr_label#no_}" == "$build_spec" ]]; then
+            warn "Found '$pr_label' for '$build_spec', skipping build."
+            return 0  # reverse-logic: DO skip.
+        fi
+        dbg "Label '$pr_label' no match to '$build_spec'."
+    done
+    return 1  # Do not skip
+}
+
 # print a space-separated list of labels when run under Cirrus-CI for a PR
 get_pr_labels() {
     req_env_vars CIRRUS_CI CIRRUS_PR CIRRUS_REPO_CLONE_TOKEN

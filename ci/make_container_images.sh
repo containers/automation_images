@@ -19,6 +19,10 @@ if [[ "$CI" != "true" ]] || [[ "$CIRRUS_CI" != "$CI" ]]; then
     die "Unexpected \$CI='$CI' and/or \$CIRRUS_CI='$CIRRUS_CI'"
 fi
 
+if skip_on_pr_label; then
+    exit 0  # skip build
+fi
+
 declare -a req_vars
 req_vars=(\
     IMG_SFX

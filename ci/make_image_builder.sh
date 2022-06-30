@@ -18,6 +18,10 @@ elif [[ -z "$IMG_SFX" ]]; then
     die "Required non-empty values for \$IMG_SFX=$IMG_SFX"
 fi
 
+if skip_on_pr_label; then
+    exit 0  # skip build
+fi
+
 set_gac_filepath
 
 set -exo pipefail
