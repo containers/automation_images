@@ -18,6 +18,15 @@ die() {
     exit "$EXIT"
 }
 
+# Similar to die() but it ignores the first parameter (exit code)
+# to allow direct use in place of an (otherwise) die() call.
+warn() {
+    IGNORE=$1
+    shift
+    MSG="$*"
+    echo -e "${RED}WARNING: $MSG${NOR}"
+}
+
 # Hilight messages not coming from a shell command
 msg() {
     echo -e "${YEL}${1:-NoMessageGiven}${NOR}"

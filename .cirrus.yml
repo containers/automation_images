@@ -56,6 +56,7 @@ image_builder_task:
         docker_arguments:
             PACKER_VERSION: *PACKER_VERSION
     env:
+      PACKER_BUILDS: 'image-builder'
       # Google Application Credentials (JSON) with access to create VM images
       GAC_JSON: ENCRYPTED[7fba7fb26ab568ae39f799ab58a476123206576b0135b3d1019117c6d682391370c801e149f29324ff4b50133012aed9]
 
@@ -246,6 +247,8 @@ imgts_task:
         cpu: 2
         memory: '2G'
     env:
+        # Not all $IMGNAMES may have been built, don't fail if some are missing
+        REQUIRE_ALL: 0  # This should ONLY be set `0` on this repository!
         BUILDID: "$CIRRUS_BUILD_ID"
         REPOREF: "$CIRRUS_REPO_NAME"
         GCPJSON: ENCRYPTED[112c55192dba9a7edd1889a7e704aa1e6ae40730b97ad8ebcbae2bb5f4ff84c7e9ca5b955baaf1f69e7b9e5c5a14a4d3]

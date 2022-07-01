@@ -20,6 +20,10 @@ elif [[ -z "$IMG_SFX" ]] || [[ -z "$PACKER_BUILDS" ]]; then
     die "Required non-empty values for \$IMG_SFX=$IMG_SFX and \$PACKER_BUILDS=$PACKER_BUILDS"
 fi
 
+if skip_on_pr_label; then
+    exit 0  # skip build
+fi
+
 set_gac_filepath
 set_aws_filepath
 

@@ -36,6 +36,9 @@ magic strings in their *title* text:
 * `[CI:TOOLING]` - Only perform validation steps, then [build and test
   the tooling container images](README.md#tooling) only.
 
+Additionally, you may use one/more [PR labels to disable certain
+builds](README.md#bypassing-certain-builds).
+
 
 # Building VM Images
 
@@ -83,6 +86,27 @@ please [see it's documentation page](https://www.packer.io/docs).
    installing build & test dependencies, but also includes some
    kernel and systemd services configuration.
 
+## Bypassing certain builds
+
+With a large number of VM and Container images to build, it's inevitable
+that a flake will occur on an image the author does not care about.  For
+example, if you're building images *only* to update Buildah CI, you don't
+care to produce the `fedora-netavark` VM image nor the `skopeo_cidev`
+container image.
+
+Should a flake occur on an build that's inconsequential to a specific
+CI environment, there is a mechanism to bypass certain builds.
+
+**Note**: This will *not* bypass container tooling images (they're always
+required). Nor will it properly handle any build dependencies.
+For example skipping a `fedora` build will cause a failure in
+`build-push`(since it depends on the `fedora` base image).
+
+To bypass a specific build, find a `no_<name>` GitHub label matching
+the build name.  Add that label to the PR and re-push or re-run a
+previously failed build. It will then skip + automatically succeed.
+Similarly, if you make a mistake with the labels, you can remove or
+change them and re-run any affected tasks.
 
 ## The last part first (overview step 4)
 
