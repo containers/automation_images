@@ -28,6 +28,9 @@ ARGS="
 [[ -n "$IMGNAMES" ]] || \
     die 1 "No \$IMGNAMES were specified."
 
+# Under some runtime conditions, not all images may be available
+REQUIRE_ALL=${REQUIRE_ALL:-1}
+
 # Don't allow one bad apple to ruin the whole batch
 ERRIMGS=''
 
@@ -53,5 +56,8 @@ do
     fi
 done
 
-[[ -z "$ERRIMGS" ]] || \
-    die 2 "ERROR: Failed to update one or more image timestamps: $ERRIMGS"
+if [[ -n "$ERRIMGS" ]]; then
+    die_or_warn=die
+    ((REQUIRE_ALL)) || die_or_warn=warn
+    $die_or_warn 2 "Failed to update one or more image timestamps: $ERRIMGS"
+fi
