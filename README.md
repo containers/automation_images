@@ -3,7 +3,7 @@
 This repository holds the configuration for automation-related VM and
 container images.  CI/CD automation in this repo. revolves around
 producing new images. It does only very minimal testing of image
-suitability for use by other *containers* org. repos.
+suitability for use by other [containers](https://github.com/containers) repos.
 
 # Contributing
 
