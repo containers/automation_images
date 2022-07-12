@@ -169,6 +169,10 @@ good_init() {
     CIRRUS_TASK="--list"
     init
 }
+testf "Verify get_inst_image() returns expected aws task name" \
+    good_init 0 "aws_test" \
+    get_inst_image
+
 testf "Verify get_inst_image() returns expected google task name" \
     good_init 0 "google_test" \
     get_inst_image
