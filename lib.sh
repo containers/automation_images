@@ -19,7 +19,7 @@ OS_REL_VER="$OS_RELEASE_ID-$OS_RELEASE_VER"
 # This location is checked by automation in other repos, please do not change.
 PACKAGE_DOWNLOAD_DIR=/var/cache/download
 
-INSTALL_AUTOMATION_VERSION="4.0.0"
+INSTALL_AUTOMATION_VERSION="4.1.1"
 
 PUSH_LATEST="${PUSH_LATEST:-0}"
 

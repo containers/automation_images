@@ -1,5 +1,9 @@
 ---
 
+aws_test_task:
+    ec2_instance:
+        image: ami-1234567890
+
 google_test_task:
     gce_instance:
         image_name: test-image-name
