@@ -61,16 +61,26 @@ INSTALL_PACKAGES=(\
     zip
 )
 
-EXARG="--exclude=netavark --exclude=aardvark-dns --exclude=cargo --exclude=rust"
+EXARG="--exclude=cargo --exclude=rust"
 
 msg "Installing general build/test dependencies"
 bigto $SUDO dnf install -y $EXARG "${INSTALL_PACKAGES[@]}"
 
-# It was observed in F33, dnf install doesn't always get you the latest/greatest
-lilto $SUDO dnf update -y
+# It was observed in F33, dnf install doesn't always get you the latest/greatest.
+lilto $SUDO dnf update -y $EXARG
 
 msg "Initializing upstream rust environment."
 export CARGO_HOME="/var/cache/cargo"  # must match .cirrus.yml in netavark repo
 $SUDO mkdir -p $CARGO_HOME
 # CI Runtime takes care of recovering $CARGO_HOME/env
 curl https://sh.rustup.rs -sSf | $SUDO env CARGO_HOME=$CARGO_HOME sh -s -- -y
+
+# Downstream users of this image are specifically testing netavark & aardvark-dns
+# code changes.  We want to start with using the RPMs because they deal with any
+# dependency issues.  However, we don't actually want the binaries present on
+# the system, because:
+# 1) They will be compiled from source at runtime
+# 2) The file locations may change
+# 3) We never want testing ambiguity WRT which binary is under test.
+msg "Clobbering netavark & aardvark RPM files"
+remove_netavark_aardvark_files

@@ -217,6 +217,26 @@ get_pr_labels() {
     echo -n "$labels"
 }
 
+remove_netavark_aardvark_files() {
+    req_env_vars OS_RELEASE_ID
+    # OS_RELEASE_ID is defined by automation-library
+    # shellcheck disable=SC2154
+    if [[ "$OS_RELEASE_ID" =~ "ubuntu" ]]
+    then
+        die "Ubuntu netavark/aardvark-dns testing is not supported"
+    fi
+
+        LISTING_CMD="rpm -ql podman"
+
+    # yum/dnf/dpkg may list system directories, only remove files
+    rpm -ql netavark aardvark-dns | while read fullpath
+    do
+        # Sub-directories may contain unrelated/valuable stuff
+        if [[ -d "$fullpath" ]]; then continue; fi
+        sudo rm -vf "$fullpath"
+    done
+}
+
 # Warning: DO NOT USE the following functions willy-nilly!
 # They are only intended to be called by other setup scripts, as the very
 # last step during the build process.  They're purpose is to "reset" the
