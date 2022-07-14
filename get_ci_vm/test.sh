@@ -231,6 +231,8 @@ mock_gcevm_workflow() {
 }
 # Don't confuse the actual repo. by nesting another repo inside
 tar -xzf "$GOOD_TEST_REPO/dot_git.tar.gz" -C "$GOOD_TEST_REPO" .git
+# Ignore ownership security checks
+git config --system --add safe.directory $GOOD_TEST_REPO
 # Setup should tarball new files in the repo.
 echo "testing" > "$GOOD_TEST_REPO/uncommited_file"
 # Setup should tarball changed files in the repo.
