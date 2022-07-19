@@ -1,0 +1,17 @@
+{
+  "builds": [
+    {
+      "name": "fedora-aws",
+      "builder_type": "amazon-ebs",
+      "build_time": 1658176592,
+      "files": null,
+      "artifact_id": "us-east-1:ami-0442ccd2bb66504b7",
+      "packer_run_uuid": "df4c911b-80a3-27ee-a513-4b6e29c1c906",
+      "custom_data": {
+        "IMG_SFX": "5419329914142720",
+        "STAGE": "cache"
+      }
+    }
+  ],
+  "last_run_uuid": "df4c911b-80a3-27ee-a513-4b6e29c1c906"
+}

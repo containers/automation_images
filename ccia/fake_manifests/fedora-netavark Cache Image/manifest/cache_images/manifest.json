@@ -1,0 +1,17 @@
+{
+  "builds": [
+    {
+      "name": "fedora-netavark",
+      "builder_type": "googlecompute",
+      "build_time": 1658176148,
+      "files": null,
+      "artifact_id": "fedora-netavark-c5419329914142720",
+      "packer_run_uuid": "d95c8118-3970-4a73-d348-692a5a3371a3",
+      "custom_data": {
+        "IMG_SFX": "5419329914142720",
+        "STAGE": "cache"
+      }
+    }
+  ],
+  "last_run_uuid": "d95c8118-3970-4a73-d348-692a5a3371a3"
+}

@@ -1,0 +1,22 @@
+{
+  "builds": [
+    {
+      "name": "fedora",
+      "builder_type": "qemu",
+      "build_time": 1658175535,
+      "files": [
+        {
+          "name": "fedora-b5419329914142720",
+          "size": 0
+        }
+      ],
+      "artifact_id": "",
+      "packer_run_uuid": "b1ec41bd-c395-45d6-96cf-f03a1ff2c894",
+      "custom_data": {
+        "IMG_SFX": "5419329914142720",
+        "STAGE": "base"
+      }
+    }
+  ],
+  "last_run_uuid": "b1ec41bd-c395-45d6-96cf-f03a1ff2c894"
+}

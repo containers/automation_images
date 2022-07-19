@@ -1,0 +1,17 @@
+{
+  "builds": [
+    {
+      "name": "fedora-podman-aws-arm64",
+      "builder_type": "amazon-ebs",
+      "build_time": 1658176346,
+      "files": null,
+      "artifact_id": "us-east-1:ami-051a5e8dad587bf22",
+      "packer_run_uuid": "7e742dec-035c-6b95-8793-c464b2a6ac0f",
+      "custom_data": {
+        "IMG_SFX": "5419329914142720",
+        "STAGE": "cache"
+      }
+    }
+  ],
+  "last_run_uuid": "7e742dec-035c-6b95-8793-c464b2a6ac0f"
+}

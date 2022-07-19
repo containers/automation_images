@@ -1,0 +1,17 @@
+{
+  "builds": [
+    {
+      "name": "fedora-netavark-aws-arm64",
+      "builder_type": "amazon-ebs",
+      "build_time": 1658176335,
+      "files": null,
+      "artifact_id": "us-east-1:ami-07a339e76f84afa7b",
+      "packer_run_uuid": "b8a09332-800a-09c2-ba0e-2564e6e52f76",
+      "custom_data": {
+        "IMG_SFX": "5419329914142720",
+        "STAGE": "cache"
+      }
+    }
+  ],
+  "last_run_uuid": "b8a09332-800a-09c2-ba0e-2564e6e52f76"
+}

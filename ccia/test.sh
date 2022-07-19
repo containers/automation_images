@@ -14,13 +14,20 @@ req_env_vars CIRRUS_CI CIRRUS_BUILD_ID CIRRUS_WORKING_DIR
 echo "Installing test tooling"
 ooe.sh microdnf install -y coreutils jq
 
+cd /tmp/
+
 echo "Confirming current build task manifests can be downloaded."
 (
     set -x
-    cd /tmp/
     # shellcheck disable=SC2154
     $CCIABIN --verbose $CIRRUS_BUILD_ID '.*/manifest.json'
 )
+
+# It's possible the PR did not produce any manifest.json files
+if ! dled=$(find ./$CIRRUS_BUILD_ID -name manifest.json | wc -l) || ((dled==0)); then
+    mkdir -p ./$CIRRUS_BUILD_ID
+    cp -a $SCRIPT_DIRPATH/fake_manifests/* ./$CIRRUS_BUILD_ID
+fi
 
 echo "Confirming any downloaded manifests can be parsed into a build list"
 (

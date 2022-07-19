@@ -1,0 +1,17 @@
+{
+  "builds": [
+    {
+      "name": "build-push",
+      "builder_type": "googlecompute",
+      "build_time": 1658175996,
+      "files": null,
+      "artifact_id": "build-push-c5419329914142720",
+      "packer_run_uuid": "250b8705-ce4d-7844-7181-f1181dd7e04c",
+      "custom_data": {
+        "IMG_SFX": "5419329914142720",
+        "STAGE": "cache"
+      }
+    }
+  ],
+  "last_run_uuid": "250b8705-ce4d-7844-7181-f1181dd7e04c"
+}

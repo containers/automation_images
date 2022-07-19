@@ -1,0 +1,17 @@
+{
+  "builds": [
+    {
+      "name": "ubuntu",
+      "builder_type": "googlecompute",
+      "build_time": 1658176053,
+      "files": null,
+      "artifact_id": "ubuntu-c5419329914142720",
+      "packer_run_uuid": "553ec5c0-7b09-e06d-2837-b272204696d1",
+      "custom_data": {
+        "IMG_SFX": "5419329914142720",
+        "STAGE": "cache"
+      }
+    }
+  ],
+  "last_run_uuid": "553ec5c0-7b09-e06d-2837-b272204696d1"
+}
