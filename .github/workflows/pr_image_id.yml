@@ -53,13 +53,89 @@ jobs:
                       printf "\n::set-output name=is_pr::%s\n" "false"
                   fi
 
-            - name: Add image id comment to pull request
-              if: steps.retro.outputs.is_pr == 'true'
+            - if: steps.retro.outputs.is_pr == 'true'
+              name: Retrieve and process any manifest artifacts
+              # Use the CCIA image produce by the `Build Tooling images`
+              # task of the PR we're looking at.  This allows testing
+              # of changes to the CCIA container before merging into `main`
+              # (where this workflow runs from).
+              run: |
+                podman run --rm -v $PWD:/data -w /data \
+                    quay.io/libpod/ccia:${{ steps.retro.outputs.bid }} \
+                    --verbose "${{ steps.retro.outputs.bid }}" ".*/manifest.json"
+
+            - if: steps.retro.outputs.is_pr == 'true'
+              name: Count the number of manifest.json files downloaded
+              id: manifests
+              run: |
+                dled=$(find ./${{ steps.retro.outputs.bid }} -name manifest.json | wc -l)
+                printf "\n::set-output name=count::%s\n" "$dled"
+
+            - if: steps.manifests.outputs.count > 0
+              name: Extract packer builder names and artifact IDs
+              env:
+                FLTR: >-
+                    {"name": .builds[].name,
+                     "id": .builds[].artifact_id | ltrimstr("us-east-1:"),
+                     "stage": .builds[].custom_data.STAGE} |
+                    select(.stage == "cache")
+              run: |
+                find ./${{ steps.retro.outputs.bid }} \
+                    -type f -name 'manifest.json' -print0 | \
+                xargs --null jq -e -c "$FLTR" |
+                    jq -e -s '.' > built_cache_images.json
+
+            - if: steps.manifests.outputs.count > 0
+              name: Debug built_cache_images.json contents
+              run: |
+                jq --color-output . built_cache_images.json
+
+            - if: steps.manifests.outputs.count > 0
+              id: body
+              name: Format PR-comment body
+              shell: python
+              # Setting multi-line values of step outputs is problematic,
+              # setting a future (global) env. var. value is the only
+              # reasonable option.  This tricky bit of python sets the
+              # global $BUILT_CACHE_IMAGES env. var for subsequent workflow
+              # steps via the file referenced in $GITHUB_ENV.  The
+              # $BUILT_CACHE_IMAGES contents are the markdown to post as
+              # a PR comment.
+              run: |
+                import sys, os, json
+                l = []
+                with open("built_cache_images.json") as f:
+                  for b in json.load(f):  # list of builds
+                    if b.get("id") is not None:
+                      l.append(f'|**{b["name"]}**|`{b["id"]}`|\n')
+                l.sort(key=str.lower)
+                with open(os.environ["GITHUB_ENV"], "a") as e:
+                  e.write(("BUILT_CACHE_IMAGES<<EOF\n"
+                             "[Cirrus CI build](https://cirrus-ci.com/build/${{ steps.retro.outputs.bid }})"
+                             " successful. [Found built image names and"
+                             " IDs](https://github.com/${{github.repository}}/actions/runs/${{github.run_id}}):\n"
+                             "\n"
+                             "|Name|ID|\n"
+                             "|---|---|\n"))
+                  e.writelines(l)
+                  e.write("EOF\n")
+
+            - if: steps.manifests.outputs.count > 0
+              name: Debug PR comment markdown
+              # Use a here-document to display to avoid any
+              # problems with passing special-characters into echo
+              # The quoted-EOD prevents any shell interpretation.
+              run: |
+                cat <<"EOD"
+                ${{ env.BUILT_CACHE_IMAGES }}
+                EOD
+
+            - if: steps.manifests.outputs.count > 0
+              name: Post PR comment with image name/id table
               uses: jungwinter/comment@v1
               with:
                   issue_number: '${{ steps.retro.outputs.prn }}'
                   type: 'create'
                   token: '${{ secrets.GITHUB_TOKEN }}'
-                  body: >-
-                    [Cirrus CI build](https://cirrus-ci.com/build/${{ steps.retro.outputs.bid }})
-                    successful. Image ID `c${{ steps.retro.outputs.bid }}` ready for use.
+                  body: |
+                    ${{ env.BUILT_CACHE_IMAGES }}

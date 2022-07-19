@@ -1,0 +1,17 @@
+{
+  "builds": [
+    {
+      "name": "fedora",
+      "builder_type": "googlecompute",
+      "build_time": 1658176163,
+      "files": null,
+      "artifact_id": "fedora-c5419329914142720",
+      "packer_run_uuid": "30833ff6-05df-ee1e-4378-57991d592136",
+      "custom_data": {
+        "IMG_SFX": "5419329914142720",
+        "STAGE": "cache"
+      }
+    }
+  ],
+  "last_run_uuid": "30833ff6-05df-ee1e-4378-57991d592136"
+}

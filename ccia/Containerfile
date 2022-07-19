@@ -29,5 +29,3 @@ COPY --from=builder /usr/share/automation /usr/share/automation
 COPY --from=builder /etc/automation_environment /etc/automation_environment
 
 ENTRYPOINT ["/usr/share/automation/bin/cirrus-ci_artifacts"]
-VOLUME ["/data"]
-WORKDIR /data
