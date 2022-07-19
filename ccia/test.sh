@@ -17,7 +17,7 @@ ooe.sh microdnf install -y coreutils jq
 echo "Confirming current build task manifests can be downloaded."
 (
     set -x
-    cd /data
+    cd /tmp/
     # shellcheck disable=SC2154
     $CCIABIN --verbose $CIRRUS_BUILD_ID '.*/manifest.json'
 )
@@ -25,8 +25,8 @@ echo "Confirming current build task manifests can be downloaded."
 echo "Confirming any downloaded manifests can be parsed into a build list"
 (
     set -x
-    cd /data
-    find ./ -type f -name 'manifest.json' -print0 | \
+    cd /tmp
+    find ./$CIRRUS_BUILD_ID -type f -name 'manifest.json' -print0 | \
         xargs --null jq -e '.builds[]' | \
         jq -e -s '.' | \
         jq -e '{"builds": .}'

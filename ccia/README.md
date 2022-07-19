@@ -13,21 +13,18 @@ previously cached.  For example:
 
 ## Usage
 
-It is recommended that you first create a volume to store any downloaded
-artifacts.
+It is recommended that you run the container with a `--workdir` set, and
+a volume mounted at that location.  In this way, any downloaded
+artifacts will be accessable after the container exits
 
-`podman volume create ccia`
-
-Knowing a Cirrus-CI build ID, you can download all artifacts (or select
+Knowing a Cirrus-CI build ID, the container will download all artifacts (or select
 [a subset using a
 regex](https://github.com/containers/automation/tree/main/cirrus-ci_artifacts#usage).
-The artifacts subdirectory will be written into the `/data` volume, so
-be sure it's mounted.  The `--verbose` option is shown for illustrative
-purposes, it's not required.
+The `--verbose` option shown below is not required.
 
 ```
 BID=<Cirrus Build ID>
-podman run -it --rm -v ccia:/data ccia $BID --verbose
-DATA="$(podman volume inspect ccia | jq -r '.[].Mountpoint')/$BID"
-ls -laR $DATA
+mkdir -p /tmp/artifacts
+podman run -it --rm -v /tmp/artifacts:/data -w /data ccia $BID --verbose
+ls -laR /tmp/artifacts
 ```
