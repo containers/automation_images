@@ -19,7 +19,7 @@ builders:
     - name: 'image-builder'
       type: 'googlecompute'
       source_image_project_id: 'centos-cloud'
-      source_image_family: 'centos-stream-8'
+      source_image_family: 'centos-stream-9'
       image_name: '{{build_name}}-{{user `IMG_SFX`}}'  # output image name
       image_family: '{{build_name}}'  # output family name for image
       project_id: '{{user `GCP_PROJECT_ID`}}'
