@@ -55,14 +55,19 @@ jobs:
 
             - if: steps.retro.outputs.is_pr == 'true'
               name: Retrieve and process any manifest artifacts
+              env:
+                PODMAN: podman run --rm -v $PWD:/data -w /data
+                PR_CCIA: quay.io/libpod/ccia:c${{ steps.retro.outputs.bid }}
+                UP_CCIA: quay.io/libpod/ccia:latest
               # Use the CCIA image produce by the `Build Tooling images`
               # task of the PR we're looking at.  This allows testing
               # of changes to the CCIA container before merging into `main`
-              # (where this workflow runs from).
+              # (where this workflow runs from).  If that should fail,
+              # fall back to using the latest built CCIA image.
               run: |
-                podman run --rm -v $PWD:/data -w /data \
-                    quay.io/libpod/ccia:${{ steps.retro.outputs.bid }} \
-                    --verbose "${{ steps.retro.outputs.bid }}" ".*/manifest.json"
+                declare -a ARGS
+                ARGS=("--verbose" "${{ steps.retro.outputs.bid }}" ".*/manifest.json")
+                $PODMAN $PR_CCIA "${ARGS[@]}" || $PODMAN $UP_CCIA "${ARGS[@]}"
 
             - if: steps.retro.outputs.is_pr == 'true'
               name: Count the number of manifest.json files downloaded
