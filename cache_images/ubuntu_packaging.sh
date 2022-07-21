@@ -27,21 +27,54 @@ if [[ "$OS_RELEASE_VER" -le 2004 ]]; then
 fi
 
 # The OpenSuse Open Build System must be utilized to obtain newer
-# development versions of podman/buildah/skopeo & dependencies,
-# in order to support upstream (i.e. bleeding-edge) development and
-# automated testing.  These packages are not otherwise intended for
-# end-user consumption.
-VERSION_ID=$(source /etc/os-release; echo $VERSION_ID)
-# Overview: https://build.opensuse.org/project/show/devel:kubic:libcontainers:unstable
-REPO_URL="https://download.opensuse.org/repositories/devel:/kubic:/libcontainers:/unstable/xUbuntu_$VERSION_ID/"
-GPG_URL="https://download.opensuse.org/repositories/devel:kubic:libcontainers:unstable/xUbuntu_$VERSION_ID/Release.key"
+# development versions of some tools. This helper sets up config
+# files for apt to fetch packages from OBS. We can be called with
+# a variable number of arguments; I think the term is "subprojects"?
+function setup_obs() {
+    # Version of ubuntu, e.g., 22.04
+    local xubuntu_version
+    xubuntu_version="xUbuntu_$(source /etc/os-release; echo $VERSION_ID)"
 
-echo "deb $REPO_URL /" | ooe.sh $SUDO \
-    tee /etc/apt/sources.list.d/devel:kubic:libcontainers:unstable:ci.list
-curl --fail --silent --location --url "$GPG_URL" | \
-    gpg --dearmor | \
-    $SUDO tee /etc/apt/trusted.gpg.d/devel_kubic_libcontainers_unstable_ci.gpg &> /dev/null
+    local base_url="https://download.opensuse.org/repositories/devel"
 
+    # Assemble the .deb repo URL by appending colon-slash-item for each arg
+    local repo_url="$base_url"
+    local repo_file="/etc/apt/sources.list.d/devel"
+    for i in "$@"; do
+        repo_url+=":/$i"
+        repo_file+=":$i"
+    done
+    repo_url+="/${xubuntu_version}/"
+    repo_file+=":ci.list"
+    echo "deb $repo_url /" | ooe.sh $SUDO tee "$repo_file"
+
+    # GPG key URL is similar to .deb repo, but just colons, no slashes
+    local gpg_url="$base_url"
+    local gpg_file="/etc/apt/trusted.gpg.d/devel"
+    for i in "$@"; do
+        gpg_url+=":$i"
+        gpg_file+="_$i"
+    done
+    gpg_url+="/${xubuntu_version}/Release.key"
+    gpg_file+="_ci.gpg"
+    curl --fail --silent --location --url "$gpg_url" | \
+        gpg --dearmor | \
+        $SUDO tee "$gpg_file" &> /dev/null
+}
+
+# OBS: podman/buildah/skopeo & dependencies, in order to support
+# upstream (i.e. bleeding-edge) development and automated testing.
+# These packages are not otherwise intended for end-user consumption.
+# We expect to need this repo for the foreseeable future.
+# See https://build.opensuse.org/project/show/devel:kubic:libcontainers:unstable
+setup_obs kubic libcontainers unstable
+
+# OBS: FIXME! TEMPORARY! 2022-07-20! Needed because a glibc update broke criu.
+# >>> PLEASE REMOVE THIS ONCE CRIU GETS FIXED IN REGULAR UBUNTU!
+# >>> (No, I -- Ed -- have no idea how to even check that, sorry).
+# Context: https://github.com/containers/podman/pull/14972
+# Context: https://github.com/checkpoint-restore/criu/issues/1935
+setup_obs tools criu
 
 # N/B: DO NOT install the bats package on Ubuntu VMs, it's broken.
 # ref: (still open) https://bugs.launchpad.net/ubuntu/+source/bats/+bug/1882542
