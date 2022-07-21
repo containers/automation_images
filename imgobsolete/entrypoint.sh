@@ -39,9 +39,19 @@ $GCLOUD compute images list --format="$FORMAT" --filter="$FILTER" | \
         count_image
         reason=""
         created_ymd=$(date --date=$creationTimestamp --iso-8601=date)
+        permanent=$(egrep --only-matching --max-count=1 --ignore-case 'permanent=true' <<< $labels || true)
         last_used=$(egrep --only-matching --max-count=1 'last-used=[[:digit:]]+' <<< $labels || true)
 
         LABELSFX="labels: '$labels'"
+
+        # Any image marked with a `permanent=true` label should be retained forever.
+        # Typically this will be due to it's use by CI in a release-branch.  The images
+        # `repo-ref` and `build-id` labels should provide clues as to where it's
+        # required (may be multiple repos.) - for any future auditing purposes.
+        if [[ -n "$permanent" ]]; then
+            msg "Retaining forever $name | $labels"
+            continue
+        fi
 
         # No label was set
         if [[ -z "$last_used" ]]
