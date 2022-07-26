@@ -89,7 +89,7 @@ $result"
     tag=$(jq --raw-output "${prefix}.tag" <<<"$result" | sed 's/null//g')
 
     # Cirrus-CI sets `branch=pull/#` for pull-requests, dependabot creates
-    if [[ -z "$tag" && "$branch" =~ ^(v|release-)[0-9]+.* ]]; then
+    if [[ -z "$tag" && "$branch" =~ ^(v|release-)v?[0-9]+.* ]]; then
         msg "Found build $buildId for release branch '$branch'."
         return 0
     fi
