@@ -349,18 +349,25 @@ infinite-growth of the VM image count.
   VM is utilized.  It records the usage details, along with a timestamp
   into the GCE VM image "labels" (metadata).  Failure to update
   metadata is considered critical, and the task will fail to prompt
-  immediate corrective action by automation maintainers.
+  immediate corrective action by automation maintainers.  When this
+  container detects it's running on behalf of a release-branch, it
+  will make a best-effort attempt to flag all VM images for permanent
+  retention.
 
 * `imgobsolete` is triggered periodically by cirrus-cron *only* on this
   repository. It scans through all GCE VM Images, filtering any which
   haven't been used within the last 30 days (according to `imgts`
-  updated labels). Identified images are deprecated by marking them
-  `obsolete` in GCE.  This status blocks them from being used, but
-  does not actually remove them.
+  updated labels). Excluding any images which are marked for permanent
+  retention, disused images are deprecated by marking them as `obsolete`
+  in GCE.  This will cause an error in any CI run which references them.
+  The images will still be recoverable manually, using the `gcloud`
+  utility.
 
 * `imgprune` also runs periodically, immediately following `imgobsolete`.
   It scans all currently obsolete GCE images, filtering any which were
   deprecated more than 30 days ago (according to deprecation metadata).
+  It will fail with a loud error message should it encounter a image marked
+  obsolete **and** labeled for permanent retention.  Otherwise,
   Images which have been obsolete for more than 30 days, are permanently
   removed.
 

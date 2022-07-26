@@ -3,7 +3,7 @@ FROM quay.io/centos/centos:stream8
 # Only needed for installing build-time dependencies
 COPY /imgts/google-cloud-sdk.repo /etc/yum.repos.d/google-cloud-sdk.repo
 RUN dnf -y --setopt=keepcache=true update && \
-    dnf -y --setopt=keepcache=true install epel-release python3 && \
+    dnf -y --setopt=keepcache=true install epel-release python3 jq && \
     dnf -y --setopt=keepcache=true --exclude=google-cloud-sdk-366.0.0-1 \
         install google-cloud-sdk
 

@@ -39,8 +39,11 @@ $GCLOUD compute images list --show-deprecated \
     do
         count_image
         reason=""
+        permanent=$(egrep --only-matching --max-count=1 --ignore-case 'permanent=true' <<< $labels || true)
+        [[ -z "$permanent" ]] || \
+            die 1 "Refusing to delete a deprecated image labeled permanent=true.  Please use gcloud utility to set image active, then research the cause of deprecation."
         [[ "$dep_state" == "OBSOLETE" ]] || \
-            die 1 "Error: Unexpected depreciation-state encountered for $name: $dep_state; labels: $labels"
+            die 1 "Unexpected depreciation-state encountered for $name: $dep_state; labels: $labels"
         reason="Obsolete as of $del_date; labels: $labels"
         echo "$name $reason" >> $TODELETE
     done
