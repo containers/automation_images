@@ -18,13 +18,21 @@ PKGS=( \
     curl
     gawk
     git
+    jq
     openssh-client
+    python3
     py3-yaml
+    py3-pip
 )
 
 apk update
 apk upgrade
-apk add "${PKGS[@]}"
+apk add --no-cache "${PKGS[@]}"
+rm -rf /var/cache/apk/*
+
+pip3 install --upgrade pip
+pip3 install --no-cache-dir awscli
+aws --version  # Confirm it actually runs
 
 install_automation_tooling cirrus-ci_env
 
