@@ -159,8 +159,14 @@ testf "Verify init() w/ old/unsupported repo." \
 
 GOOD_TEST_REPO="$CIRRUS_WORKING_DIR/get_ci_vm/good_repo_test"
 good_repo() { NAME="foobar"; SRCDIR="$GOOD_TEST_REPO"; }
-testf "Verify init() w/ compatible repo." \
+testf "Verify init() w/ apiv1 compatible repo." \
     good_repo 0 "" \
+    init
+
+GOOD_TEST_REPO_V2="$CIRRUS_WORKING_DIR/get_ci_vm/good_repo_test_v2"
+good_repo_v2() { NAME="snafu"; SRCDIR="$GOOD_TEST_REPO_V2"; }
+testf "Verify init() w/ apiv2 compatible repo." \
+    good_repo_v2 0 "" \
     init
 
 good_init() {
@@ -169,19 +175,19 @@ good_init() {
     CIRRUS_TASK="--list"
     init
 }
-testf "Verify get_inst_image() returns expected aws task name" \
-    good_init 0 "aws_test" \
-    get_inst_image
-
 testf "Verify get_inst_image() returns expected google task name" \
     good_init 0 "google_test" \
+    get_inst_image
+
+testf "Verify get_inst_image() returns expected aws task name" \
+    good_init 0 "aws_test" \
     get_inst_image
 
 testf "Verify get_inst_image() returns expected container task name" \
     good_init 0 "container_test" \
     get_inst_image
 
-mock_gcloud() {
+mock_uninit_gcloud() {
     # Don't preserve arguments to make checking easier
     # shellcheck disable=SC2145
     echo "gcloud $@"
@@ -189,11 +195,11 @@ mock_gcloud() {
     return 0
 }
 
-mock_gcevm_init() {
+mock_uninit_gcevm() {
     NAME="foobar"
     SRCDIR="$GOOD_TEST_REPO"
     CIRRUS_TASK="google_test"
-    GCLOUD="mock_gcloud"
+    GCLOUD="mock_uninit_gcloud"
     READING_DELAY="0.1s"
     init
     get_inst_image
@@ -201,7 +207,7 @@ mock_gcevm_init() {
 
 UTC_LOCAL_TEST="-0500"
 testf "Verify mock 'gcevm' w/o creds attempts to initialize" \
-    mock_gcevm_init 1 \
+    mock_uninit_gcevm 1 \
     "WARNING:.+valid GCP credentials.+gcloud.+init.+Mock Google.+ERROR: Unable.+credentials" \
     init_gcevm
 
@@ -212,22 +218,33 @@ mock_gcloud() {
     return 0
 }
 
+mock_init_gcevm() {
+    NAME="foobar"
+    SRCDIR="$GOOD_TEST_REPO"
+    CIRRUS_TASK="google_test"
+    GCLOUD="mock_gcloud"
+    READING_DELAY="0.1s"
+    init
+    get_inst_image
+}
+
+
 UTC_LOCAL_TEST="-0000"
 testf "Verify mock 'gcevm' w/ UTC TZ initializes with delay and warning" \
-    mock_gcevm_init 0 'WARNING:.+override \$GCLOUD_ZONE to' \
+    mock_init_gcevm 0 'WARNING:.+override \$GCLOUD_ZONE to' \
     init_gcevm
 
 UTC_LOCAL_TEST="-0500"
 testf "Verify mock 'gcevm' w/ central TZ initializes as expected" \
-    mock_gcevm_init 0 "Winning lottery-number checksum: 0" \
+    mock_init_gcevm 0 "Winning lottery-number checksum: 0" \
     init_gcevm
 
 mock_gcevm_workflow() {
     init_gcevm
-    create_gcevm
+    create_vm
     make_ci_env_script
     make_setup_tarball
-    setup_gcevm
+    setup_vm
 }
 # Don't confuse the actual repo. by nesting another repo inside
 tar -xzf "$GOOD_TEST_REPO/dot_git.tar.gz" -C "$GOOD_TEST_REPO" .git
@@ -257,12 +274,58 @@ workflow_regex="\
 .*gcloud.+compute ssh.+/root/ci_env.sh.+get_ci_vm.sh --setup"
 
 testf "Verify mock 'gcevm' flavor main() workflow produces expected output" \
-    mock_gcevm_init \
+    mock_init_gcevm \
     0 "$workflow_regex" \
     mock_gcevm_workflow
 
 # prevent repo. in repo. problems + stray test files
 rm -rf "$GOOD_TEST_REPO/.git" "$GOOD_TEST_REPO/uncommited_file"
+
+mock_uninit_aws() {
+    # Don't preserve arguments to make checking easier
+    # shellcheck disable=SC2145
+    echo "aws $@"
+    cat $GOOD_TEST_REPO_V2/uninit_aws.output
+    return 1
+}
+
+mock_uninit_ec2vm() {
+    NAME="mctestface"
+    SRCDIR="$GOOD_TEST_REPO_V2"
+    CIRRUS_TASK="aws_test"
+    AWSCLI="mock_uninit_aws"
+    init
+    get_inst_image
+}
+
+testf "Verify mock 'ec2vm' w/o creds attempts to initialize" \
+    mock_uninit_ec2vm 1 \
+    "WARNING: AWS.+ssh.+initialize" \
+    init_ec2vm
+
+mock_init_aws() {
+    # Don't preserve arguments to make checking easier
+    # shellcheck disable=SC2145
+    echo "aws $@"
+    return 0
+}
+
+mock_init_ec2vm() {
+    NAME="mctestface"
+    SRCDIR="$GOOD_TEST_REPO_V2"
+    CIRRUS_TASK="aws_test"
+    AWSCLI="mock_init_aws"
+    EC2_SSH_KEY="$GOOD_TEST_REPO_V2/mock_ec2_key"
+    SSH_CMD=true
+    init
+    get_inst_image
+}
+
+testf "Verify mock initialized 'ec2vm' is satisfied with test setup" \
+    mock_init_ec2vm 0 "" \
+    init_ec2vm
+
+# TODO: Add more EC2 tests
 
 # Must be called last
 exit_with_status

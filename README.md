@@ -284,8 +284,11 @@ the following are built:
 
 * `gcsupld` image is used for publishing artifacts into google cloud storage.
 
-* `get_ci_vm` image is used indirectly from the containers-org. repositories
-  script `hack/get_ci_vm.sh` script.  It should never be used directly.
+* `get_ci_vm` image is used by the containers-org repository's
+  `hack/get_ci_vm.sh` script.  It should never be used directly.  It also
+  requires one or more special accounts to be created, therefore is limited
+  to use by Red Hat employees on an as-needed basis.  If you need access,
+  please ask a maintainer.
 
 In all cases, when automation runs on a branch (i.e. after a PR is merged)
 the actual image tagged `latest` will be pushed.  When running in a PR,
