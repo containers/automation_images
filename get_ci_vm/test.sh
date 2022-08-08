@@ -304,10 +304,15 @@ testf "Verify mock 'ec2vm' w/o creds attempts to initialize" \
     init_ec2vm
 
 mock_init_aws() {
-    # Don't preserve arguments to make checking easier
-    # shellcheck disable=SC2145
-    echo "aws $@"
-    return 0
+    # Only care if string is present
+    # shellcheck disable=SC2199
+    if [[ "$@" =~ describe-images ]]; then
+        cat $GOOD_TEST_REPO_V2/ami_search.json
+    else
+        # Don't preserve arguments to make checking easier
+        # shellcheck disable=SC2145
+        echo "aws $@"
+    fi
 }
 
 mock_init_ec2vm() {
@@ -324,6 +329,16 @@ mock_init_ec2vm() {
 testf "Verify mock initialized 'ec2vm' is satisfied with test setup" \
     mock_init_ec2vm 0 "" \
     init_ec2vm
+
+print_select_ec2_inst_image() {
+    export A_DEBUG=1
+    select_ec2_inst_image
+    echo "$INST_IMAGE"
+}
+
+testf "Verify AMI selection by name tag with from fake describe-images data" \
+    mock_init_ec2vm 0 "ami-newest" \
+    print_select_ec2_inst_image
 
 # TODO: Add more EC2 tests
 

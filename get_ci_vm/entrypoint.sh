@@ -592,6 +592,8 @@ init_ec2vm() {
     _dbg_envars INST_NAME EC2_INST_TYPE AWSCLI SSH_CMD EC2_SSH_KEY EC2_SSH_ARGS CREATE_CMD CLEANUP_CMD
     status "Confirming and/or configuring AWS access."
     if ! has_valid_aws_credentials; then setup_aws; fi
+
+    select_ec2_inst_image
 }
 
 # Updates $EC2_INST_ID on successful lookup of an ec2 instance based on its
@@ -693,6 +695,44 @@ set_ec2_dns_name() {
     # useless ID.  Force it to do anotherlookup the next time it's called.
     EC2_INST_ID=""
     return 1
+}
+
+# Cirrus-CI supports multiple methods when specifying an EC2 image
+# to use.  This function supports two of them: Either use the literal
+# "ami-*" value, or perform a search against the value as a "Name" tag.
+#  In the latter case, the newest image returned will be selected
+# and $INST_IMAGE will be updated accordingly.
+select_ec2_inst_image() {
+    req_env_vars INST_TYPE INST_IMAGE AWSCLI
+
+    # Direct image specification, nothing to do.
+    if [[ "$INST_IMAGE" =~ ^ami-.+ ]]; then return 0; fi
+
+    local _awsoutput _name_filter _result_filter
+    local -a _qcmd
+
+    dbg "Attempting to look up AMI for image name tag '$INST_IMAGE'"
+    _name_filter="Name=name,Values=$INST_IMAGE"
+    # Ignore any items not "available", reverse-sort by date, pick 1st item's AMI ID
+    _result_filter='.Images | map(select(.State == "available")) | sort_by(.CreationDate) | reverse | .[0].ImageId'
+    # Word-splitting for $AWSCLI is desired
+    # shellcheck disable=SC2206
+    _qcmd=(\
+        $AWSCLI ec2 describe-images --owners self
+        --filters "$_name_filter" --output json
+    )
+
+    # Empty $AWSCLI input to jq will NOT trigger its `-e`, so double-check.
+    if  _awsoutput=$("${_qcmd[@]}") && \
+        [[ -n "$_awsoutput" ]] && \
+        _ami_id=$(jq -r -e "$_result_filter"<<<$_awsoutput) && \
+        [[ -n "$_ami_id" ]]
+    then
+        dbg "Found AMI ID '$_ami_id' with recent name tag '$INST_IMAGE'"
+        INST_IMAGE="$_ami_id"
+    else
+        die "Could not find an available AMI with name tag '$INST_IMAGE': $_awsoutput"
+    fi
 }
 
 # GCP provides a handy wrapper for ssh and scp, for AWS it's all DIY.

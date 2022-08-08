@@ -1,0 +1,32 @@
+{
+  "Images": [
+    {
+      "CreationDate": "2022-08-30T22:22:22.000Z",
+      "ImageId": "ami-unavailable",
+      "State": "some-random-state",
+      "Name": "fedora-podman-aws-arm64-c5495735033528320"
+    },
+    {
+      "CreationDate": "2020-01-01T01:01:01.000Z",
+      "ImageId": "ami-oldest",
+      "State": "available",
+      "Name": "fedora-podman-aws-arm64-c5495735033528320"
+    },
+    {
+      "CreationDate": "2022-07-25T19:34:17.000Z",
+      "ImageId": "ami-newest",
+      "State": "available",
+      "Name": "fedora-podman-aws-arm64-c5495735033528320"
+    },
+    {
+        "key": "Garbage",
+        "val": "Junk Data"
+    },
+    {
+      "CreationDate": "2022-07-25T07:34:17.000Z",
+      "ImageId": "ami-almost-newest",
+      "State": "available",
+      "Name": "fedora-podman-aws-arm64-c5495735033528320"
+    }
+  ]
+}

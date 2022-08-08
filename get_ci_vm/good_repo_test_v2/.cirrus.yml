@@ -4,7 +4,7 @@ aws_test_task:
     env:
         EC2_INST_TYPE: bigone.supervm
     ec2_instance:
-        image: ami-1234567890
+        image: fedora-podman-aws-arm64-c5495735033528320
         type: ${EC2_INST_TYPE}
 
 google_test_task:
