@@ -750,7 +750,8 @@ _ec2_create_vm() {
   }
 }]
 EOF
-    # As above, need to spell it all out in detail because >1 tag is required. Docs:
+    # As above, need to spell it all out in detail because >1 tag is required. The
+    # tags below are all checked/enforced by custom IAM security policy. Docs:
     # https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/Using_Tags.html#Using_Tags_CLI
     cat << EOF > ${_TMPDIR}/tagspec.json
 [{
@@ -758,6 +759,9 @@ EOF
   "Tags": [{
       "Key": "Name",
       "Value": "$INST_NAME"
+    },{
+      "Key": "automation",
+      "Value": "false"
     },{
       "Key": "in-use-by",
       "Value": "$NAME"
