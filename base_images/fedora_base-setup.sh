@@ -32,6 +32,7 @@ else  # A VM
     # shellcheck disable=SC2154
     if [[ "$PACKER_BUILD_NAME" =~ "aws" ]]; then
         echo "WARN: AWS EC2 Instance Connect not supported on Fedora, use cloud-init."
+        PKGS+=(policycoreutils-python-utils policycoreutils)
     else  # GCP image
         PKGS+=(google-compute-engine-oslogin)
         if ((OS_RELEASE_VER<35)); then
@@ -75,15 +76,24 @@ if ! ((CONTAINER)); then
     # service must be labeled properly to ensure it's child processes can
     # run with the proper contexts.
     METADATA_SERVICE_CTX=unconfined_u:unconfined_r:unconfined_t:s0
-    if [[ ! "$PACKER_BUILD_NAME" =~ "aws" ]]; then  # GCP Image
+    if [[ "$PACKER_BUILD_NAME" =~ "aws" ]]; then
+        echo "Setting AWS startup service (for Cirrus-CI agent) SELinux unconfined"
+        # AWS relies on cloud-init to run a user-data startup script.  Manual
+        # observation showed this happens in the cloud-final service.
+        METADATA_SERVICE_PATH=systemd/system/cloud-final.service
+        # This is necessary to prevent permission-denied errors on service-start
+        # and also on the off-chance the package gets updated and context reset.
+        $SUDO semanage fcontext --add --type bin_t /usr/bin/cloud-init
+        $SUDO restorecon -v /usr/bin/cloud-init
+    else  # GCP Image
         echo "Setting GCP startup service (for Cirrus-CI agent) SELinux unconfined"
         # ref: https://cloud.google.com/compute/docs/startupscript
         METADATA_SERVICE_PATH=systemd/system/google-startup-scripts.service
-        echo "$sourcemsg" | $SUDO tee -a /etc/$METADATA_SERVICE_PATH
-        sed -r -e \
-            "s/^Type=oneshot/Type=oneshot\nSELinuxContext=$METADATA_SERVICE_CTX/" \
-            /lib/$METADATA_SERVICE_PATH | $SUDO tee -a /etc/$METADATA_SERVICE_PATH
     fi
+    echo "$sourcemsg" | $SUDO tee -a /etc/$METADATA_SERVICE_PATH
+    sed -r -e \
+        "s/^Type=oneshot/Type=oneshot\nSELinuxContext=$METADATA_SERVICE_CTX/" \
+        /lib/$METADATA_SERVICE_PATH | $SUDO tee -a /etc/$METADATA_SERVICE_PATH
 fi
 
 if [[ "$OS_RELEASE_ID" == "fedora" ]] && ((OS_RELEASE_VER>=33)); then
