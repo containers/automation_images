@@ -288,7 +288,8 @@ the following are built:
   `hack/get_ci_vm.sh` script.  It should never be used directly.  It also
   requires one or more special accounts to be created, therefore is limited
   to use by Red Hat employees on an as-needed basis.  If you need access,
-  please ask a maintainer.
+  please ask a maintainer.  For operational details, see [the
+  docs](get_ci_vm/README.md).
 
 In all cases, when automation runs on a branch (i.e. after a PR is merged)
 the actual image tagged `latest` will be pushed.  When running in a PR,
