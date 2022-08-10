@@ -4,6 +4,9 @@
 # entrypoint. It's purpose is to operate on a list of VM Images, adding
 # metadata to each.  It must be executed alongside any repository's
 # automation, which produces or uses GCP VM Images.
+#
+# N/B: Timestamp updating is not required for AWS EC2 images as they
+# have a 'LastLaunchedTime' attribute which is updated automatically.
 
 set -e
 

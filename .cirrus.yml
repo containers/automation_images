@@ -290,6 +290,27 @@ test_imgobsolete_task: &lifecycle_test
     script:  /usr/local/bin/entrypoint.sh;
 
 
+# Note: The production check using this container is defined in
+# .github/workflows/orphan_vms.yml because it sends e-mail.
+test_orphanvms_task:
+    <<: *lifecycle_test
+    name: "Test orphan VMs detection"
+    alias: test_orphanvms
+    skip: *ci_docs
+    container:
+        image: 'quay.io/libpod/orphanvms:c$IMG_SFX'
+        cpu: 2
+        memory: '2G'
+    env:
+        GCPJSON: ENCRYPTED[da5e70861e477e5b7e499381b90c4dfd915c91bd535e56564626565415258e42748dbf3031daf0e508647715b649aff7]
+        GCPNAME: ENCRYPTED[cfb1c7fc976ab83c8d9b32ca3fbcdf4c5bd7b11dd43ff2b8ad91685bed846e8a5502ba857a35f8128a9fba22a85384aa]
+        GCPPROJECT: 'libpod-218412'
+        GCPPROJECTS: 'libpod-218412' # value for testing, otherwise see gcpprojects.txt
+        AWSINI: ENCRYPTED[1ab89ff7bc1515dc964efe7ef6e094e01164ba8dd2e11c9a01259c6af3b3968ab841dbe473fe4ab5b573f2f5fa3653e8]
+        EVERYTHING: 1  # Alter age-limit from 3-days -> 3 seconds for a test-run.
+    script: /usr/local/bin/entrypoint.sh
+
+
 test_imgprune_task:
     <<: *lifecycle_test
     name: "Test obsolete image deletion"
@@ -409,6 +430,7 @@ success_task:
         - cache_images
         - imgts
         - test_imgobsolete
+        - test_orphanvms
         - cron_imgobsolete
         - test_imgprune
         - cron_imgprune

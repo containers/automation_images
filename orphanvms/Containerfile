@@ -1,13 +1,12 @@
 FROM imgts:latest
 
-COPY /orphanvms/entrypoint.sh /usr/local/bin/entrypoint.sh
+COPY /orphanvms/entrypoint.sh /orphanvms/_gce /orphanvms/_ec2 /usr/local/bin/
 RUN chmod 755 /usr/local/bin/entrypoint.sh
 
-# These are only needed by imgts
+# Clear unneeded requirements, add GCPPROJECTS and AWSINI as required
 ENV GCPPROJECT="" \
     IMGNAMES="" \
     BUILDID="" \
-    REPOREF=""
-
-# This is an additional requirement
-ENV GCPPROJECTS="__unknown__"
+    REPOREF="" \
+    GCPPROJECTS="__unknown__" \
+    AWSINI="__unknown__"

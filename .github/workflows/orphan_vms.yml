@@ -44,6 +44,7 @@ jobs:
                     GCPPROJECTS=$(egrep -vx '^#+.*$' $GITHUB_WORKSPACE/gcpprojects.txt | tr -s '[:space:]' ' ')
                     GCPNAME=${{ secrets.GCPNAME }}
                     GCPJSON=${{ secrets.GCPJSON }}
+                    AWSINI=${{ secrets.AWSINI }}
                 EOF
                 podman run --rm \
                     --env-file=$env_file \

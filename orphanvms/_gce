@@ -1,0 +1,52 @@
+
+
+# This script is intended to be sourced by entrypoint.sh.  It contains
+# all the Google-cloud-engine specific definitions and behaviors
+# Anything written to stdout will end up in a notification e-mail.
+
+# Try not to make any output when no orphan VMs are found
+GCLOUD="$GCLOUD --quiet --verbosity=error"
+# Format Ref: https://cloud.google.com/sdk/gcloud/reference/topic/formats
+FORMAT='value[quote](name,lastStartTimestamp,labels)'
+# Filter Ref: https://cloud.google.com/sdk/gcloud/reference/topic/filters
+# List fields cmd: `gcloud compute instances list --format=yaml --limit=1`
+FILTER="status!=TERMINATED AND lastStartTimestamp<$THRESHOLD AND labels.list(show='persistent')!~'true'"
+
+# Despite the --quiet flag, this will still emit 'Activated service account...'
+# to stdout.  Since stdout triggers the nag-email to  be sent, we must filter
+# only non-matching output.  Unfortunately, if if there is no output for some
+# reason, this will cause grep to fail.  Ignore this, since the next gcloud
+# command to follow will complain loudly if the credentials aren't sufficient.
+gcloud_init |& grep -Eiv '^Activated service account credentials for:' || true
+
+# shellcheck disable=SC2154,SC2153
+for GCPPROJECT in $GCPPROJECTS; do
+    dbg "Examining $GCPPROJECT"
+    OUTPUT=$(mktemp -p '' orphanvms_${GCPPROJECT}_XXXXX)
+    echo "Orphaned $GCPPROJECT VMs:" > $OUTPUT
+
+    # Ref: https://cloud.google.com/compute/docs/images/create-delete-deprecate-private-images#deprecating_an_image
+    $GCLOUD compute instances list --format="$FORMAT" --filter="$FILTER" | \
+        while read name lastStartTimestamp labels
+        do
+            dbg "VM $name started $lastStartTimestamp labeled $labels"
+            if [[ -z "$name" ]] || [[ -z "$lastStartTimestamp" ]]; then
+                dbg "IGNORING EMPTY NAME OR TIMESTAMP"
+                continue
+            fi
+            started_at=$(date --date=$lastStartTimestamp +%s)
+            age_days=$((($NOW - $started_at) / (60 * 60 * 24)))
+            # running in a child-process, must buffer into file.
+            line="* VM $name running $age_days days"
+            if [[ -n "$labels" ]]; then
+                line+=" with labels '$labels'"
+            fi
+            dbg "FLAGGING VM AS ORPHANED"
+            echo "$line" >> $OUTPUT
+        done
+
+    if [[ $(wc -l $OUTPUT | awk '{print $1}') -gt 1 ]]; then
+        dbg "The following will be part of a notification e-mail for ($GCPPROJECT):"
+        cat $OUTPUT
+    fi
+done
