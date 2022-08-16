@@ -27,7 +27,7 @@ EC2_QUERY="Reservations[*].Instances[*].{ID:InstanceId,TAGS:Tags,START:LaunchTim
 get_instance_tag() {
     local tag=$1
     local instance=$2
-    req_env_var tag instance
+    req_env_vars tag instance
     # Careful, there may not be any tag-list at all.
     local tag_filter=".[]? | select(.Key == \"$tag\").Value"
     local tags value

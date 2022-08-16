@@ -13,7 +13,7 @@ set -e
 # shellcheck source=./lib_entrypoint.sh
 source /usr/local/bin/lib_entrypoint.sh
 
-req_env_var GCPJSON GCPNAME GCPPROJECT IMGNAMES BUILDID REPOREF
+req_env_vars GCPJSON GCPNAME GCPPROJECT IMGNAMES BUILDID REPOREF
 
 gcloud_init
 

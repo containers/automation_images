@@ -36,7 +36,7 @@ msg() {
 
 # Pass in a list of one or more envariable names; exit non-zero with
 # helpful error message if any value is empty
-req_env_var() {
+req_env_vars() {
     for i; do
         if [[ -z "${!i}" ]]
         then
@@ -49,7 +49,7 @@ req_env_var() {
 }
 
 gcloud_init() {
-    req_env_var GCPJSON GCPPROJECT
+    req_env_vars GCPJSON GCPPROJECT
     set +xe
     if [[ -n "$1" ]] && [[ -r "$1" ]]
     then
@@ -71,7 +71,7 @@ gcloud_init() {
 }
 
 aws_init() {
-    req_env_var AWSINI
+    req_env_vars AWSINI
     set +xe
     if [[ -n "$1" ]] && [[ -r "$1" ]]
     then
