@@ -233,27 +233,30 @@ cache_images_task:
         type: application/json
 
 
-# Test both metadata addition to newly built images, and ensure container functions
-imgts_task:
-    name: "Apply new image metadata"
-    alias: imgts
-    only_if: *is_pr
-    skip: *ci_docs_tooling
+# Test metadata addition to images (built or not) to ensure container functions
+# TODO: Requires manually examining the output log to confirm operation.
+test_imgts_task: &imgts
+    name: "Test image timestamp/metadata updates"
+    alias: test_imgts
+    only_if: $CIRRUS_CRON == ''
+    skip: *ci_docs
     depends_on:
-        - base_images
-        - cache_images
+        - tooling_images
     container:
         image: 'quay.io/libpod/imgts:c$IMG_SFX'
         cpu: 2
         memory: '2G'
-    env:
-        # Not all $IMGNAMES may have been built, don't fail if some are missing
-        REQUIRE_ALL: 0  # This should ONLY be set `0` on this repository!
+    env: &imgts_env
+        DRY_RUN: 1  # Don't actually touch images
         BUILDID: "$CIRRUS_BUILD_ID"
         REPOREF: "$CIRRUS_REPO_NAME"
-        GCPJSON: ENCRYPTED[112c55192dba9a7edd1889a7e704aa1e6ae40730b97ad8ebcbae2bb5f4ff84c7e9ca5b955baaf1f69e7b9e5c5a14a4d3]
-        GCPNAME: ENCRYPTED[93cad237544dbbd663874e6896cd9c50a708e87d2cd40724c8b6c18237f4e2d40fd5e3c4a1fdbf7dafac3ceadf69a1c1]
-        GCPPROJECT: 'libpod-218412'
+        GCPJSON: "gobldygook"
+        GCPNAME: "TestyMcTestface"
+        GCPPROJECT: "Amazon-web-services"
+        AWSINI: "Bill Gates"
+        # This task is just a test, but were images actually built
+        # the `imgts_task` below will re-use these names and actually
+        # attempt to update them.
         IMGNAMES: |
             image-builder-${IMG_SFX}
             fedora-b${IMG_SFX}
@@ -265,8 +268,37 @@ imgts_task:
             fedora-podman-py-c${IMG_SFX}
             ubuntu-c${IMG_SFX}
             build-push-c${IMG_SFX}
+        EC2IMGNAMES: |
+            fedora-aws-b${IMG_SFX}
+            fedora-aws-c${IMG_SFX}
+            fedora-aws-arm64-b${IMG_SFX}
+            fedora-podman-aws-arm64-c${IMG_SFX}
+            fedora-netavark-aws-arm64-c${IMG_SFX}
     clone_script: &noop mkdir -p "${CIRRUS_WORKING_DIR}"  # source is not needed
     script: "/usr/local/bin/entrypoint.sh"
+
+
+# Actual metadata update to any built images
+imgts_task:
+    <<: *imgts
+    name: "Update image timestamp/metadata"
+    alias: imgts
+    only_if: *is_pr
+    skip: *ci_docs_tooling
+    depends_on:
+        - base_images
+        - cache_images
+    env:
+        <<: *imgts_env
+        DRY_RUN: 0
+        # Not all $IMGNAMES may have been built, don't fail if some are missing
+        # This should ONLY be set `0` on this repository!  There may be
+        # zero or more no_FOO labels on the PR to block building certain images.
+        REQUIRE_ALL: 0  # This should ONLY be set `0` on this repository!
+        GCPJSON: ENCRYPTED[112c55192dba9a7edd1889a7e704aa1e6ae40730b97ad8ebcbae2bb5f4ff84c7e9ca5b955baaf1f69e7b9e5c5a14a4d3]
+        GCPNAME: ENCRYPTED[93cad237544dbbd663874e6896cd9c50a708e87d2cd40724c8b6c18237f4e2d40fd5e3c4a1fdbf7dafac3ceadf69a1c1]
+        GCPPROJECT: 'libpod-218412'
+        AWSINI: ENCRYPTED[406795b7eee55fcedde37e0b4d7a5070f447f7dc9d8d6c4a1eec0d2592aa94b019b45b730ba1a2acb1a1ef0040561e2b]
 
 
 test_imgobsolete_task: &lifecycle_test
@@ -428,6 +460,7 @@ success_task:
         - tooling_images
         - base_images
         - cache_images
+        - test_imgts
         - imgts
         - test_imgobsolete
         - test_orphanvms
