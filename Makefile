@@ -293,7 +293,7 @@ $(_TEMPDIR)/gcsupld.tar: $(_TEMPDIR)/imgts.tar imgts/lib_entrypoint.sh gcsupld/C
 
 .PHONY: orphanvms
 orphanvms: $(_TEMPDIR)/orphanvms.tar  ## Build the Orphaned VM container image
-$(_TEMPDIR)/orphanvms.tar: $(_TEMPDIR)/imgts.tar imgts/lib_entrypoint.sh orphanvms/Containerfile orphanvms/entrypoint.sh $(_TEMPDIR)/.cache/centos
+$(_TEMPDIR)/orphanvms.tar: $(_TEMPDIR)/imgts.tar imgts/lib_entrypoint.sh orphanvms/Containerfile orphanvms/entrypoint.sh orphanvms/_gce orphanvms/_ec2 $(_TEMPDIR)/.cache/centos
 	$(call imgts_base_podman_build,orphanvms)
 
 .PHONY: .get_ci_vm

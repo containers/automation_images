@@ -9,6 +9,8 @@ SENTINEL="__unknown__"  # default set in dockerfile
 # Disable all input prompts
 # https://cloud.google.com/sdk/docs/scripting-gcloud
 GCLOUD="gcloud --quiet"
+# https://docs.aws.amazon.com/cli/latest/userguide/cli-configure-options.html#cli-configure-options-list
+AWS="aws --cli-connect-timeout 30 --cli-read-timeout 30 --no-cli-auto-prompt --no-cli-pager --no-paginate"
 
 die() {
     EXIT=$1
@@ -59,11 +61,28 @@ gcloud_init() {
         # shellcheck disable=SC2154
         echo "$GCPJSON" > $TMPF
     fi
+    unset GCPJSON
     # Required variable must be set by caller
     # shellcheck disable=SC2154
     $GCLOUD auth activate-service-account --project="$GCPPROJECT" --key-file="$TMPF" || \
         die 5 "Authentication error, please verify \$GCPJSON contents"
     rm -f $TMPF &> /dev/null || true  # ignore any read-only error
+    trap - EXIT
+}
+
+aws_init() {
+    req_env_var AWSINI
+    set +xe
+    if [[ -n "$1" ]] && [[ -r "$1" ]]
+    then
+        TMPF="$1"
+    else
+        TMPF=$(mktemp -p '' .$(uuidgen)_XXXX.ini)
+    fi
+    # shellcheck disable=SC2154
+    echo "$AWSINI" > $TMPF
+    unset AWSINI
+    export AWS_SHARED_CREDENTIALS_FILE=$TMPF
 }
 
 # Obsolete and Prune search-loops runs in a sub-process,
