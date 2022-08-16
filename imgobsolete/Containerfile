@@ -3,7 +3,8 @@ FROM imgts:latest
 COPY /imgobsolete/entrypoint.sh /usr/local/bin/entrypoint.sh
 RUN chmod 755 /usr/local/bin/entrypoint.sh
 
-# These are only needed by imgts
-ENV IMGNAMES="" \
+# Env. vars set to "__unknown__" are required to be set by the caller
+ENV AWSINI="__unknown__" \
+    IMGNAMES="" \
     BUILDID="" \
     REPOREF=""

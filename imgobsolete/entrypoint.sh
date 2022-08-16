@@ -11,7 +11,7 @@ set -e
 # shellcheck source=imgts/lib_entrypoint.sh
 source /usr/local/bin/lib_entrypoint.sh
 
-req_env_vars GCPJSON GCPNAME GCPPROJECT
+req_env_vars GCPJSON GCPNAME GCPPROJECT AWSINI
 
 gcloud_init
 
@@ -19,8 +19,9 @@ gcloud_init
 DRY_RUN="${DRY_RUN:-0}"
 OBSOLETE_LIMIT=10
 THEFUTURE=$(date --date='+1 hour' +%s)
-TOO_OLD='30 days ago'
-THRESHOLD=$(date --date="$TOO_OLD" +%s)
+TOO_OLD_DAYS='30'
+TOO_OLD_DESC="$TOO_OLD_DAYS days ago"
+THRESHOLD=$(date --date="$TOO_OLD_DESC" +%s)
 # Format Ref: https://cloud.google.com/sdk/gcloud/reference/topic/formats
 FORMAT='value[quote](name,selfLink,creationTimestamp,status,labels)'
 # Required variable set by caller
@@ -28,10 +29,10 @@ FORMAT='value[quote](name,selfLink,creationTimestamp,status,labels)'
 PROJRE="/v1/projects/$GCPPROJECT/global/"
 # Filter Ref: https://cloud.google.com/sdk/gcloud/reference/topic/filters
 # shellcheck disable=SC2154
-FILTER="selfLink~$PROJRE AND creationTimestamp<$(date --date="$TOO_OLD" --iso-8601=date)"
+FILTER="selfLink~$PROJRE AND creationTimestamp<$(date --date="$TOO_OLD_DESC" --iso-8601=date)"
 TOOBSOLETE=$(mktemp -p '' toobsolete.XXXXXX)
 
-msg "Searching images for candidates using filter:${NOR} $FILTER"
+msg "${RED}Searching GCP images for candidates using filter: $FILTER"
 # Ref: https://cloud.google.com/compute/docs/images/create-delete-deprecate-private-images#deprecating_an_image
 $GCLOUD compute images list --format="$FORMAT" --filter="$FILTER" | \
     while read name selfLink creationTimestamp status labels
@@ -57,7 +58,7 @@ $GCLOUD compute images list --format="$FORMAT" --filter="$FILTER" | \
         if [[ -z "$last_used" ]]
         then # image lacks any tracking labels
             reason="Missing 'last-used' metadata; $LABELSFX"
-            echo "$name $reason" >> $TOOBSOLETE
+            echo "GCP $name $reason" >> $TOOBSOLETE
             continue
         fi
 
@@ -68,40 +69,141 @@ $GCLOUD compute images list --format="$FORMAT" --filter="$FILTER" | \
            [[ "$last_used_timestamp" -ge "$THEFUTURE" ]]
         then
             reason="Missing/invalid last-used timestamp: '$last_used_timestamp'; $LABELSFX"
-            echo "$name $reason" >> $TOOBSOLETE
+            echo "GCP $name $reason" >> $TOOBSOLETE
             continue
         fi
 
         # Image is actually too old
         if [[ "$last_used_timestamp" -le $THRESHOLD ]]
         then
-            reason="Used over $TOO_OLD on $last_used_ymd; $LABELSFX"
-            echo "$name $reason" >> $TOOBSOLETE
+            reason="Used over $TOO_OLD_DESC on $last_used_ymd; $LABELSFX"
+            echo "GCP $name $reason" >> $TOOBSOLETE
             continue
         fi
 
         msg "Retaining $name | $created_ymd | $status | $labels"
     done
 
+
+msg "${RED}Searching for obsolete EC2 images unused as of: ${NOR}$TOO_OLD_DESC"
+aws_init
+
+# The AWS cli returns a huge blob of data we mostly don't need.
+# Use query statement to simplify the results.  N/B: The get_tag_value()
+# function expects to find a "TAGS" item w/ list value.
+ami_query='Images[*].{ID:ImageId,CREATED:CreationDate,STATE:State,TAGS:Tags}'
+all_amis=$($AWS ec2 describe-images --owners self --query "$ami_query")
+nr_amis=$(jq -r -e length<<<"$all_amis")
+
+# For whatever reason, the last time the image was used is not
+# provided in 'aws ec2 describe-images...' result, a separate
+# command must be used.  For images without any `lastLaunchedTime`
+# (lower-case l) attribute, the simple --query will return an
+# empty-value and zero-exit instead of an absent key.
+# N/B: The result data uses `LastLaunchedTime` (upper-case L) because
+# AWS loves to keep us on our toes.
+lltcmd=(\
+     aws ec2 describe-image-attribute --attribute lastLaunchedTime
+     --query "LastLaunchedTime" --image-id
+)
+
+req_env_vars all_amis nr_amis
+for (( i=nr_amis ; i ; i-- )); do
+    unset ami ami_id state created created_ymd name name_tag
+    ami=$(jq -r -e ".[$((i-1))]"<<<"$all_amis")
+    ami_id=$(jq -r -e ".ID"<<<"$ami")
+    state=$(jq -r -e ".STATE"<<<"$ami")
+    created=$(jq -r -e ".CREATED"<<<"$ami")
+    created_ymd=$(date --date="$created" --iso-8601=date)
+    # The name-tag is easier on human eys if on is set.
+    name="$ami_id"
+    if name_tag=$(get_tag_value "Name" "$ami"); then
+        name="$name_tag"
+    fi
+
+    unset tags
+    for tag in permanent build-id repo-ref automation; do
+        if [[ -z "$tags" ]]; then
+            tags="$tag="
+        else
+            tags+=",$tag="
+        fi
+
+        unset tagval
+        if tagval=$(get_tag_value "$tag" "$ami"); then
+            tags+="$tagval"
+        fi
+    done
+
+    unset automation permanent reason
+    automation=$(egrep --only-matching --max-count=1 \
+                 --ignore-case 'automation=true' <<< $tags || true)
+    permanent=$(egrep --only-matching --max-count=1 \
+                --ignore-case 'permanent=true' <<< $tags || true)
+
+    if [[ -n "$permanent" ]]; then
+        msg "Retaining forever $name | $tags"
+        continue
+    fi
+
+    # For IAM (security) policy, an "automation" tag is always required
+    if [[ -z "$automation" ]]
+    then
+        reason="Missing 'automation' metadata; Tags: $tags"
+        echo "EC2 $name $reason" >> $TOOBSOLETE
+        continue
+    fi
+
+    unset lltvalue last_used_timestamp last_used_ymd
+    if lltvalue=$("${lltcmd[@]}" $ami_id | jq -r -e ".Value") && [[ -n "$lltvalue" ]]; then
+        last_used_timestamp=$(date --date="$lltvalue" +%s)
+        last_used_ymd=$(date --date="@$last_used_timestamp" --iso-8601=date)
+        tags+=",lastLaunchedTime=$last_used_ymd"
+    else
+        reason="Missing 'lastLaunchedTime' metadata; Tags: $tags"
+        echo "EC2 $name $reason" >> $TOOBSOLETE
+        continue
+    fi
+
+    if [[ "$last_used_timestamp" -le $THRESHOLD ]]; then
+        reason="Used over $TOO_OLD_DESC on $last_used_ymd; Tags: $tags"
+        echo "EC2 $ami_id $reason" >> $TOOBSOLETE
+        continue
+    else
+        msg "Retaining $name | $created_ymd | $state | $tags"
+    fi
+done
+
 COUNT=$(<"$IMGCOUNT")
 msg "########################################################################"
 msg "Obsoleting $OBSOLETE_LIMIT random images of $COUNT examined:"
 
-# Require a minimum number of images to exist
+# Require a minimum number of images to exist.  Also if there is some
+# horrible scripting accident, this limits the blast-radius.
 if [[ "$COUNT" -lt $OBSOLETE_LIMIT ]]
 then
     die 0 "Safety-net Insufficient images ($COUNT) to process ($OBSOLETE_LIMIT required)"
 fi
 
 sort --random-sort $TOOBSOLETE | tail -$OBSOLETE_LIMIT | \
-    while read -r image_name reason; do
+    while read -r cloud image_name reason; do
 
-    msg "Obsoleting $image_name:${NOR} $reason"
+    msg "Obsoleting $cloud image $image_name:${NOR} $reason"
     if ((DRY_RUN)); then
-        msg "Dry-run: No changes made"
-    else
+        msg "    Dry-run: No changes made"
+    elif [[ "$cloud" == "GCP" ]]; then
         # Ref: https://cloud.google.com/compute/docs/images/create-delete-deprecate-private-images#deprecating_an_image
         # Note: --delete-in creates deprecated.delete(from imgobsolete container)
-        $GCLOUD compute images deprecate $image_name --state=OBSOLETE --delete-in=30d
+        # The imgprune container is required to actually delete the image.
+        $GCLOUD compute images deprecate $image_name --state=OBSOLETE \
+            --delete-in="${TOO_OLD_DAYS}d"
+    elif [[ "$cloud" == "EC2" ]]; then
+        # Note: Image will be automatically deleted in 30 days unless manual
+        # intervention performed. The imgprune container is NOT used for AWS
+        # image pruning!
+        $AWS ec2 enable-image-deprecation --image-id "$image_name" \
+            --deprecate-at $(date --utc --date "+$TOO_OLD_DAYS days" --iso-8601=date)
+    else
+        die 1 "Unknown/Unsupported cloud '$cloud' record encountered in \$TOOBSOLETE file"
     fi
 done
