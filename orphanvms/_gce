@@ -20,10 +20,10 @@ FILTER="status!=TERMINATED AND lastStartTimestamp<$THRESHOLD AND labels.list(sho
 gcloud_init |& grep -Eiv '^Activated service account credentials for:' || true
 
 # shellcheck disable=SC2154,SC2153
-for GCPPROJECT in $GCPPROJECTS; do
-    dbg "Examining $GCPPROJECT"
-    OUTPUT=$(mktemp -p '' orphanvms_${GCPPROJECT}_XXXXX)
-    echo "Orphaned $GCPPROJECT VMs:" > $OUTPUT
+for gcpproject in $gcpprojectS; do
+    dbg "Examining $gcpproject"
+    OUTPUT=$(mktemp -p '' orphanvms_${gcpproject}_XXXXX)
+    echo "Orphaned $gcpproject VMs:" > $OUTPUT
 
     # Ref: https://cloud.google.com/compute/docs/images/create-delete-deprecate-private-images#deprecating_an_image
     $GCLOUD compute instances list --format="$FORMAT" --filter="$FILTER" | \
@@ -46,7 +46,7 @@ for GCPPROJECT in $GCPPROJECTS; do
         done
 
     if [[ $(wc -l $OUTPUT | awk '{print $1}') -gt 1 ]]; then
-        dbg "The following will be part of a notification e-mail for ($GCPPROJECT):"
+        dbg "The following will be part of a notification e-mail for ($gcpproject):"
         cat $OUTPUT
     fi
 done

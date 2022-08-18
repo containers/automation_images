@@ -4,8 +4,7 @@ COPY /orphanvms/entrypoint.sh /orphanvms/_gce /orphanvms/_ec2 /usr/local/bin/
 RUN chmod 755 /usr/local/bin/entrypoint.sh
 
 # Clear unneeded requirements, add GCPPROJECTS and AWSINI as required
-ENV GCPPROJECT="" \
-    IMGNAMES="" \
+ENV IMGNAMES="" \
     BUILDID="" \
     REPOREF="" \
     GCPPROJECTS="__unknown__" \
