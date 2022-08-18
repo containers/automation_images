@@ -44,8 +44,9 @@ jobs:
               run: |
                 export GCPNAME GCPJSON AWSINI
                 export GCPPROJECTS=$(egrep -vx '^#+.*$' $GITHUB_WORKSPACE/gcpprojects.txt | tr -s '[:space:]' ' ')
-                podman run --rm \
-                    -e GCPNAME -e GCPJSON -e AWSINI -e GCPPROJECTS \
+                # TODO: `--env-host` is probably over-sharing, use `-e VAR` form
+                # when runner supports newer podman version than 3.4.4
+                podman run --rm --env-host \
                     quay.io/libpod/orphanvms:latest \
                     > tee /tmp/orphanvms_output.txt
 
