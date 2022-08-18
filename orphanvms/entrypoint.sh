@@ -13,7 +13,7 @@ source /usr/local/bin/lib_entrypoint.sh
 A_DEBUG="${A_DEBUG:-0}"
 if ((A_DEBUG)); then msg "Warning: Debugging is enabled"; fi
 
-req_env_var GCPJSON GCPNAME GCPPROJECTS AWSINI
+req_env_var GCPJSON GCPNAME GCPPROJECT GCPPROJECTS AWSINI
 
 NOW=$(date +%s)
 TOO_OLD='3 days ago'  # Detect Friday Orphans on Monday
