@@ -37,22 +37,31 @@ jobs:
                   persist-credentials: false
 
             - name: Collect listing of orphaned VMs
+              env:
+                GCPNAME: ${{ secrets.GCPNAME }}
+                GCPJSON: ${{ secrets.GCPJSON }}
+                AWSINI: ${{ secrets.AWSINI }}
+              run: |
+                export GCPNAME GCPJSON AWSINI
+                export GCPPROJECTS=$(egrep -vx '^#+.*$' $GITHUB_WORKSPACE/gcpprojects.txt | tr -s '[:space:]' ' ')
+                podman run --rm \
+                    -e GCPNAME -e GCPJSON -e AWSINI -e GCPPROJECTS \
+                    quay.io/libpod/orphanvms:latest \
+                    > tee /tmp/orphanvms_output.txt
+
+            - if: always()
+              uses: actions/upload-artifact@v2
+              with:
+                  name: orphanvms_output
+                  path: /tmp/orphanvms_output.txt
+
+            - name: Count number of orphaned VMs
               id: orphans
               run: |
-                env_file=$(mktemp -p '' env_file_XXXXXXXX)
-                cat << EOF >> $env_file
-                    GCPPROJECTS=$(egrep -vx '^#+.*$' $GITHUB_WORKSPACE/gcpprojects.txt | tr -s '[:space:]' ' ')
-                    GCPNAME=${{ secrets.GCPNAME }}
-                    GCPJSON=${{ secrets.GCPJSON }}
-                    AWSINI=${{ secrets.AWSINI }}
-                EOF
-                podman run --rm \
-                    --env-file=$env_file \
-                    quay.io/libpod/orphanvms:latest \
-                    | tee /tmp/output.txt
-
-                printf "::set-output name=count::%d\n" \
-                    $(egrep -x '\* VM .+' /tmp/output.txt | wc -l - | awk '{print $1}')
+                count=$(egrep -x '\* VM .+' /tmp/orphanvms_output.txt | wc -l)
+                # Assist with debugging job (step-outputs are otherwise hidden)
+                printf "Orphan VMs count:%d\n" $count
+                printf "::set-output name=count::%d\n" $count
 
             - if: steps.orphans.outputs.count > 0
               shell: bash
@@ -82,12 +91,6 @@ jobs:
                 to: ${{env.RCPTCSV}}
                 from: ${{ secrets.ACTION_MAIL_SENDER }}
                 body: file:///tmp/email_body.txt
-
-            - if: always()
-              uses: actions/upload-artifact@v2
-              with:
-                  name: ${{ github.job }}_artifacts
-                  path: /tmp/output.txt
 
             - if: failure()
               name: Send error notification e-mail
