@@ -37,13 +37,16 @@ jobs:
                   persist-credentials: false
 
             - name: Collect listing of orphaned VMs
+              env:
+                GCPNAME: ${{ secrets.GCPNAME }}
+                GCPJSON: ${{ secrets.GCPJSON }}
+                AWSINI: ${{ secrets.AWSINI }}
               run: |
-                GCPPROJECTS=$(egrep -vx '^#+.*$' $GITHUB_WORKSPACE/gcpprojects.txt | tr -s '[:space:]' ' ')
-                podman run --rm \
-                    -e "GCPNAME=${{ secrets.GCPNAME }}" \
-                    -e "GCPJSON=${{ secrets.GCPJSON }}" \
-                    -e "AWSINI=${{ secrets.AWSINI }}" \
-                    -e "GCPPROJECTS=$GCPPROJECTS" \
+                export GCPNAME GCPJSON AWSINI
+                export GCPPROJECTS=$(egrep -vx '^#+.*$' $GITHUB_WORKSPACE/gcpprojects.txt | tr -s '[:space:]' ' ')
+                # TODO: `--env-host` is probably over-sharing, use `-e VAR` form
+                # when runner supports newer podman version than 3.4.4
+                podman run --rm --env-host \
                     quay.io/libpod/orphanvms:latest \
                     > tee /tmp/orphanvms_output.txt
 
