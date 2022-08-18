@@ -48,7 +48,7 @@ jobs:
                 podman run --rm \
                     -e GCPNAME -e GCPJSON -e AWSINI -e GCPPROJECT -e GCPPROJECTS \
                     quay.io/libpod/orphanvms:latest \
-                    > tee /tmp/orphanvms_output.txt
+                    > /tmp/orphanvms_output.txt
 
             - if: always()
               uses: actions/upload-artifact@v2
