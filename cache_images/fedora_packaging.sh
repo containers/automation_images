@@ -124,6 +124,7 @@ INSTALL_PACKAGES=(\
     python3-PyYAML
     python3-coverage
     python3-dateutil
+    python3-devel
     python3-docker
     python3-fixtures
     python3-libselinux
@@ -177,11 +178,7 @@ fi
 # Download these package files, but don't install them; Any tests
 # wishing to, may install them using their native tools at runtime.
 DOWNLOAD_PACKAGES=(\
-    oci-umount
     parallel
-    podman-docker
-    podman-plugins
-    podman-gvproxy
     python3-pytest
     python3-virtualenv
 )
