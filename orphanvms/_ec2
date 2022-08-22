@@ -22,26 +22,6 @@ EC2_FILTER="Name=instance-state-name,Values=running"
 # Help cut down the amount of crap we need to stort through.
 EC2_QUERY="Reservations[*].Instances[*].{ID:InstanceId,TAGS:Tags,START:LaunchTime}"
 
-# Prints the value of a tag if it exists, otherwise prints nothing and returns 1.
-# First arg is the tag name, second arg is one instance object formed by $EC2_QUERY
-get_instance_tag() {
-    local tag=$1
-    local instance=$2
-    req_env_vars tag instance
-    # Careful, there may not be any tag-list at all.
-    local tag_filter=".[]? | select(.Key == \"$tag\").Value"
-    local tags value
-
-    if tags=$(jq -e ".TAGS?"<<<"$instance"); then
-        # All tags are optional, the one we're looking for may not be set
-        if value=$(jq -e -r "$tag_filter"<<<"$tags") && [[ -n "$value" ]]; then
-            printf "$value"
-            return 0
-        fi
-    fi
-    return 1
-}
-
 echo "Orphaned AWS EC2 VMs:" > $OUTPUT
 
 # Returns an empty list when nothing is found, otherwise returns items indicated
@@ -62,7 +42,7 @@ for instance_index in $(seq 1 $(jq -e 'length'<<<"$simple_inst_list")); do
     instance=$(jq -e ".[$instance_index - 1]"<<<"$simple_inst_list")
     # A Name-tag isn't guaranteed, default to stupid, unreadable, generated ID
     name=$(jq -r ".ID"<<<"$instance")
-    if name_tag=$(get_instance_tag "Name" "$instance"); then
+    if name_tag=$(get_tag_value "Name" "$instance"); then
         # This is MUCH more human-friendly and easier to find in the WebUI.
         # If it was an instance leaked by Cirrus-CI, it may even include the
         # task number which leaked it.
@@ -84,7 +64,7 @@ for instance_index in $(seq 1 $(jq -e 'length'<<<"$simple_inst_list")); do
 
     dbg "Examining EC2 instance '$name', '$age_days' days old"
 
-    if [[ $(get_instance_tag "persistent" "$instance" || true) == "true" ]]; then
+    if [[ $(get_tag_value "persistent" "$instance" || true) == "true" ]]; then
         dbg "Found instance '$name' marked persistent=true, ignoring it."
         continue
     fi
@@ -94,7 +74,7 @@ for instance_index in $(seq 1 $(jq -e 'length'<<<"$simple_inst_list")); do
     # It would be nice to list all the tags like we do for GCE VMs,
     # but it's a PITA to do for AWS in a human-readable format.
     # Only print this handy-one (set by get_ci_vm) if it's there.
-    if inuseby_tag=$(get_instance_tag "in-use-by" "$instance"); then
+    if inuseby_tag=$(get_tag_value "in-use-by" "$instance"); then
         dbg "Found instance '$name' tagged in-use-by=$inuseby_tag."
         line+=" tagged in-use-by=$inuseby_tag"
     fi
