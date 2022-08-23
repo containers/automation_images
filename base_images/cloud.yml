@@ -33,12 +33,12 @@ variables:  # Empty value means it must be passed in on command-line
     # N/B: There are Fedora-Cloud...GCP.tar.gz images available, however
     #      as of this comment, they lack the cloud-init package which is
     #      required by GCP for startup resizing of the rootfs.
-    FEDORA_CSUM_URL: "https://dl.fedoraproject.org/pub/fedora/linux/releases/36/Cloud/x86_64/images/Fedora-Cloud-36-1.5-x86_64-CHECKSUM"
-    FEDORA_IMAGE_URL: "https://dl.fedoraproject.org/pub/fedora/linux/releases/36/Cloud/x86_64/images/Fedora-Cloud-Base-36-1.5.x86_64.qcow2"
+    FEDORA_CSUM_URL: "https://dl.fedoraproject.org/pub/fedora/linux/development/37/Cloud/x86_64/images/Fedora-Cloud-37-x86_64-20220823.n.0-CHECKSUM"
+    FEDORA_IMAGE_URL: "https://dl.fedoraproject.org/pub/fedora/linux/development/37/Cloud/x86_64/images/Fedora-Cloud-Base-37-20220823.n.0.x86_64.qcow2"
 
     # Prior Fedora release
-    PRIOR_FEDORA_CSUM_URL: "https://dl.fedoraproject.org/pub/fedora/linux/releases/35/Cloud/x86_64/images/Fedora-Cloud-35-1.2-x86_64-CHECKSUM"
-    PRIOR_FEDORA_IMAGE_URL: "https://dl.fedoraproject.org/pub/fedora/linux/releases/35/Cloud/x86_64/images/Fedora-Cloud-Base-35-1.2.x86_64.qcow2"
+    PRIOR_FEDORA_CSUM_URL: "https://dl.fedoraproject.org/pub/fedora/linux/releases/36/Cloud/x86_64/images/Fedora-Cloud-36-1.5-x86_64-CHECKSUM"
+    PRIOR_FEDORA_IMAGE_URL: "https://dl.fedoraproject.org/pub/fedora/linux/releases/36/Cloud/x86_64/images/Fedora-Cloud-Base-36-1.5.x86_64.qcow2"
 
 
 builders:
