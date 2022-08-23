@@ -14,6 +14,9 @@ variables:
     # N/B: There are length/character limitations in GCE for image names
     IMG_SFX: '{{ timestamp }}'
 
+    # The CentOS Stream release number
+    CENTOS_STREAM_RELEASE: "{{env `CENTOS_STREAM_RELEASE`}}"
+
     # Allows providing handy cross-reference to the build log
     CIRRUS_TASK_ID: "{{env `CIRRUS_TASK_ID`}}"
 
@@ -22,16 +25,17 @@ builders:
     - name: 'image-builder'
       type: 'googlecompute'
       source_image_project_id: 'centos-cloud'
-      source_image_family: 'centos-stream-8'
+      source_image_family: 'centos-stream-{{user `CENTOS_STREAM_RELEASE`}}'
       image_name: '{{build_name}}-{{user `IMG_SFX`}}'  # output image name
       image_family: '{{build_name}}'  # output family name for image
+      image_description: 'Built in https://cirrus-ci.com/task/{{user `CIRRUS_TASK_ID`}}'
       project_id: '{{user `GCP_PROJECT_ID`}}'
       account_file: '{{user `GAC_FILEPATH`}}'
       zone: 'us-central1-a'
       disk_size: 20
       labels:  # For the VM
         sfx: '{{user `IMG_SFX`}}'
-        src: 'centos-8'
+        src: 'centos-stream-{{user `CENTOS_STREAM_RELEASE`}}'
       disable_default_service_account: true  # deny unnecessary access to GCE
       ssh_username: packer  # arbitrary, packer will create & setup
       # Required to enable nested-virtualization when using this image (later)

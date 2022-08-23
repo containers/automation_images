@@ -13,6 +13,23 @@ export_full = $(eval export $(if $(call err_if_empty,$(1)),$(1)))
 # Evaluate to the value of $(1) if $(CI) is the literal string "true", else $(2)
 if_ci_else = $(if $(findstring true,$(CI)),$(1),$(2))
 
+##### Important image release and source details #####
+
+export CENTOS_STREAM_RELEASE = 8
+
+export FEDORA_RELEASE = 36
+export FEDORA_IMAGE_URL = https://dl.fedoraproject.org/pub/fedora/linux/releases/36/Cloud/x86_64/images/Fedora-Cloud-Base-36-1.5.x86_64.qcow2
+export FEDORA_CSUM_URL = https://dl.fedoraproject.org/pub/fedora/linux/releases/36/Cloud/x86_64/images/Fedora-Cloud-36-1.5-x86_64-CHECKSUM
+export FEDORA_AMI = ami-08b7bda26f4071b80
+export FEDORA_ARM64_AMI = ami-01925eb0821988986
+
+export PRIOR_FEDORA_RELEASE = 35
+export PRIOR_FEDORA_IMAGE_URL = https://dl.fedoraproject.org/pub/fedora/linux/releases/35/Cloud/x86_64/images/Fedora-Cloud-Base-35-1.2.x86_64.qcow2
+export PRIOR_FEDORA_CSUM_URL = https://dl.fedoraproject.org/pub/fedora/linux/releases/35/Cloud/x86_64/images/Fedora-Cloud-35-1.2-x86_64-CHECKSUM
+
+export UBUNTU_RELEASE = 22.04
+export UBUNTU_BASE_FAMILY = ubuntu-2204-lts
+
 ##### Important Paths and variables #####
 
 # Most targets require possession of service-account credentials (JSON file)
@@ -74,6 +91,10 @@ override _HLPFMT = "%-20s %s\n"
 # N/B: There are length/character limitations in GCE for image names
 IMG_SFX ?=
 
+# Env. vars needed by packer
+export CHECKPOINT_DISABLE = 1  # Disable hashicorp phone-home
+export PACKER_CACHE_DIR = $(call err_if_empty,_TEMPDIR)
+
 ##### Targets #####
 
 # N/B: The double-# after targets is gawk'd out as the target description
@@ -105,6 +126,7 @@ define podman_build
 		--security-opt seccomp=unconfined \
 		-v $(_TEMPDIR)/.cache/$(4):/var/cache/dnf:Z \
 		-v $(_TEMPDIR)/.cache/$(4):/var/cache/apt:Z \
+		--build-arg CENTOS_STREAM_RELEASE=$(CENTOS_STREAM_RELEASE) \
 		--build-arg PACKER_VERSION=$(call err_if_empty,PACKER_VERSION) \
 		-f $(3)/Containerfile .
 	rm -f $(1)
@@ -159,19 +181,19 @@ $(_TEMPDIR)/user-data: $(_TEMPDIR) $(_TEMPDIR)/cidata.ssh.pub $(_TEMPDIR)/cidata
 .PHONY: cidata
 cidata: $(_TEMPDIR)/user-data $(_TEMPDIR)/meta-data
 
-# First argument is the path to the template JSON, second
-# argument is the path to AWS_SHARED_CREDENTIALS_FILE
-# when required.  N/B: GAC_FILEPATH is always required.
+define build_podman_container
+	$(MAKE) $(_TEMPDIR)/$(1).tar BASE_TAG=$(2)
+endef
+
+# First argument is the path to the template JSON
 define packer_build
-	env PACKER_CACHE_DIR="$(_TEMPDIR)" \
-		AWS_SHARED_CREDENTIALS_FILE="$(2)" \
+	env AWS_SHARED_CREDENTIALS_FILE="$(call err_if_empty,AWS_SHARED_CREDENTIALS_FILE)" \
 		GAC_FILEPATH="$(call err_if_empty,GAC_FILEPATH)" \
-		CHECKPOINT_DISABLE=1 \
 			$(PACKER_INSTALL_DIR)/packer build \
 			-force \
 			-var TEMPDIR="$(_TEMPDIR)" \
+			-var IMG_SFX="$(call err_if_empty,IMG_SFX)" \
 			$(if $(PACKER_BUILDS),-only=$(PACKER_BUILDS)) \
-			$(if $(IMG_SFX),-var IMG_SFX=$(IMG_SFX)) \
 			$(if $(DEBUG_NESTED_VM),-var TTYDEV=$(shell tty),-var TTYDEV=/dev/null) \
 			$(if $(PACKER_BUILD_ARGS),$(PACKER_BUILD_ARGS)) \
 			$(1)
@@ -180,7 +202,7 @@ endef
 .PHONY: image_builder
 image_builder: image_builder/manifest.json ## Create image-building image and import into GCE (needed for making all other images)
 image_builder/manifest.json: image_builder/gce.json image_builder/setup.sh lib.sh systemd_banish.sh $(PACKER_INSTALL_DIR)/packer
-	$(call packer_build,$<,)
+	$(call packer_build,image_builder/gce.json)
 
 # Note: We assume this repo is checked out somewhere under the caller's
 # home-dir for bind-mounting purposes.  Otherwise possibly necessary
@@ -209,31 +231,24 @@ $(_TEMPDIR)/image_builder_debug.tar: $(_TEMPDIR)/.cache/centos $(wildcard image_
 base_images: base_images/manifest.json ## Create, prepare, and import base-level images into GCE.  Optionally, set PACKER_BUILDS=<csv> to select builder(s).
 
 base_images/manifest.json: base_images/cloud.json $(wildcard base_images/*.sh) cidata $(_TEMPDIR)/cidata.ssh $(PACKER_INSTALL_DIR)/packer
-	$(call packer_build,base_images/cloud.json,$(call err_if_empty,AWS_SHARED_CREDENTIALS_FILE))
+	$(call packer_build,base_images/cloud.json)
 
 .PHONY: cache_images
 cache_images: cache_images/manifest.json ## Create, prepare, and import top-level images into GCE.  Optionally, set PACKER_BUILDS=<csv> to select builder(s).
 cache_images/manifest.json: cache_images/cloud.json $(wildcard cache_images/*.sh) $(PACKER_INSTALL_DIR)/packer
-	$(call packer_build,cache_images/cloud.json,$(call err_if_empty,AWS_SHARED_CREDENTIALS_FILE))
-
-override _fedora_podman_release := $(file < podman/fedora_release)
-override _prior-fedora_podman_release := $(file < podman/prior-fedora_release)
-override _ubuntu_podman_release := $(file < podman/ubuntu_release)
-define build_podman_container
-	$(MAKE) $(_TEMPDIR)/$(1).tar BASE_TAG=$(_$(1)_release)
-endef
+	$(call packer_build,cache_images/cloud.json)
 
 .PHONY: fedora_podman
 fedora_podman:  ## Build Fedora podman development container
-	$(call build_podman_container,$@,fedora)
+	$(call build_podman_container,$@,$(FEDORA_RELEASE))
 
 .PHONY: prior-fedora_podman
 prior-fedora_podman:  ## Build Prior-Fedora podman development container
-	$(call build_podman_container,$@,prior-fedora)
+	$(call build_podman_container,$@,$(PRIOR_FEDORA_RELEASE))
 
 .PHONY: ubuntu_podman
 ubuntu_podman:  ## Build Ubuntu podman development container
-	$(call build_podman_container,$@,ubuntu)
+	$(call build_podman_container,$@,$(UBUNTU_RELEASE))
 
 $(_TEMPDIR)/%_podman.tar: podman/Containerfile podman/setup.sh $(wildcard base_images/*.sh) $(wildcard cache_images/*.sh) $(_TEMPDIR)/.cache/%
 	podman build -t $*_podman:$(call err_if_empty,IMG_SFX) \
@@ -249,10 +264,10 @@ $(_TEMPDIR)/%_podman.tar: podman/Containerfile podman/setup.sh $(wildcard base_i
 
 .PHONY: skopeo_cidev
 skopeo_cidev: $(_TEMPDIR)/skopeo_cidev.tar  ## Build Skopeo development and CI container
-$(_TEMPDIR)/skopeo_cidev.tar: podman/fedora_release $(wildcard skopeo_base/*) $(_TEMPDIR)/.cache/fedora
+$(_TEMPDIR)/skopeo_cidev.tar: $(wildcard skopeo_base/*) $(_TEMPDIR)/.cache/fedora
 	podman build -t skopeo_cidev:$(call err_if_empty,IMG_SFX) \
 		--security-opt seccomp=unconfined \
-		--build-arg=BASE_TAG=$(_fedora_podman_release) \
+		--build-arg=BASE_TAG=$(FEDORA_RELEASE) \
 		-v $(_TEMPDIR)/.cache/fedora:/var/cache/dnf:Z \
 		skopeo_cidev
 	rm -f $@
@@ -263,7 +278,7 @@ ccia: $(_TEMPDIR)/ccia.tar  ## Build the Cirrus-CI Artifacts container image
 $(_TEMPDIR)/ccia.tar: ccia/Containerfile
 	podman build -t ccia:$(call err_if_empty,IMG_SFX) \
 		--security-opt seccomp=unconfined \
-		--build-arg=BASE_TAG=$(_fedora_podman_release) \
+		--build-arg=BASE_TAG=$(FEDORA_RELEASE) \
 		ccia
 	rm -f $@
 	podman save --quiet -o $@ ccia:$(IMG_SFX)

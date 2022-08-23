@@ -16,6 +16,11 @@ variables:  # Empty value means it must be passed in on command-line
     # Allows providing handy cross-reference to the build log
     CIRRUS_TASK_ID: "{{env `CIRRUS_TASK_ID`}}"
 
+    # See Makefile for definitions
+    FEDORA_RELEASE: "{{env `FEDORA_RELEASE`}}"
+    PRIOR_FEDORA_RELEASE: "{{env `PRIOR_FEDORA_RELEASE`}}"
+    UBUNTU_RELEASE: "{{env `UBUNTU_RELEASE`}}"
+
 builders:
     - &gce_hosted_image
       name: 'ubuntu'
@@ -25,14 +30,16 @@ builders:
       # Prefix IMG_SFX with "c" so this is never confused with a base_image name
       image_name: '{{ build_name }}-c{{user `IMG_SFX`}}'
       image_family: '{{ build_name }}-cache'
+      image_description: 'Built in https://cirrus-ci.com/task/{{user `CIRRUS_TASK_ID`}}'
       project_id: '{{user `GCP_PROJECT_ID`}}'
       account_file: '{{user `GAC_FILEPATH`}}'
       zone: 'us-central1-a'
       disk_size: 20  # REQUIRED: Runtime allocation > this value
       disable_default_service_account: true
-      labels:  # For the VM
+      labels: &gce_labels # For the VM
         sfx: '{{user `IMG_SFX`}}'
         src: '{{ build_name }}-b{{user `IMG_SFX` }}'
+        release: 'ubuntu-{{user `UBUNTU_RELEASE` | clean_resource_name}}'
         stage: cache
       ssh_username: packer  # arbitrary, packer will create & setup w/ temp. keypair
       ssh_pty: 'true'
@@ -43,15 +50,20 @@ builders:
 
     - <<: *gce_hosted_image
       name: 'fedora'
+      labels: &fedora_gce_labels
+        <<: *gce_labels
+        release: 'fedora-{{user `FEDORA_RELEASE`}}'
 
     - <<: *gce_hosted_image
       name: 'prior-fedora'
+      labels: *fedora_gce_labels
 
     - &aux_fed_img
       <<: *gce_hosted_image
       name: 'build-push'
       source_image: 'fedora-b{{user `IMG_SFX`}}'
       source_image_family: 'fedora-base'
+      labels: *fedora_gce_labels
 
     - <<: *aux_fed_img
       name: 'fedora-podman-py'
@@ -92,7 +104,7 @@ builders:
       security_group_id: "sg-042c75677872ef81c"
       # Prefix IMG_SFX with "b" so this is never confused with a cache_image
       ami_name: '{{build_name}}-c{{user `IMG_SFX`}}'
-      ami_description: 'Built in https://cirrus-ci.com/build/{{user `IMG_SFX`}}'
+      ami_description: 'Built in https://cirrus-ci.com/task/{{user `CIRRUS_TASK_ID`}}'
       ebs_optimized: true
       launch_block_device_mappings:
         - device_name: '/dev/sda1'
@@ -100,7 +112,7 @@ builders:
           volume_type: 'gp2'
           delete_on_termination: true
       # These are critical and used by security-polciy to enforce instance launch limits.
-      tags: &tags
+      tags: &ami_tags
         # EC2 expects "Name" tag to be capitalized
         Name: '{{build_name}}-c{{user `IMG_SFX`}}'
         sfx: '{{user `IMG_SFX`}}'
@@ -108,9 +120,10 @@ builders:
         automation: 'true'
         stage: 'cache'
         arch: 'x86_64'
-      run_tags: *tags
-      run_volume_tags: *tags
-      snapshot_tags: *tags
+        release: 'fedora-{{user `FEDORA_RELEASE`}}'
+      run_tags: *ami_tags
+      run_volume_tags: *ami_tags
+      snapshot_tags: *ami_tags
       # Also required to make AMI private
       ami_users:
         - *accountid
@@ -131,7 +144,7 @@ builders:
             name: 'fedora-aws-arm64-b{{user `IMG_SFX`}}'
       instance_type: 't4g.medium'  # arm64 type
       tags: &netavark_tags
-        <<: *tags
+        <<: *ami_tags
         Name: '{{build_name}}-c{{user `IMG_SFX`}}'
         arch: 'arm64'
       run_tags: *netavark_tags
@@ -149,7 +162,7 @@ builders:
             name: 'fedora-aws-arm64-b{{user `IMG_SFX`}}'
       instance_type: 't4g.medium'  # arm64 type
       tags: &podman_tags
-        <<: *tags
+        <<: *ami_tags
         Name: '{{build_name}}-c{{user `IMG_SFX`}}'
         arch: 'arm64'
       run_tags: *podman_tags
