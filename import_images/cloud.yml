@@ -1,0 +1,94 @@
+---
+
+# This Packer template is used to import images into AWS EC2.  Since
+# this must happen in a `post-processor`, it must occur before the
+# regular base_images/cloud.yml template is used.
+
+variables:  # Empty value means it must be passed in on command-line
+    # Required for 'make clean' support and not clobbering a memory-backed /tmp
+    TEMPDIR:
+    # Naming suffix for images to prevent clashes
+    IMG_SFX:
+
+    # Allows providing handy cross-reference to the build log
+    CIRRUS_TASK_ID: "{{env `CIRRUS_TASK_ID`}}"
+
+    # See image_info.yml
+    FEDORA_RELEASE: "{{env `FEDORA_RELEASE`}}"
+    FEDORA_IMAGE_URL: "{{env `FEDORA_IMAGE_URL`}}"
+    FEDORA_CSUM_URL: "{{env `FEDORA_CSUM_URL`}}"
+    FEDORA_ARM64_IMAGE_URL: "{{env `FEDORA_ARM64_IMAGE_URL`}}"
+    FEDORA_ARM64_CSUM_URL: "{{env `FEDORA_ARM64_CSUM_URL`}}"
+
+    IMAGE_IMPORT_FORMAT: "vhdx"
+
+builders:
+    - name: 'fedora-aws'
+      type: "null"
+      communicator: "none"
+
+    - name: 'fedora-aws-arm64'
+      type: "null"
+      communicator: "none"
+
+provisioners:
+    - only: ['fedora-aws']
+      type: "shell-local"
+      inline:
+        - set -e
+        - >-
+            bash "{{ pwd }}/import_images/handle_image.sh"
+            "{{user `TEMPDIR`}}/{{build_name}}.{{user `IMAGE_IMPORT_FORMAT`}}"
+            "{{user `FEDORA_IMAGE_URL`}}"
+            "{{user `FEDORA_CSUM_URL`}}"
+
+    - only: ['fedora-aws-arm64']
+      type: "shell-local"
+      inline:
+        - set -e
+        - >-
+            bash "{{ pwd }}/import_images/handle_image.sh"
+            "{{user `TEMPDIR`}}/{{build_name}}.{{user `IMAGE_IMPORT_FORMAT`}}"
+            "{{user `FEDORA_ARM64_IMAGE_URL`}}"
+            "{{user `FEDORA_ARM64_CSUM_URL`}}"
+
+post-processors:
+    # Must be double-nested to guarantee execution order
+    - - only: ['fedora-aws', 'fedora-aws-arm64']
+        type: 'artifice'
+        keep_input_artifact: false
+        files: ['{{user `TEMPDIR`}}/{{build_name}}.{{user `IMAGE_IMPORT_FORMAT`}}']
+      # N/B: This is a PITA to setup.  It will fail if vmimport role and policy
+      # don't exist.  Docs:
+      # https://docs.aws.amazon.com/vm-import/latest/userguide/required-permissions.html
+      - &aws
+        only: ['fedora-aws']
+        type: 'amazon-import'
+        region: 'us-east-1'
+        s3_bucket_name: packer-image-import
+        ami_description: 'Imported by https://cirrus-ci.com/build/{{user `IMG_SFX`}}'
+        ami_users: ["449134212816"]
+        ami_name: &ami_name "{{build_name}}-i{{user `IMG_SFX`}}"
+        boot_mode: "uefi"
+        format: "{{user `IMAGE_IMPORT_FORMAT`}}"
+        keep_input_artifact: false
+        tags: &aws_tags
+          Name: *ami_name
+          sfx: '{{user `IMG_SFX`}}'
+          automation: 'true'
+          stage: 'import'
+          arch: 'x86_64'
+          release: 'fedora-{{user `FEDORA_RELEASE`}}'
+      - <<: *aws
+        only: ['fedora-aws-arm64']
+        architecture: 'arm64'
+        tags:
+          <<: *aws_tags
+          arch: 'arm64'
+      - type: 'manifest'
+        output: 'import_images/manifest.json'  # Collected by Cirrus-CI
+        strip_path: true
+        custom_data:
+            IMG_SFX: '{{ user `IMG_SFX` }}'
+            STAGE: "import"
+            TASK: '{{user `CIRRUS_TASK_ID`}}'

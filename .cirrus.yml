@@ -9,7 +9,7 @@ env:
     # No need to go crazy, but grab enough to cover most PRs
     CIRRUS_CLONE_DEPTH: 50
     # Version of packer to use when building images
-    PACKER_VERSION: &PACKER_VERSION "1.8.0"
+    PACKER_VERSION: &PACKER_VERSION "1.8.3"
     # Unique suffix label to use for all images produced by _this_ run (build)
     IMG_SFX: "${CIRRUS_BUILD_ID}"
 
@@ -32,6 +32,7 @@ validate_task:
         - "make clean"
         - "make help"
         - "make image_builder/gce.json"
+        - "make import_images/cloud.json"
         - "make base_images/cloud.json"
         - "make cache_images/cloud.json"
 
@@ -49,7 +50,7 @@ image_builder_task:
     auto_cancellation: $CI != "true"
     stateful: true
     timeout_in: 40m
-    container:
+    container: &image_builder_container
         dockerfile: "image_builder/Containerfile"
         cpu: 2
         memory: "2G"
@@ -60,8 +61,7 @@ image_builder_task:
       # Google Application Credentials (JSON) with access to create VM images
       GAC_JSON: ENCRYPTED[7fba7fb26ab568ae39f799ab58a476123206576b0135b3d1019117c6d682391370c801e149f29324ff4b50133012aed9]
       AWS_SHARED_CREDENTIALS_FILE: notused
-
-    script: "ci/make_image_builder.sh"
+    script: "ci/make.sh image_builder"
     manifest_artifacts:
         path: image_builder/manifest.json
         type: application/json
@@ -133,14 +133,43 @@ tooling_images_task:
         fingerprint_key: "tooling-cache-version-1"
 
 
+import_images_task:
+    name: "Import upstream Fedora images"
+    alias: "import_images"
+    only_if: *is_pr
+    skip: *ci_docs_tooling
+    depends_on:
+        - container_images
+        - image_builder
+    # Packer needs time to clean up partially created VM images
+    auto_cancellation: $CI != "true"
+    stateful: true
+    timeout_in: 30m
+    container: *image_builder_container
+    matrix:
+        - &import_image
+          name: "${PACKER_BUILDS} Import Image"
+          env:
+            PACKER_BUILDS: "fedora-aws"
+        - <<: *import_image
+          env:
+            PACKER_BUILDS: "fedora-aws-arm64"
+    env:
+      AWS_INI: &aws_ini ENCRYPTED[4cd69097cd29a9899e51acf3bbacceeb83cb5c907d272ca1e2a8ccd515b03f2368a0680870c0d120fc32bc578bb0a930]
+      GAC_JSON: &gac_json ENCRYPTED[7fba7fb26ab568ae39f799ab58a476123206576b0135b3d1019117c6d682391370c801e149f29324ff4b50133012aed9]
+    script: "ci/make.sh import_images"
+    manifest_artifacts:
+        path: import_images/manifest.json
+        type: application/json
+
+
 base_images_task:
     name: "Build VM Base-images"
     alias: "base_images"
     only_if: *is_pr
     skip: *ci_docs_tooling
     depends_on:
-        - container_images
-        - image_builder
+        - import_images
     # Packer needs time to clean up partially created VM images
     auto_cancellation: $CI != "true"
     stateful: true
@@ -170,9 +199,9 @@ base_images_task:
           env:
             PACKER_BUILDS: "ubuntu"
     env:
-      GAC_JSON: ENCRYPTED[7fba7fb26ab568ae39f799ab58a476123206576b0135b3d1019117c6d682391370c801e149f29324ff4b50133012aed9]
-      AWS_INI: ENCRYPTED[4cd69097cd29a9899e51acf3bbacceeb83cb5c907d272ca1e2a8ccd515b03f2368a0680870c0d120fc32bc578bb0a930]
-    script: "ci/make_base_images.sh"
+      GAC_JSON: *gac_json
+      AWS_INI: *aws_ini
+    script: "ci/make.sh base_images"
     manifest_artifacts:
         path: base_images/manifest.json
         type: application/json
@@ -226,9 +255,9 @@ cache_images_task:
           env:
             PACKER_BUILDS: "ubuntu"
     env:
-      GAC_JSON: ENCRYPTED[7fba7fb26ab568ae39f799ab58a476123206576b0135b3d1019117c6d682391370c801e149f29324ff4b50133012aed9]
-      AWS_INI: ENCRYPTED[4cd69097cd29a9899e51acf3bbacceeb83cb5c907d272ca1e2a8ccd515b03f2368a0680870c0d120fc32bc578bb0a930]
-    script: "ci/make_cache_images.sh"
+      GAC_JSON: *gac_json
+      AWS_INI: *aws_ini
+    script: "ci/make.sh cache_images"
     manifest_artifacts:
         path: cache_images/manifest.json
         type: application/json
@@ -460,6 +489,7 @@ success_task:
         - image_builder
         - container_images
         - tooling_images
+        - import_images
         - base_images
         - cache_images
         - test_imgts

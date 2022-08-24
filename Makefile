@@ -17,15 +17,18 @@ if_ci_else = $(if $(findstring true,$(CI)),$(1),$(2))
 
 export CENTOS_STREAM_RELEASE = 8
 
-export FEDORA_RELEASE = 36
-export FEDORA_IMAGE_URL = https://dl.fedoraproject.org/pub/fedora/linux/releases/36/Cloud/x86_64/images/Fedora-Cloud-Base-36-1.5.x86_64.qcow2
-export FEDORA_CSUM_URL = https://dl.fedoraproject.org/pub/fedora/linux/releases/36/Cloud/x86_64/images/Fedora-Cloud-36-1.5-x86_64-CHECKSUM
-export FEDORA_AMI = ami-08b7bda26f4071b80
-export FEDORA_ARM64_AMI = ami-01925eb0821988986
+# QCOW2 Image URLs and CHECKSUM files
+# Ref: https://dl.fedoraproject.org/pub/fedora/linux/
 
-export PRIOR_FEDORA_RELEASE = 35
-export PRIOR_FEDORA_IMAGE_URL = https://dl.fedoraproject.org/pub/fedora/linux/releases/35/Cloud/x86_64/images/Fedora-Cloud-Base-35-1.2.x86_64.qcow2
-export PRIOR_FEDORA_CSUM_URL = https://dl.fedoraproject.org/pub/fedora/linux/releases/35/Cloud/x86_64/images/Fedora-Cloud-35-1.2-x86_64-CHECKSUM
+export FEDORA_RELEASE = 37
+export FEDORA_IMAGE_URL = https://dl.fedoraproject.org/pub/fedora/linux/development/37/Cloud/x86_64/images/Fedora-Cloud-Base-37-20220909.n.0.x86_64.qcow2
+export FEDORA_CSUM_URL = https://dl.fedoraproject.org/pub/fedora/linux/development/37/Cloud/x86_64/images/Fedora-Cloud-37-x86_64-20220909.n.0-CHECKSUM
+export FEDORA_ARM64_IMAGE_URL = https://dl.fedoraproject.org/pub/fedora/linux/development/37/Cloud/aarch64/images/Fedora-Cloud-Base-37-20220909.n.0.aarch64.qcow2
+export FEDORA_ARM64_CSUM_URL = https://dl.fedoraproject.org/pub/fedora/linux/development/37/Cloud/aarch64/images/Fedora-Cloud-37-aarch64-20220909.n.0-CHECKSUM
+
+export PRIOR_FEDORA_RELEASE = 36
+export PRIOR_FEDORA_IMAGE_URL = https://dl.fedoraproject.org/pub/fedora/linux/releases/36/Cloud/x86_64/images/Fedora-Cloud-Base-36-1.5.x86_64.qcow2
+export PRIOR_FEDORA_CSUM_URL = https://dl.fedoraproject.org/pub/fedora/linux/releases/36/Cloud/x86_64/images/Fedora-Cloud-36-1.5-x86_64-CHECKSUM
 
 export UBUNTU_RELEASE = 22.04
 export UBUNTU_BASE_FAMILY = ubuntu-2204-lts
@@ -226,15 +229,21 @@ image_builder_debug: $(_TEMPDIR)/image_builder_debug.tar ## Build and enter cont
 $(_TEMPDIR)/image_builder_debug.tar: $(_TEMPDIR)/.cache/centos $(wildcard image_builder/*)
 	$(call podman_build,$@,image_builder_debug,image_builder,centos)
 
+.PHONY: import_images
+import_images: import_images/manifest.json ## Import generic Fedora cloud images into AWS EC2.
+
+import_images/manifest.json: import_images/cloud.json $(PACKER_INSTALL_DIR)/packer
+	$(call packer_build,import_images/cloud.json,$(call err_if_empty,AWS_SHARED_CREDENTIALS_FILE))
+
 .PHONY: base_images
 # This needs to run in a virt/nested-virt capable environment
-base_images: base_images/manifest.json ## Create, prepare, and import base-level images into GCE.  Optionally, set PACKER_BUILDS=<csv> to select builder(s).
+base_images: base_images/manifest.json ## Create, prepare, and import base-level images into GCE.
 
 base_images/manifest.json: base_images/cloud.json $(wildcard base_images/*.sh) cidata $(_TEMPDIR)/cidata.ssh $(PACKER_INSTALL_DIR)/packer
 	$(call packer_build,base_images/cloud.json)
 
 .PHONY: cache_images
-cache_images: cache_images/manifest.json ## Create, prepare, and import top-level images into GCE.  Optionally, set PACKER_BUILDS=<csv> to select builder(s).
+cache_images: cache_images/manifest.json ## Create, prepare, and import top-level images into GCE.
 cache_images/manifest.json: cache_images/cloud.json $(wildcard cache_images/*.sh) $(PACKER_INSTALL_DIR)/packer
 	$(call packer_build,cache_images/cloud.json)
 
@@ -327,5 +336,5 @@ $(_TEMPDIR)/get_ci_vm.tar: lib.sh get_ci_vm/Containerfile get_ci_vm/entrypoint.s
 clean: ## Remove all generated files referenced in this Makefile
 	-rm -rf $(_TEMPDIR)
 	-rm -f image_builder/*.json
-	-rm -f base_images/{*.json,cidata*,*-data}
+	-rm -f *_images/{*.json,cidata*,*-data}
 	-rm -f ci_debug.tar
