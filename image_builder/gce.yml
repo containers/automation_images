@@ -14,6 +14,9 @@ variables:
     # N/B: There are length/character limitations in GCE for image names
     IMG_SFX: '{{ timestamp }}'
 
+    # Allows providing handy cross-reference to the build log
+    CIRRUS_TASK_ID: "{{env `CIRRUS_TASK_ID`}}"
+
 
 builders:
     - name: 'image-builder'
@@ -56,3 +59,5 @@ post-processors:
         strip_path: true
         custom_data:
             IMG_SFX: '{{ user `IMG_SFX` }}'
+            STAGE: "base"
+            TASK: '{{user `CIRRUS_TASK_ID`}}'
