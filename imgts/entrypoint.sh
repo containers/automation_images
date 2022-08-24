@@ -3,19 +3,19 @@
 # This script is set as, and intended to run as the `imgts` container's
 # entrypoint. It's purpose is to operate on a list of VM Images, adding
 # metadata to each.  It must be executed alongside any repository's
-# automation, which produces or uses GCP VM Images.
+# automation, which produces or uses GCP VMs and/or AWS EC2 instances.
 #
 # N/B: Timestamp updating is not required for AWS EC2 images as they
 # have a 'LastLaunchedTime' attribute which is updated automatically.
+# However, updating their permanent=true tag (when appropriate) and
+# a reference to the build ID and repo name are all useful.
 
 set -e
 
-# shellcheck source=./lib_entrypoint.sh
+# shellcheck source=imgts/lib_entrypoint.sh
 source /usr/local/bin/lib_entrypoint.sh
 
-req_env_var GCPJSON GCPNAME GCPPROJECT IMGNAMES BUILDID REPOREF
-
-gcloud_init
+req_env_vars GCPJSON GCPNAME GCPPROJECT IMGNAMES BUILDID REPOREF
 
 # Set this to 1 for testing
 DRY_RUN="${DRY_RUN:-0}"
@@ -107,14 +107,21 @@ if is_release_branch_image $BUILDID; then
     SET_PERM=1
 fi
 
-if ((DRY_RUN)); then GCLOUD='echo'; fi
+if ((DRY_RUN)); then
+    GCLOUD="echo $GCLOUD"
+    AWS="echo $AWS"
+    DRPREFIX="DRY-RUN: "
+else
+    # This outputs a status message to stderr
+    gcloud_init
+fi
 
 # Must be defined by the cirrus-ci job using the container
 # shellcheck disable=SC2154
 for image in $IMGNAMES
 do
     if ! OUTPUT=$($GCLOUD compute images update "$image" "${ARGS[@]}" 2>&1); then
-        echo "$OUTPUT" > /dev/stderr
+        msg "$OUTPUT"
         if grep -iq "$CLASHMSG" <<<"$OUTPUT"; then
             # Updating the 'last-used' label is most important.
             # Assume clashing update did this for us.
@@ -122,16 +129,60 @@ do
             continue
         fi
         msg "Detected update error for '$image'" > /dev/stderr
-        ERRIMGS="$ERRIMGS $image"
+        ERRIMGS+=" $image"
     else
         # Display the URI to the updated image for reference
         if ((SET_PERM)); then
-            msg "IMAGE $image MARKED FOR PERMANENT RETENTION"
+            msg "${DRPREFIX}IMAGE $image MARKED FOR PERMANENT RETENTION"
         else
-            echo "Updated image $image last-used timestamp"
+            msg "${DRPREFIX}Updated image $image last-used timestamp"
         fi
     fi
 done
+
+# Not all repos use EC2 instances, only touch AWS if both
+# EC2IMGNAMES and AWSINI are set.
+if [[ -n "$EC2IMGNAMES" ]]; then
+    msg "---"
+    req_env_vars AWSINI BUILDID REPOREF
+
+    if ! ((DRY_RUN)); then
+        aws_init
+        # aws_init() has no output because that would break in other contexts.
+        msg "Activated AWS CLI for service acount."
+    fi
+
+    for image in $EC2IMGNAMES; do
+        if ((DRY_RUN)); then
+            # AWS=echo; no lookup will actually happen
+            amiid="dry-run-$image"
+        elif ! amiid=$(get_ec2_ami "$image"); then
+            ERRIMGS+=" $image"
+            continue
+        fi
+
+        # AWS deliberately left unquoted for intentional word-splitting.
+        # N/B: For $DRY_RUN==1: AWS=echo
+        # shellcheck disable=SC2206
+        awscmd=(\
+            $AWS ec2 create-tags
+            --resources "$amiid" --tags
+            "Key=build-id,Value=$BUILDID"
+            "Key=repo-ref,Value=$REPOREF"
+        )
+        if ((SET_PERM)); then
+            awscmd+=("Key=permanent,Value=true")
+        fi
+
+        if ! OUTPUT=$("${awscmd[@]}"); then
+            ERRIMGS+=" $image"
+        elif ((SET_PERM)); then
+            msg "${DRPREFIX}IMAGE $image ($amiid) MARKED FOR PERMANENT RETENTION"
+        else
+            msg "${DRPREFIX}Updated image $image ($amiid) metadata."
+        fi
+    done
+fi
 
 if [[ -n "$ERRIMGS" ]]; then
     die_or_warn=die

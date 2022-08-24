@@ -11,7 +11,7 @@ set -e
 # shellcheck source=imgts/lib_entrypoint.sh
 source /usr/local/bin/lib_entrypoint.sh
 
-req_env_var GCPJSON GCPNAME GCPPROJECT
+req_env_vars GCPJSON GCPNAME GCPPROJECT
 
 gcloud_init
 

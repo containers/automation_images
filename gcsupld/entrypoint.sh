@@ -10,7 +10,7 @@ set -eo pipefail
 # shellcheck source=imgts/lib_entrypoint.sh
 source /usr/local/bin/lib_entrypoint.sh
 
-req_env_var GCPJSON GCPNAME GCPPROJECT FROM_FILEPATH TO_GCSURI
+req_env_vars GCPJSON GCPNAME GCPPROJECT FROM_FILEPATH TO_GCSURI
 
 # shellcheck disable=SC2154
 msg "Will upload '$FROM_FILEPATH' to '$TO_GCSURI'"

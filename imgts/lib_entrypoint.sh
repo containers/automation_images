@@ -10,7 +10,7 @@ SENTINEL="__unknown__"  # default set in dockerfile
 # https://cloud.google.com/sdk/docs/scripting-gcloud
 GCLOUD="gcloud --quiet"
 # https://docs.aws.amazon.com/cli/latest/userguide/cli-configure-options.html#cli-configure-options-list
-AWS="aws --cli-connect-timeout 30 --cli-read-timeout 30 --no-cli-auto-prompt --no-cli-pager --no-paginate"
+AWS="aws --cli-connect-timeout 30 --cli-read-timeout 30 --no-paginate"
 
 die() {
     EXIT=$1
@@ -36,7 +36,7 @@ msg() {
 
 # Pass in a list of one or more envariable names; exit non-zero with
 # helpful error message if any value is empty
-req_env_var() {
+req_env_vars() {
     for i; do
         if [[ -z "${!i}" ]]
         then
@@ -49,7 +49,7 @@ req_env_var() {
 }
 
 gcloud_init() {
-    req_env_var GCPJSON GCPPROJECT
+    req_env_vars GCPJSON GCPPROJECT
     set +xe
     if [[ -n "$1" ]] && [[ -r "$1" ]]
     then
@@ -71,7 +71,7 @@ gcloud_init() {
 }
 
 aws_init() {
-    req_env_var AWSINI
+    req_env_vars AWSINI
     set +xe
     if [[ -n "$1" ]] && [[ -r "$1" ]]
     then
@@ -94,4 +94,41 @@ count_image() {
     count=$(<"$IMGCOUNT")
     let 'count+=1'
     echo "$count" > "$IMGCOUNT"
+}
+
+# Cirrus-CI supports multiple methods when specifying an EC2 image
+# to use.  This function supports either of them as its only argument:
+# Either a literal "ami-*" value, or the value of a "Name" tag to
+# search for.  In the former-case, the "ami-*" value will simply
+# be printed to stdout.  In the latter case, the newest image
+# found by a name-tag search will be printed to stdout.
+get_ec2_ami() {
+    local image="$1"
+    local _awsoutput _name_filter _result_filter
+    local -a _awscmd
+
+    _name_filter="Name=name,Values='$image'"
+    _result_filter='.Images | map(select(.State == "available")) | sort_by(.CreationDate) | reverse | .[0].ImageId'
+    # Word-splitting for $AWS is desired
+    # shellcheck disable=SC2206
+    _awscmd=(\
+        $AWS ec2 describe-images --owners self
+        --filters "$_name_filter" --output json
+    )
+
+    req_env_vars image AWS
+
+    # Direct image specification, nothing to do.
+    if [[ "$image" =~ ^ami-.+ ]]; then printf "$image"; return 0; fi
+
+    # Empty $AWSCLI input to jq will NOT trigger its `-e`, so double-check.
+    if  _awsoutput=$("${_awscmd[@]}") && [[ -n "$_awsoutput" ]] && \
+        _ami_id=$(jq -r -e "$_result_filter"<<<$_awsoutput) && \
+        [[ -n "$_ami_id" ]]
+    then
+        printf "$_ami_id"
+    else
+        warn "Could not find an available AMI with name-tag '$image': $_awsoutput"
+        return 1
+    fi
 }
