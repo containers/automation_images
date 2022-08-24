@@ -14,6 +14,9 @@ variables:  # Empty value means it must be passed in on command-line
     # Naming suffix for images to prevent clashes
     IMG_SFX:
 
+    # Allows providing handy cross-reference to the build log
+    CIRRUS_TASK_ID: "{{env `CIRRUS_TASK_ID`}}"
+
     # BIG-FAT-WARNING:  When updating the image names and/or URLs below,
     # ensure the distro version numbers contained in the `podman/*_release`
     # files exactly match.  These represent the container base-image tags
@@ -230,3 +233,4 @@ post-processors:
         custom_data:
             IMG_SFX: '{{ user `IMG_SFX` }}'
             STAGE: base
+            TASK: '{{user `CIRRUS_TASK_ID`}}'

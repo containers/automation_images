@@ -13,6 +13,8 @@ variables:  # Empty value means it must be passed in on command-line
     # Required path to service account credentials file
     GAC_FILEPATH: "{{env `GAC_FILEPATH`}}"
 
+    # Allows providing handy cross-reference to the build log
+    CIRRUS_TASK_ID: "{{env `CIRRUS_TASK_ID`}}"
 
 builders:
     - &gce_hosted_image
@@ -185,3 +187,4 @@ post-processors:
         custom_data:
             IMG_SFX: '{{ user `IMG_SFX` }}'
             STAGE: 'cache'
+            TASK: '{{user `CIRRUS_TASK_ID`}}'

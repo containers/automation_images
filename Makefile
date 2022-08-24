@@ -20,6 +20,9 @@ if_ci_else = $(if $(findstring true,$(CI)),$(1),$(2))
 # VM images, and storage objects.
 export GAC_FILEPATH
 
+# When operating under Cirrus-CI, provide access to this for child processes
+export CIRRUS_TASK_ID
+
 # Ditto for AWS credentials (INI file) with access to create VMs and images.
 # ref: https://docs.aws.amazon.com/cli/latest/userguide/cli-configure-files.html#cli-configure-files-where
 export AWS_SHARED_CREDENTIALS_FILE
