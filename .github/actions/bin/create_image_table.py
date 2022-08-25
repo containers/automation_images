@@ -4,13 +4,15 @@
 
 # Note: This script is exclusively intended to be used by the
 # pr_image_id.yml github-actions workflow.  Any use outside that
-# context is unlikely to function as intended
+# context is unlikely to function as intended.
 
 import json
 import os
 
 if "GITHUB_ENV" not in os.environ:
     raise KeyError("Error: $GITHUB_ENV is undefined.")
+
+cirrus_ci_build_id = ""
 
 # File written by a previous workflow step
 with open("/tmp/built_images.json") as bij:
@@ -24,6 +26,8 @@ with open("/tmp/built_images.json") as bij:
         image_suffix = f'{stage[0]}{sfx}'
         data.append(dict(stage=stage, name=name,
             image_suffix=image_suffix, task=task))
+        if ! len(cirrus_ci_build_id):
+            cirrus_ci_build_id = sfx
 
 url='https://cirrus-ci.com/task'
 lines=[]
@@ -37,9 +41,9 @@ for item in data:
 # value to be consumed by future workflow steps.
 with open(os.environ["GITHUB_ENV"], "a") as ghenv:
   ghenv.write(("IMAGE_TABLE<<EOF\n"
-               "[Cirrus CI build](https://cirrus-ci.com/build/${{ steps.retro.outputs.bid }})"
+              f"[Cirrus CI build](https://cirrus-ci.com/build/{cirrus_ci_build_id})"
                " successful. [Found built image names and"
-               " IDs](https://github.com/${{github.repository}}/actions/runs/${{github.run_id}}):\n"
+              f' IDs](https://github.com/{os.environ["GITHUB_REPOSITORY"]}/actions/runs/{os.environ["GITHUB_RUN_ID"]}):\n'
                "\n"
                "|*Stage*|**Image Name**|`IMAGE_SUFFIX`|\n"
                "|---|---|---|\n"))
