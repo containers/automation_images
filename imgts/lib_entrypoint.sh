@@ -132,3 +132,35 @@ get_ec2_ami() {
         return 1
     fi
 }
+
+# Takes a tag-name string as the first argument, and a JSON-object (mapping)
+# (bash-string) as the second.  If the JSON object contains a "TAGS" key,
+# and its value is a list of "Key"/"Value" objects, retrieve and print the
+# value associated with a tag-name key, if it exists.  Otherwise print nothing
+# and return 1.  Example input JSON:
+# {
+#   ...ignored stuff...
+#   "TAGS": [
+#      { "Key: "Foo",
+#        "Value": "Bar"
+#      }
+#   ]
+# }
+get_tag_value() {
+    local tag=$1
+    local json=$2
+    req_env_vars tag json
+    # Careful, there may not be any tag-list at all.
+    local tag_filter=".[]? | select(.Key == \"$tag\").Value"
+    local tags value
+
+    # There may not be any TAGS key at all.
+    if tags=$(jq -e ".TAGS?"<<<"$json"); then
+        # All tags are optional, the one we're looking for may not be set
+        if value=$(jq -e -r "$tag_filter"<<<"$tags") && [[ -n "$value" ]]; then
+            printf "$value"
+            return 0
+        fi
+    fi
+    return 1
+}

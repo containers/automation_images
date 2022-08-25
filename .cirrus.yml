@@ -302,7 +302,7 @@ imgts_task:
 
 
 test_imgobsolete_task: &lifecycle_test
-    name: "Test old images obsolete marking"
+    name: "Test obsolete image detection"
     alias: test_imgobsolete
     only_if: &not_cron $CIRRUS_CRON == ''
     skip: *ci_docs
@@ -317,9 +317,10 @@ test_imgobsolete_task: &lifecycle_test
         GCPJSON: ENCRYPTED[a0482ce379d4fa3ea84b3fd6199cce75294262a65250c08ec9a5c454cbba06b7b55c8cdb43bbab2f6a81f3419096200e]
         GCPNAME: ENCRYPTED[57b2c60b8168a2dc6f281a31a051ffab069b3c05bd495f38c0d5178fdcfb9ac7e1295460d8c4beb979c88d88061fa463]
         GCPPROJECT: 'libpod-218412'
+        AWSINI: ENCRYPTED[0215d4bb3572d35351ddcffeee5f4103ee1baa07ef0de95a7cd92dae27c4a655dd7116f8f710c8e1820c704b6a7e9179]
         DRY_RUN: 1
     clone_script: *noop
-    script:  /usr/local/bin/entrypoint.sh;
+    script:  /usr/local/bin/entrypoint.sh
 
 
 # Note: The production check using this container is defined in
@@ -345,7 +346,7 @@ test_orphanvms_task:
 
 test_imgprune_task:
     <<: *lifecycle_test
-    name: "Test obsolete image deletion"
+    name: "Test obsolete image removal"
     alias: test_imgprune
     skip: *ci_docs
     depends_on:
