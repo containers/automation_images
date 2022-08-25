@@ -12,7 +12,7 @@ import os
 if "GITHUB_ENV" not in os.environ:
     raise KeyError("Error: $GITHUB_ENV is undefined.")
 
-cirrus_ci_build_id = ""
+cirrus_ci_build_id = None
 
 # File written by a previous workflow step
 with open("/tmp/built_images.json") as bij:
@@ -26,7 +26,7 @@ with open("/tmp/built_images.json") as bij:
         image_suffix = f'{stage[0]}{sfx}'
         data.append(dict(stage=stage, name=name,
             image_suffix=image_suffix, task=task))
-        if ! len(cirrus_ci_build_id):
+        if cirrus_ci_build_id is None:
             cirrus_ci_build_id = sfx
 
 url='https://cirrus-ci.com/task'
