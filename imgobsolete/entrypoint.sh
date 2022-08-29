@@ -6,7 +6,7 @@
 # these images are randomly selected and made obsolete.   They are also
 # marked with deletion-metadata some time in the future.
 
-set -e
+set -eo pipefail
 
 # shellcheck source=imgts/lib_entrypoint.sh
 source /usr/local/bin/lib_entrypoint.sh
@@ -185,6 +185,8 @@ then
     die 0 "Safety-net Insufficient images ($COUNT) to process ($OBSOLETE_LIMIT required)"
 fi
 
+# Don't let one bad apple ruin the whole bunch
+ERRORS=0
 sort --random-sort $TOOBSOLETE | tail -$OBSOLETE_LIMIT | \
     while read -r cloud image_name reason; do
 
@@ -195,15 +197,25 @@ sort --random-sort $TOOBSOLETE | tail -$OBSOLETE_LIMIT | \
         # Ref: https://cloud.google.com/compute/docs/images/create-delete-deprecate-private-images#deprecating_an_image
         # Note: --delete-in creates deprecated.delete(from imgobsolete container)
         # The imgprune container is required to actually delete the image.
-        $GCLOUD compute images deprecate $image_name --state=OBSOLETE \
-            --delete-in="${TOO_OLD_DAYS}d"
+        $GCLOUD compute images deprecate $image_name \
+                --state=OBSOLETE --delete-in="${TOO_OLD_DAYS}d" \
+            || ERRORS=$((ERRORS+1))
     elif [[ "$cloud" == "EC2" ]]; then
         # Note: Image will be automatically deleted in 30 days unless manual
         # intervention performed. The imgprune container is NOT used for AWS
         # image pruning!
-        $AWS ec2 enable-image-deprecation --image-id "$image_name" \
-            --deprecate-at $(date --utc --date "+$TOO_OLD_DAYS days" --iso-8601=date)
+        if ! status=$($AWS ec2 enable-image-deprecation --image-id "$image_name" \
+                      --deprecate-at $(date --utc --date "+$TOO_OLD_DAYS days" \
+                      --iso-8601=date)); then
+            ERRORS=$((ERRORS+1))
+        elif [[ $(jq -r -e ".Return"<<<"$status") != "true" ]]; then
+            ERRORS=$((ERRORS+1))
+        fi
     else
         die 1 "Unknown/Unsupported cloud '$cloud' record encountered in \$TOOBSOLETE file"
     fi
 done
+
+if ((ERRORS)); then
+    die 1 "Updating $ERRORS images failed (see above)."
+fi
