@@ -51,6 +51,7 @@ INSTALL_PACKAGES=(\
     openssl-devel
     podman
     policycoreutils
+	protobuf-compiler
     rsync
     sed
     slirp4netns
