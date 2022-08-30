@@ -115,13 +115,15 @@ for (( i=nr_amis ; i ; i-- )); do
     state=$(jq -r -e ".STATE"<<<"$ami")
     created=$(jq -r -e ".CREATED"<<<"$ami")
     created_ymd=$(date --date="$created" --iso-8601=date)
+
+    unset tags
     # The name-tag is easier on human eys if on is set.
     name="$ami_id"
     if name_tag=$(get_tag_value "Name" "$ami"); then
         name="$name_tag"
+        tags="Name=$name_tag"
     fi
 
-    unset tags
     for tag in permanent build-id repo-ref automation; do
         if [[ -z "$tags" ]]; then
             tags="$tag="
@@ -150,7 +152,7 @@ for (( i=nr_amis ; i ; i-- )); do
     if [[ -z "$automation" ]]
     then
         reason="Missing 'automation' metadata; Tags: $tags"
-        echo "EC2 $name $reason" >> $TOOBSOLETE
+        echo "EC2 $ami_id $reason" >> $TOOBSOLETE
         continue
     fi
 
@@ -161,7 +163,7 @@ for (( i=nr_amis ; i ; i-- )); do
         tags+=",lastLaunchedTime=$last_used_ymd"
     else
         reason="Missing 'lastLaunchedTime' metadata; Tags: $tags"
-        echo "EC2 $name $reason" >> $TOOBSOLETE
+        echo "EC2 $ami_id $reason" >> $TOOBSOLETE
         continue
     fi
 
@@ -170,7 +172,7 @@ for (( i=nr_amis ; i ; i-- )); do
         echo "EC2 $ami_id $reason" >> $TOOBSOLETE
         continue
     else
-        msg "Retaining $name | $created_ymd | $state | $tags"
+        msg "Retaining $ami_id | $created_ymd | $state | $tags"
     fi
 done
 
