@@ -17,31 +17,19 @@ variables:  # Empty value means it must be passed in on command-line
     # Allows providing handy cross-reference to the build log
     CIRRUS_TASK_ID: "{{env `CIRRUS_TASK_ID`}}"
 
-    # BIG-FAT-WARNING:  When updating the image names and/or URLs below,
-    # ensure the distro version numbers contained in the `podman/*_release`
-    # files exactly match.  These represent the container base-image tags
-    # to build from - just as the sources below are the base-images to
-    # start from building VM images.
+    # See Makefile for definitions
+    FEDORA_RELEASE: "{{env `FEDORA_RELEASE`}}"
+    FEDORA_IMAGE_URL: "{{env `FEDORA_IMAGE_URL`}}"
+    FEDORA_CSUM_URL: "{{env `FEDORA_CSUM_URL`}}"
+    FEDORA_AMI: "{{env `FEDORA_AMI`}}"
+    FEDORA_ARM64_AMI: "{{env `FEDORA_ARM64_AMI`}}"
 
-    # Upstream source for Ubuntu image to duplicate (prevents expiration).
-    # Use the most recent image based on this family name.
-    UBUNTU_BASE_FAMILY: 'ubuntu-2204-lts'
+    PRIOR_FEDORA_RELEASE: "{{env `PRIOR_FEDORA_RELEASE`}}"
+    PRIOR_FEDORA_IMAGE_URL: "{{env `PRIOR_FEDORA_IMAGE_URL`}}"
+    PRIOR_FEDORA_CSUM_URL: "{{env `PRIOR_FEDORA_CSUM_URL`}}"
 
-    # AWS base image in 'US East (N. Virginia)' region
-    # from https://alt.fedoraproject.org/cloud
-    FEDORAPROJECT_AMI: "ami-08b7bda26f4071b80"
-    FEDORAPROJECT_AARCH64_AMI: "ami-01925eb0821988986"
-
-    # Latest Fedora release (qcow and CHECKSUM) download URLs
-    # N/B: There are Fedora-Cloud...GCP.tar.gz images available, however
-    #      as of this comment, they lack the cloud-init package which is
-    #      required by GCP for startup resizing of the rootfs.
-    FEDORA_CSUM_URL: "https://dl.fedoraproject.org/pub/fedora/linux/releases/36/Cloud/x86_64/images/Fedora-Cloud-36-1.5-x86_64-CHECKSUM"
-    FEDORA_IMAGE_URL: "https://dl.fedoraproject.org/pub/fedora/linux/releases/36/Cloud/x86_64/images/Fedora-Cloud-Base-36-1.5.x86_64.qcow2"
-
-    # Prior Fedora release
-    PRIOR_FEDORA_CSUM_URL: "https://dl.fedoraproject.org/pub/fedora/linux/releases/35/Cloud/x86_64/images/Fedora-Cloud-35-1.2-x86_64-CHECKSUM"
-    PRIOR_FEDORA_IMAGE_URL: "https://dl.fedoraproject.org/pub/fedora/linux/releases/35/Cloud/x86_64/images/Fedora-Cloud-Base-35-1.2.x86_64.qcow2"
+    UBUNTU_RELEASE: "{{env `UBUNTU_RELEASE`}}"
+    UBUNTU_BASE_FAMILY: "{{env `UBUNTU_BASE_FAMILY`}}"
 
 
 builders:
@@ -50,7 +38,7 @@ builders:
       # Prefix IMG_SFX with "b" so this is never confused with a cache_image name
       image_name: '{{build_name}}-b{{user `IMG_SFX`}}'
       image_family: '{{build_name}}-base'
-      image_description: 'Built in https://cirrus-ci.com/build/{{user `IMG_SFX`}}'
+      image_description: 'Built in https://cirrus-ci.com/task/{{user `CIRRUS_TASK_ID`}}'
       source_image_family: '{{user `UBUNTU_BASE_FAMILY`}}'
       source_image_project_id: 'ubuntu-os-cloud'
       project_id: '{{user `GCP_PROJECT_ID`}}'
@@ -64,6 +52,7 @@ builders:
         src: '{{user `UBUNTU_BASE_FAMILY`}}'
         stage: 'base'
         arch: 'x86_64'
+        release: 'ubuntu-{{user `UBUNTU_RELEASE` | clean_resource_name}}'
       # Gotcha: https://www.packer.io/docs/builders/googlecompute#gotchas
       ssh_username: 'packer'
       temporary_key_pair_type: ed25519
@@ -119,7 +108,7 @@ builders:
     - &fedora-aws
       name: 'fedora-aws'
       type: 'amazon-ebs'
-      source_ami: '{{user `FEDORAPROJECT_AMI`}}'
+      source_ami: '{{user `FEDORA_AMI`}}'
       instance_type: 'm5zn.metal'
       # In case of packer problem or ungraceful exit, don't wait for shutdown.
       # This doesn't always work properly, sometimes leaving EC2 instances in
@@ -132,7 +121,7 @@ builders:
       security_group_id: "sg-042c75677872ef81c"
       # Prefix IMG_SFX with "b" so this is never confused with a cache_image
       ami_name: 'fedora-aws-b{{user `IMG_SFX`}}'
-      ami_description: 'Built in https://cirrus-ci.com/build/{{user `IMG_SFX`}}'
+      ami_description: 'Built in https://cirrus-ci.com/task/{{user `CIRRUS_TASK_ID`}}'
       ebs_optimized: true
       launch_block_device_mappings:
         - device_name: '/dev/sda1'
@@ -145,8 +134,9 @@ builders:
         <<: *imgcpylabels
         # EC2 expects "Name" to be capitalized
         Name: 'fedora-aws-b{{user `IMG_SFX`}}'
-        src: '{{user `FEDORAPROJECT_AMI`}}'
+        src: '{{user `FEDORA_AMI`}}'
         automation: 'true'
+        release: 'fedora-{{user `FEDORA_RELEASE`}}'
       run_tags: *awstags
       run_volume_tags: *awstags
       snapshot_tags: *awstags
@@ -164,12 +154,12 @@ builders:
 
     - <<: *fedora-aws
       name: 'fedora-aws-arm64'
-      source_ami: '{{user `FEDORAPROJECT_AARCH64_AMI`}}'
+      source_ami: '{{user `FEDORA_ARM64_AMI`}}'
       instance_type: 't4g.medium'  # arm64 type
       ami_name: 'fedora-aws-arm64-b{{user `IMG_SFX`}}'  # must be unique
       tags: &awsarm64tags
         <<: *awstags
-        src: '{{user `FEDORAPROJECT_AARCH64_AMI`}}'
+        src: '{{user `FEDORA_ARM64_AMI`}}'
         arch: 'arm64'
       run_tags: *awsarm64tags
       run_volume_tags: *awsarm64tags
@@ -214,16 +204,19 @@ post-processors:
         gcs_object_name: '{{build_name}}-{{user `IMG_SFX`}}.tar.gz'
         image_name: "fedora-b{{user `IMG_SFX`}}"
         image_family: '{{build_name}}-base'
-        # Can't save the url in an image_label
-        image_description: '{{user `FEDORA_IMAGE_URL`}}'
-        image_labels: &importlabels
+        image_description: 'Built in https://cirrus-ci.com/task/{{user `CIRRUS_TASK_ID`}}'
+        image_labels:
           <<: *imgcpylabels
           src: 'fedoraproject'
+          release: 'fedora-{{user `FEDORA_RELEASE`}}'
       - <<: *gcp_import
         only: ['prior-fedora']
         image_name: "prior-fedora-b{{user `IMG_SFX`}}"
         image_family: '{{build_name}}-base'
-        image_description: '{{user `PRIOR_FEDORA_IMAGE_URL`}}'
+        image_labels:
+          <<: *imgcpylabels
+          src: 'fedoraproject'
+          release: 'fedora-{{user `PRIOR_FEDORA_RELEASE`}}'
       # This is critical, especially for the aws builders.
       # Producing the cache-images from these base images
       # needs to lookup the runtime-produced AMI ID.

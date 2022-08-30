@@ -1,4 +1,5 @@
-FROM quay.io/centos/centos:stream8
+ARG CENTOS_STREAM_RELEASE=8
+FROM quay.io/centos/centos:stream${CENTOS_STREAM_RELEASE}
 
 ARG dnfycache="dnf -y --setopt=keepcache=true"
 
