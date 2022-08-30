@@ -273,12 +273,14 @@ $(_TEMPDIR)/skopeo_cidev.tar: $(wildcard skopeo_base/*) $(_TEMPDIR)/.cache/fedor
 	rm -f $@
 	podman save --quiet -o $@ skopeo_cidev:$(IMG_SFX)
 
+# TODO: Temporarily force F36 due to:
+# https://github.com/aio-libs/aiohttp/issues/6600
 .PHONY: ccia
 ccia: $(_TEMPDIR)/ccia.tar  ## Build the Cirrus-CI Artifacts container image
 $(_TEMPDIR)/ccia.tar: ccia/Containerfile
 	podman build -t ccia:$(call err_if_empty,IMG_SFX) \
 		--security-opt seccomp=unconfined \
-		--build-arg=BASE_TAG=$(FEDORA_RELEASE) \
+		--build-arg=BASE_TAG=36 \
 		ccia
 	rm -f $@
 	podman save --quiet -o $@ ccia:$(IMG_SFX)
