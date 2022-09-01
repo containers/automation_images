@@ -26,6 +26,8 @@ variables:  # Empty value means it must be passed in on command-line
     PRIOR_FEDORA_IMAGE_URL: "{{env `PRIOR_FEDORA_IMAGE_URL`}}"
     PRIOR_FEDORA_CSUM_URL: "{{env `PRIOR_FEDORA_CSUM_URL`}}"
 
+    FEDORA_IMPORT_IMG_SFX: "{{env `FEDORA_IMPORT_IMG_SFX`}}"
+
     UBUNTU_RELEASE: "{{env `UBUNTU_RELEASE`}}"
     UBUNTU_BASE_FAMILY: "{{env `UBUNTU_BASE_FAMILY`}}"
 
@@ -119,7 +121,7 @@ builders:
             architecture: 'x86_64'
             image-type: 'machine'
             is-public: 'false'
-            name: '{{build_name}}-i{{user `IMG_SFX`}}'
+            name: '{{build_name}}-i{{user `FEDORA_IMPORT_IMG_SFX`}}'
             root-device-type: 'ebs'
             state: 'available'
             virtualization-type: 'hvm'

@@ -21,17 +21,22 @@ export CENTOS_STREAM_RELEASE = 8
 # Ref: https://dl.fedoraproject.org/pub/fedora/linux/
 
 export FEDORA_RELEASE = 37
-export FEDORA_IMAGE_URL = https://dl.fedoraproject.org/pub/fedora/linux/development/37/Cloud/x86_64/images/Fedora-Cloud-Base-37-20220909.n.0.x86_64.qcow2
-export FEDORA_CSUM_URL = https://dl.fedoraproject.org/pub/fedora/linux/development/37/Cloud/x86_64/images/Fedora-Cloud-37-x86_64-20220909.n.0-CHECKSUM
-export FEDORA_ARM64_IMAGE_URL = https://dl.fedoraproject.org/pub/fedora/linux/development/37/Cloud/aarch64/images/Fedora-Cloud-Base-37-20220909.n.0.aarch64.qcow2
-export FEDORA_ARM64_CSUM_URL = https://dl.fedoraproject.org/pub/fedora/linux/development/37/Cloud/aarch64/images/Fedora-Cloud-37-aarch64-20220909.n.0-CHECKSUM
+export FEDORA_IMAGE_URL = https://dl.fedoraproject.org/pub/fedora/linux/development/37/Cloud/x86_64/images/Fedora-Cloud-Base-37-20220912.n.0.x86_64.qcow2
+export FEDORA_CSUM_URL = https://dl.fedoraproject.org/pub/fedora/linux/development/37/Cloud/x86_64/images/Fedora-Cloud-37-x86_64-20220912.n.0-CHECKSUM
+export FEDORA_ARM64_IMAGE_URL = https://dl.fedoraproject.org/pub/fedora/linux/development/37/Cloud/aarch64/images/Fedora-Cloud-Base-37-20220912.n.0.aarch64.qcow2
+export FEDORA_ARM64_CSUM_URL = https://dl.fedoraproject.org/pub/fedora/linux/development/37/Cloud/aarch64/images/Fedora-Cloud-37-aarch64-20220912.n.0-CHECKSUM
 
 export PRIOR_FEDORA_RELEASE = 36
 export PRIOR_FEDORA_IMAGE_URL = https://dl.fedoraproject.org/pub/fedora/linux/releases/36/Cloud/x86_64/images/Fedora-Cloud-Base-36-1.5.x86_64.qcow2
 export PRIOR_FEDORA_CSUM_URL = https://dl.fedoraproject.org/pub/fedora/linux/releases/36/Cloud/x86_64/images/Fedora-Cloud-36-1.5-x86_64-CHECKSUM
 
+# See import_images/README.md
+export FEDORA_IMPORT_IMG_SFX = 1662988741
+
 export UBUNTU_RELEASE = 22.04
 export UBUNTU_BASE_FAMILY = ubuntu-2204-lts
+
+IMPORT_FORMAT = vhdx
 
 ##### Important Paths and variables #####
 
@@ -97,6 +102,9 @@ IMG_SFX ?=
 # Env. vars needed by packer
 export CHECKPOINT_DISABLE = 1  # Disable hashicorp phone-home
 export PACKER_CACHE_DIR = $(call err_if_empty,_TEMPDIR)
+
+# AWS CLI default, in case caller needs to override
+export AWS := aws --output json --region us-east-1
 
 ##### Targets #####
 
@@ -229,11 +237,109 @@ image_builder_debug: $(_TEMPDIR)/image_builder_debug.tar ## Build and enter cont
 $(_TEMPDIR)/image_builder_debug.tar: $(_TEMPDIR)/.cache/centos $(wildcard image_builder/*)
 	$(call podman_build,$@,image_builder_debug,image_builder,centos)
 
-.PHONY: import_images
-import_images: import_images/manifest.json ## Import generic Fedora cloud images into AWS EC2.
+# Avoid re-downloading unnecessarily
+# Ref: https://www.gnu.org/software/make/manual/html_node/Special-Targets.html#Special-Targets
+.PRECIOUS: $(_TEMPDIR)/fedora-aws-$(IMG_SFX).$(IMPORT_FORMAT)
+$(_TEMPDIR)/fedora-aws-$(IMG_SFX).$(IMPORT_FORMAT): $(_TEMPDIR)
+	bash import_images/handle_image.sh \
+		$@ \
+		$(FEDORA_IMAGE_URL) \
+		$(FEDORA_CSUM_URL)
 
-import_images/manifest.json: import_images/cloud.json $(PACKER_INSTALL_DIR)/packer
-	$(call packer_build,import_images/cloud.json,$(call err_if_empty,AWS_SHARED_CREDENTIALS_FILE))
+$(_TEMPDIR)/fedora-aws-arm64-$(IMG_SFX).$(IMPORT_FORMAT): $(_TEMPDIR)
+	bash import_images/handle_image.sh \
+		$@ \
+		$(FEDORA_ARM64_IMAGE_URL) \
+		$(FEDORA_ARM64_CSUM_URL)
+
+$(_TEMPDIR)/%.md5: $(_TEMPDIR)/%.$(IMPORT_FORMAT)
+	openssl md5 -binary $< | base64 > $@.tmp
+	mv $@.tmp $@
+
+# MD5 metadata value checked by AWS after upload + 5 retries.
+# Cache disabled to avoid sync. issues w/ vmimport service if
+# image re-uploaded.
+# TODO: Use sha256 from ..._CSUM_URL file instead of recalculating
+# https://docs.aws.amazon.com/AmazonS3/latest/userguide/checking-object-integrity.html
+# Avoid re-uploading unnecessarily
+.SECONDARY: $(_TEMPDIR)/%.uploaded
+$(_TEMPDIR)/%.uploaded: $(_TEMPDIR)/%.$(IMPORT_FORMAT) $(_TEMPDIR)/%.md5
+	-$(AWS) s3 rm --quiet s3://packer-image-import/%.$(IMPORT_FORMAT)
+	$(AWS) s3api put-object \
+		--content-md5 "$(file < $(_TEMPDIR)/$*.md5)" \
+		--content-encoding binary/octet-stream \
+		--cache-control no-cache \
+		--bucket packer-image-import \
+		--key $*.$(IMPORT_FORMAT) \
+		--body $(_TEMPDIR)/$*.$(IMPORT_FORMAT) > $@.tmp
+	mv $@.tmp $@
+
+# For whatever reason, the 'Format' value must be all upper-case.
+# Avoid creating unnecessary/duplicate import tasks
+.SECONDARY: $(_TEMPDIR)/%.import_task_id
+$(_TEMPDIR)/%.import_task_id: $(_TEMPDIR)/%.uploaded
+	$(AWS) ec2 import-snapshot \
+		--disk-container Format=$(shell tr '[:lower:]' '[:upper:]'<<<"$(IMPORT_FORMAT)"),UserBucket="{S3Bucket=packer-image-import,S3Key=$*.$(IMPORT_FORMAT)}" > $@.tmp.json
+	@cat $@.tmp.json
+	jq -r -e .ImportTaskId $@.tmp.json > $@.tmp
+	mv $@.tmp $@
+
+# Avoid importing multiple snapshots for the same image
+.PRECIOUS: $(_TEMPDIR)/%.snapshot_id
+$(_TEMPDIR)/%.snapshot_id: $(_TEMPDIR)/%.import_task_id
+	bash import_images/wait_import_task.sh "$<" > $@.tmp
+	mv $@.tmp $@
+
+define _register_sed
+	sed -r \
+		-e 's/@@@NAME@@@/$(1)/' \
+		-e 's/@@@IMG_SFX@@@/$(IMG_SFX)/' \
+		-e 's/@@@ARCH@@@/$(2)/' \
+		-e 's/@@@SNAPSHOT_ID@@@/$(3)/' \
+		import_images/register.json.in \
+	> $(4)
+endef
+
+$(_TEMPDIR)/fedora-aws-$(IMG_SFX).register.json: $(_TEMPDIR)/fedora-aws-$(IMG_SFX).snapshot_id import_images/register.json.in
+	$(call _register_sed,fedora-aws,x86_64,$(file <$<),$@)
+
+$(_TEMPDIR)/fedora-aws-arm64-$(IMG_SFX).register.json: $(_TEMPDIR)/fedora-aws-arm64-$(IMG_SFX).snapshot_id import_images/register.json.in
+	$(call _register_sed,fedora-aws-arm64,arm64,$(file <$<),$@)
+
+# Avoid multiple registrations for the same image
+.PRECIOUS: $(_TEMPDIR)/%.ami.id
+$(_TEMPDIR)/%.ami.id: $(_TEMPDIR)/%.register.json
+	$(AWS) ec2 register-image --cli-input-json "$$(<$<)" > $@.tmp.json
+	cat $@.tmp.json
+	jq -r -e .ImageId $@.tmp.json > $@.tmp
+	mv $@.tmp $@
+
+$(_TEMPDIR)/%.ami.name: $(_TEMPDIR)/%.register.json
+	jq -r -e .Name $< > $@.tmp
+	mv $@.tmp $@
+
+$(_TEMPDIR)/%.ami.json: $(_TEMPDIR)/%.ami.id $(_TEMPDIR)/%.ami.name
+	$(AWS) ec2 create-tags \
+		--resources "$$(<$(_TEMPDIR)/$*.ami.id)" \
+		--tags \
+			Key=Name,Value=$$(<$(_TEMPDIR)/$*.ami.name) \
+			Key=automation,Value=true
+	$(AWS) --output table ec2 describe-images --image-ids "$$(<$(_TEMPDIR)/$*.ami.id)" \
+		| tee $@
+
+.PHONY: import_images
+import_images: $(_TEMPDIR)/fedora-aws-$(IMG_SFX).ami.json $(_TEMPDIR)/fedora-aws-arm64-$(IMG_SFX).ami.json import_images/manifest.json.in  ## Import generic Fedora cloud images into AWS EC2.
+	sed -r \
+		-e 's/@@@IMG_SFX@@@/$(IMG_SFX)/' \
+		-e 's/@@@CIRRUS_TASK_ID@@@/$(CIRRUS_TASK_ID)/' \
+		import_images/manifest.json.in \
+	> import_images/manifest.json
+	@echo "Image import(s) successful."
+	@echo "############################################################"
+	@echo "Please update Makefile value:"
+	@echo ""
+	@echo "    FEDORA_IMPORT_IMG_SFX = $(IMG_SFX)"
+	@echo "############################################################"
 
 .PHONY: base_images
 # This needs to run in a virt/nested-virt capable environment
