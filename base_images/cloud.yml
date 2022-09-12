@@ -21,12 +21,12 @@ variables:  # Empty value means it must be passed in on command-line
     FEDORA_RELEASE: "{{env `FEDORA_RELEASE`}}"
     FEDORA_IMAGE_URL: "{{env `FEDORA_IMAGE_URL`}}"
     FEDORA_CSUM_URL: "{{env `FEDORA_CSUM_URL`}}"
-    FEDORA_AMI: "{{env `FEDORA_AMI`}}"
-    FEDORA_ARM64_AMI: "{{env `FEDORA_ARM64_AMI`}}"
 
     PRIOR_FEDORA_RELEASE: "{{env `PRIOR_FEDORA_RELEASE`}}"
     PRIOR_FEDORA_IMAGE_URL: "{{env `PRIOR_FEDORA_IMAGE_URL`}}"
     PRIOR_FEDORA_CSUM_URL: "{{env `PRIOR_FEDORA_CSUM_URL`}}"
+
+    FEDORA_IMPORT_IMG_SFX: "{{env `FEDORA_IMPORT_IMG_SFX`}}"
 
     UBUNTU_RELEASE: "{{env `UBUNTU_RELEASE`}}"
     UBUNTU_BASE_FAMILY: "{{env `UBUNTU_BASE_FAMILY`}}"
@@ -108,7 +108,23 @@ builders:
     - &fedora-aws
       name: 'fedora-aws'
       type: 'amazon-ebs'
-      source_ami: '{{user `FEDORA_AMI`}}'
+      source_ami_filter:  # Will fail if >1 or no AMI found
+        owners:
+            # Docs are wrong, specifying the Account ID required to make AMIs private.
+            # The Account ID is hard-coded here out of expediency, since passing in
+            # more packer args from the command-line (in Makefile) is non-trivial.
+            - &accountid '449134212816'
+        # It's necessary to 'search' for the base-image by these criteria.  If
+        # more than one image is found, Packer will fail the build (and display
+        # the conflicting AMI IDs).
+        filters: &ami_filters
+            architecture: 'x86_64'
+            image-type: 'machine'
+            is-public: 'false'
+            name: '{{build_name}}-i{{user `FEDORA_IMPORT_IMG_SFX`}}'
+            root-device-type: 'ebs'
+            state: 'available'
+            virtualization-type: 'hvm'
       instance_type: 'm5zn.metal'
       # In case of packer problem or ungraceful exit, don't wait for shutdown.
       # This doesn't always work properly, sometimes leaving EC2 instances in
@@ -120,7 +136,7 @@ builders:
       # Required for network access, must be the 'default' group used by Cirrus-CI
       security_group_id: "sg-042c75677872ef81c"
       # Prefix IMG_SFX with "b" so this is never confused with a cache_image
-      ami_name: 'fedora-aws-b{{user `IMG_SFX`}}'
+      ami_name: &ami_name '{{build_name}}-b{{user `IMG_SFX`}}'
       ami_description: 'Built in https://cirrus-ci.com/task/{{user `CIRRUS_TASK_ID`}}'
       ebs_optimized: true
       launch_block_device_mappings:
@@ -133,19 +149,17 @@ builders:
       tags: &awstags
         <<: *imgcpylabels
         # EC2 expects "Name" to be capitalized
-        Name: 'fedora-aws-b{{user `IMG_SFX`}}'
-        src: '{{user `FEDORA_AMI`}}'
+        Name: *ami_name
+        src: '{{.SourceAMI}}'
         automation: 'true'
         release: 'fedora-{{user `FEDORA_RELEASE`}}'
       run_tags: *awstags
       run_volume_tags: *awstags
       snapshot_tags: *awstags
-      # Docs are wrong, specifying the Account ID required to make AMIs private.
       # This is necessary for security - The CI service accounts are not permitted
-      # to use AMI's from any other account, including public ones.  The Account
-      # ID is hard-coded here out of expediency, since passing in more packer args
-      # from the command-line (in Makefile) is non-trivial.
-      ami_users: ["449134212816"]
+      # to use AMI's from any other account, including public ones.
+      ami_users:
+        - *accountid
       ssh_username: 'fedora'
       ssh_clear_authorized_keys: true
       # N/B: Required Packer >= 1.8.0
@@ -154,12 +168,15 @@ builders:
 
     - <<: *fedora-aws
       name: 'fedora-aws-arm64'
-      source_ami: '{{user `FEDORA_ARM64_AMI`}}'
+      source_ami_filter:
+        owners:
+            - *accountid
+        filters:
+            <<: *ami_filters
+            architecture: 'arm64'
       instance_type: 't4g.medium'  # arm64 type
-      ami_name: 'fedora-aws-arm64-b{{user `IMG_SFX`}}'  # must be unique
       tags: &awsarm64tags
         <<: *awstags
-        src: '{{user `FEDORA_ARM64_AMI`}}'
         arch: 'arm64'
       run_tags: *awsarm64tags
       run_volume_tags: *awsarm64tags
@@ -213,6 +230,7 @@ post-processors:
         only: ['prior-fedora']
         image_name: "prior-fedora-b{{user `IMG_SFX`}}"
         image_family: '{{build_name}}-base'
+        image_description: '{{user `PRIOR_FEDORA_IMAGE_URL`}}'
         image_labels:
           <<: *imgcpylabels
           src: 'fedoraproject'

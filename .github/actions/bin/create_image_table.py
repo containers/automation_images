@@ -9,6 +9,19 @@
 import json
 import os
 
+
+def stage_sort(item):
+    """Return sorting-key for build-image-json item"""
+    if item["stage"] == "import":
+        return str("0010"+item["name"])
+    elif item["stage"] == "base":
+        return str("0020"+item["name"])
+    elif item["stage"] == "cache":
+        return str("0030"+item["name"])
+    else:
+        return str("0100"+item["name"])
+
+
 if "GITHUB_ENV" not in os.environ:
     raise KeyError("Error: $GITHUB_ENV is undefined.")
 
@@ -31,7 +44,7 @@ with open("/tmp/built_images.json") as bij:
 
 url='https://cirrus-ci.com/task'
 lines=[]
-data.sort(key=lambda item: str(item["stage"]+item["name"]))
+data.sort(key=stage_sort)
 for item in data:
   lines.append('|*{0}*|[{1}]({2})|`{3}`|\n'.format(item['stage'],
     item['name'], '{0}/{1}'.format(url, item['task']),

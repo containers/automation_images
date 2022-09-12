@@ -9,7 +9,7 @@ env:
     # No need to go crazy, but grab enough to cover most PRs
     CIRRUS_CLONE_DEPTH: 50
     # Version of packer to use when building images
-    PACKER_VERSION: &PACKER_VERSION "1.8.0"
+    PACKER_VERSION: &PACKER_VERSION "1.8.3"
     # Unique suffix label to use for all images produced by _this_ run (build)
     IMG_SFX: "${CIRRUS_BUILD_ID}"
 
@@ -60,8 +60,7 @@ image_builder_task:
       # Google Application Credentials (JSON) with access to create VM images
       GAC_JSON: ENCRYPTED[7fba7fb26ab568ae39f799ab58a476123206576b0135b3d1019117c6d682391370c801e149f29324ff4b50133012aed9]
       AWS_SHARED_CREDENTIALS_FILE: notused
-
-    script: "ci/make_image_builder.sh"
+    script: "ci/make.sh image_builder"
     manifest_artifacts:
         path: image_builder/manifest.json
         type: application/json
@@ -170,9 +169,9 @@ base_images_task:
           env:
             PACKER_BUILDS: "ubuntu"
     env:
-      GAC_JSON: ENCRYPTED[7fba7fb26ab568ae39f799ab58a476123206576b0135b3d1019117c6d682391370c801e149f29324ff4b50133012aed9]
-      AWS_INI: ENCRYPTED[4cd69097cd29a9899e51acf3bbacceeb83cb5c907d272ca1e2a8ccd515b03f2368a0680870c0d120fc32bc578bb0a930]
-    script: "ci/make_base_images.sh"
+      GAC_JSON: &gac_json ENCRYPTED[7fba7fb26ab568ae39f799ab58a476123206576b0135b3d1019117c6d682391370c801e149f29324ff4b50133012aed9]
+      AWS_INI: &aws_ini ENCRYPTED[4cd69097cd29a9899e51acf3bbacceeb83cb5c907d272ca1e2a8ccd515b03f2368a0680870c0d120fc32bc578bb0a930]
+    script: "ci/make.sh base_images"
     manifest_artifacts:
         path: base_images/manifest.json
         type: application/json
@@ -226,9 +225,9 @@ cache_images_task:
           env:
             PACKER_BUILDS: "ubuntu"
     env:
-      GAC_JSON: ENCRYPTED[7fba7fb26ab568ae39f799ab58a476123206576b0135b3d1019117c6d682391370c801e149f29324ff4b50133012aed9]
-      AWS_INI: ENCRYPTED[4cd69097cd29a9899e51acf3bbacceeb83cb5c907d272ca1e2a8ccd515b03f2368a0680870c0d120fc32bc578bb0a930]
-    script: "ci/make_cache_images.sh"
+      GAC_JSON: *gac_json
+      AWS_INI: *aws_ini
+    script: "ci/make.sh cache_images"
     manifest_artifacts:
         path: cache_images/manifest.json
         type: application/json
