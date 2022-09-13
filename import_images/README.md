@@ -32,14 +32,16 @@ human:
 
 ## Process
 
-Unless there is a problem with the current contents of the
+Unless there is a problem with the current contents or age of the
 imported images, this process does not need to be followed.  The
 normal PR-based build workflow can simply be followed as usual.
+This process is only needed to bring newly updated Fedora images into
+AWS to build CI images from.  For example, due to a new Beta or GA release.
 
 ***Note:*** Most of the steps below will happen within a container environment.
 Any exceptions are noted in the individual steps below with *[HOST]*
 
-1. *[HOST]* Edit the `Makefile`, update release numbers and/or URLs
+1. *[HOST]* Edit the `Makefile`, update the Fedora release numbers
    under the section
    `##### Important image release and source details #####`
 1. *[HOST]* Run
@@ -49,19 +51,19 @@ Any exceptions are noted in the individual steps below with *[HOST]*
          GAC_FILEPATH=/dev/null \
          AWS_SHARED_CREDENTIALS_FILE=/path/to/.aws/credentials
    ```
-1. Run `make import_images`
+1. Run `make import_images` (or `make --jobs=4 import_images` if you're brave).
 1. The following steps should all occur successfully for each imported image.
    1. Image is downloaded.
    1. Image checksum is downloaded.
    1. Image is verified against the checksum.
    1. Image is converted to `VHDX` format.
    1. The `VHDX` image is uploaded to the `packer-image-import` S3 bucket.
-   1. AWS `import-snapshot` process is started.
+   1. AWS `import-snapshot` process is started (uses AWS vmimport service)
    1. Progress of snapshot import is monitored until completion or failure.
    1. The imported snapshot is converted into an AMI
    1. Essential tags are added to the AMI
-   1. Full details about the AMI are printed
-1. Assuming all image imports were successful, a success message will be
+   1. Details ascii-table about the new AMI is printed on success.
+1. Assuming all image imports were successful, a final success message will be
    printed by `make` with instructions for updating the `Makefile`.
 1. *[HOST]* Update the `Makefile` as instructed, commit the
    changes and push to a PR.  The automated image building process
@@ -72,21 +74,20 @@ Any exceptions are noted in the individual steps below with *[HOST]*
 This list is not exhaustive, and only represents common/likely failures.
 Normally there is no need to exit the build container.
 
-* If image download fails, double-check the URL values, run `make clean`
+* If image download fails, double-check any error output, run `make clean`
   and retry.
 * If checksum validation fails,
-  double-check the URL values.  If
-  changes made, run `make clean`.
+  run `make clean`.
   Retry `make import_images`.
 * If s3 upload fails,
-  double-check the URL values.  If
-  changes were needed, run `make clean`.
-  Retry `make import_images`.
+  Confirm service availability,
+  retry `make import_images`.
 * If snapshot import fails with a `Disk validation failed` error,
   Retry `make import_images`.
-* If snapshot import fails with an error, find them in EC2 and delete them.
+* If snapshot import fails with non-validation error,
+  find snapshot in EC2 and delete it manually.
   Retry `make import_images`.
-* If AMI registration fails, remove any conflicting AMIs and snapshots.
+* If AMI registration fails, remove any conflicting AMIs *and* snapshots.
   Retry `make import_images`.
 * If import was successful but AMI tagging failed, manually add
   the required tags to AMI: `automation=false` and `Name=<name>-i${IMG_SFX}`.

@@ -17,18 +17,8 @@ if_ci_else = $(if $(findstring true,$(CI)),$(1),$(2))
 
 export CENTOS_STREAM_RELEASE = 8
 
-# QCOW2 Image URLs and CHECKSUM files
-# Ref: https://dl.fedoraproject.org/pub/fedora/linux/
-
 export FEDORA_RELEASE = 37
-export FEDORA_IMAGE_URL = https://dl.fedoraproject.org/pub/fedora/linux/development/37/Cloud/x86_64/images/Fedora-Cloud-Base-37-20220912.n.0.x86_64.qcow2
-export FEDORA_CSUM_URL = https://dl.fedoraproject.org/pub/fedora/linux/development/37/Cloud/x86_64/images/Fedora-Cloud-37-x86_64-20220912.n.0-CHECKSUM
-export FEDORA_ARM64_IMAGE_URL = https://dl.fedoraproject.org/pub/fedora/linux/development/37/Cloud/aarch64/images/Fedora-Cloud-Base-37-20220912.n.0.aarch64.qcow2
-export FEDORA_ARM64_CSUM_URL = https://dl.fedoraproject.org/pub/fedora/linux/development/37/Cloud/aarch64/images/Fedora-Cloud-37-aarch64-20220912.n.0-CHECKSUM
-
 export PRIOR_FEDORA_RELEASE = 36
-export PRIOR_FEDORA_IMAGE_URL = https://dl.fedoraproject.org/pub/fedora/linux/releases/36/Cloud/x86_64/images/Fedora-Cloud-Base-36-1.5.x86_64.qcow2
-export PRIOR_FEDORA_CSUM_URL = https://dl.fedoraproject.org/pub/fedora/linux/releases/36/Cloud/x86_64/images/Fedora-Cloud-36-1.5-x86_64-CHECKSUM
 
 # See import_images/README.md
 export FEDORA_IMPORT_IMG_SFX = 1662988741
@@ -39,6 +29,15 @@ export UBUNTU_BASE_FAMILY = ubuntu-2204-lts
 IMPORT_FORMAT = vhdx
 
 ##### Important Paths and variables #####
+
+# Lookup QCOW2 Image URLs and CHECKSUM files from
+# https://dl.fedoraproject.org/pub/fedora/linux/
+FEDORA_IMAGE_URL = $(shell ./get_fedora_url.sh image x86_64 $(FEDORA_RELEASE))
+FEDORA_CSUM_URL = $(shell ./get_fedora_url.sh checksum x86_64 $(FEDORA_RELEASE))
+FEDORA_ARM64_IMAGE_URL = $(shell ./get_fedora_url.sh image aarch64 $(FEDORA_RELEASE))
+FEDORA_ARM64_CSUM_URL = $(shell ./get_fedora_url.sh checksum aarch64 $(FEDORA_RELEASE))
+PRIOR_FEDORA_IMAGE_URL = $(shell ./get_fedora_url.sh image x86_64 $(PRIOR_FEDORA_RELEASE))
+PRIOR_FEDORA_CSUM_URL = $(shell ./get_fedora_url.sh checksum x86_64 $(PRIOR_FEDORA_RELEASE))
 
 # Most targets require possession of service-account credentials (JSON file)
 # with sufficient access to the podman GCE project for creating VMs,
@@ -200,6 +199,12 @@ endef
 define packer_build
 	env AWS_SHARED_CREDENTIALS_FILE="$(call err_if_empty,AWS_SHARED_CREDENTIALS_FILE)" \
 		GAC_FILEPATH="$(call err_if_empty,GAC_FILEPATH)" \
+		FEDORA_IMAGE_URL=$(call err_if_empty,FEDORA_IMAGE_URL) \
+		FEDORA_CSUM_URL=$(call err_if_empty,FEDORA_CSUM_URL) \
+		FEDORA_ARM64_IMAGE_URL=$(call err_if_empty,FEDORA_ARM64_IMAGE_URL) \
+		FEDORA_ARM64_CSUM_URL=$(call err_if_empty,FEDORA_ARM64_CSUM_URL) \
+		PRIOR_FEDORA_IMAGE_URL=$(call err_if_empty,PRIOR_FEDORA_IMAGE_URL) \
+		PRIOR_FEDORA_CSUM_URL=$(call err_if_empty,_PRIOR_FEDORA_IMAGE_URL) \
 			$(PACKER_INSTALL_DIR)/packer build \
 			-force \
 			-var TEMPDIR="$(_TEMPDIR)" \
@@ -243,14 +248,14 @@ $(_TEMPDIR)/image_builder_debug.tar: $(_TEMPDIR)/.cache/centos $(wildcard image_
 $(_TEMPDIR)/fedora-aws-$(IMG_SFX).$(IMPORT_FORMAT): $(_TEMPDIR)
 	bash import_images/handle_image.sh \
 		$@ \
-		$(FEDORA_IMAGE_URL) \
-		$(FEDORA_CSUM_URL)
+		$(call err_if_empty,FEDORA_IMAGE_URL) \
+		$(call err_if_empty,FEDORA_CSUM_URL)
 
 $(_TEMPDIR)/fedora-aws-arm64-$(IMG_SFX).$(IMPORT_FORMAT): $(_TEMPDIR)
 	bash import_images/handle_image.sh \
 		$@ \
-		$(FEDORA_ARM64_IMAGE_URL) \
-		$(FEDORA_ARM64_CSUM_URL)
+		$(call err_if_empty,FEDORA_ARM64_IMAGE_URL) \
+		$(call err_if_empty,FEDORA_ARM64_CSUM_URL)
 
 $(_TEMPDIR)/%.md5: $(_TEMPDIR)/%.$(IMPORT_FORMAT)
 	openssl md5 -binary $< | base64 > $@.tmp
