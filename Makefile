@@ -204,7 +204,7 @@ define packer_build
 		FEDORA_ARM64_IMAGE_URL=$(call err_if_empty,FEDORA_ARM64_IMAGE_URL) \
 		FEDORA_ARM64_CSUM_URL=$(call err_if_empty,FEDORA_ARM64_CSUM_URL) \
 		PRIOR_FEDORA_IMAGE_URL=$(call err_if_empty,PRIOR_FEDORA_IMAGE_URL) \
-		PRIOR_FEDORA_CSUM_URL=$(call err_if_empty,_PRIOR_FEDORA_IMAGE_URL) \
+		PRIOR_FEDORA_CSUM_URL=$(call err_if_empty,PRIOR_FEDORA_CSUM_URL) \
 			$(PACKER_INSTALL_DIR)/packer build \
 			-force \
 			-var TEMPDIR="$(_TEMPDIR)" \
@@ -328,7 +328,7 @@ $(_TEMPDIR)/%.ami.json: $(_TEMPDIR)/%.ami.id $(_TEMPDIR)/%.ami.name
 		--resources "$$(<$(_TEMPDIR)/$*.ami.id)" \
 		--tags \
 			Key=Name,Value=$$(<$(_TEMPDIR)/$*.ami.name) \
-			Key=automation,Value=true
+			Key=automation,Value=false
 	$(AWS) --output table ec2 describe-images --image-ids "$$(<$(_TEMPDIR)/$*.ami.id)" \
 		| tee $@
 
