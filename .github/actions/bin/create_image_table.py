@@ -52,13 +52,17 @@ for item in data:
 
 # This is the mechanism required to set an multi-line env. var.
 # value to be consumed by future workflow steps.
-with open(os.environ["GITHUB_ENV"], "a") as ghenv:
-  ghenv.write(("IMAGE_TABLE<<EOF\n"
-              f"[Cirrus CI build](https://cirrus-ci.com/build/{cirrus_ci_build_id})"
-               " successful. [Found built image names and"
-              f' IDs](https://github.com/{os.environ["GITHUB_REPOSITORY"]}/actions/runs/{os.environ["GITHUB_RUN_ID"]}):\n'
-               "\n"
-               "|*Stage*|**Image Name**|`IMAGE_SUFFIX`|\n"
-               "|---|---|---|\n"))
-  ghenv.writelines(lines)
-  ghenv.write("EOF\n\n")
+with open(os.environ["GITHUB_ENV"], "a") as ghenv \
+     open('/tmp/built_images.md', "w") as mdfile:
+    header=( "IMAGE_TABLE<<EOF\n"
+            f"[Cirrus CI build](https://cirrus-ci.com/build/{cirrus_ci_build_id})"
+             " successful. [Found built image names and"
+            f' IDs](https://github.com/{os.environ["GITHUB_REPOSITORY"]}/actions/runs/{os.environ["GITHUB_RUN_ID"]}):\n'
+             "\n"
+             "|*Stage*|**Image Name**|`IMAGE_SUFFIX`|\n"
+             "|---|---|---|\n")
+    ghenv.write(header)
+    mdfile.write(header)
+    ghenv.writelines(lines)
+    mdfile.writelines(lines)
+    ghenv.write("EOF\n\n")
