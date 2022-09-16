@@ -15,6 +15,10 @@ jobs:
         # Do not execute for other github applications, only works with cirrus-ci
         if: github.event.check_suite.app.name == 'Cirrus CI'
         runs-on: ubuntu-latest
+        env:
+            # This is the last component of the gist URL
+            # i.e. https://gist.github.com/<user>/<id>
+            built_images_gist_id: f505b6fb78db279855862e035629f8aa
         steps:
             - name: Execute latest upstream cirrus-ci_retrospective
               uses: docker://quay.io/libpod/cirrus-ci_retrospective:latest
@@ -103,6 +107,12 @@ jobs:
               run: .github/actions/bin/create_image_table.py
 
             - if: steps.manifests.outputs.count > 0
+              name: Debug built_images.md contents
+              # Produced by create_image_table.py
+              run: cat /tmp/built_images.md
+
+            # jungwinter/comment cannot consume a file as comment input
+            - if: steps.manifests.outputs.count > 0
               name: Debug PR comment markdown
               # Use a here-document to display to avoid any
               # problems with passing special-characters into echo
@@ -121,3 +131,23 @@ jobs:
                   token: '${{ secrets.GITHUB_TOKEN }}'
                   body: |
                     ${{ env.IMAGE_TABLE }}
+
+            # Ref: https://github.com/marketplace/actions/deploy-to-gist
+            - if: steps.manifests.outputs.count > 0
+              name: Publish image name/id MD table to gist
+              uses: exuanbo/actions-deploy-gist@v1.1.4
+              with:
+                  token: ${{ secrets.IMG_GIST_TOKEN }}
+                  gist_id: ${{ env.built_images_gist_id }}
+                  gist_file_name: images.md
+                  file_path: /tmp/built_images.md
+                  file_type: text
+            - if: steps.manifests.outputs.count > 0
+              name: Publish image name/id JSON table to gist
+              uses: exuanbo/actions-deploy-gist@v1.1.4
+              with:
+                  token: ${{ secrets.IMG_GIST_TOKEN }}
+                  gist_id: ${{ secrets.IMG_GIST_TOKEN }}
+                  gist_file_name: images.json
+                  file_path: /tmp/built_images.json
+                  file_type: text
