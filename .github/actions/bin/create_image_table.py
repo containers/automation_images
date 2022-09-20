@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-"""Parse ./built_images.json into MD table in $IMAGE_TABLE."""
+"""Parse $GITHUB_WORKSPACE/built_images.json into MD table in $GITHUB_ENV."""
 
 # Note: This script is exclusively intended to be used by the
 # pr_image_id.yml github-actions workflow.  Any use outside that
@@ -26,9 +26,10 @@ if "GITHUB_ENV" not in os.environ:
     raise KeyError("Error: $GITHUB_ENV is undefined.")
 
 cirrus_ci_build_id = None
+github_workspace = os.environ.get("GITHUB_WORKSPACE", "/tmp")
 
 # File written by a previous workflow step
-with open("./built_images.json") as bij:
+with open(f"{github_workspace}/built_images.json") as bij:
   data = []
   for build in json.load(bij):  # list of build data maps
     stage = build.get("stage", False)
@@ -53,7 +54,7 @@ for item in data:
 # This is the mechanism required to set an multi-line env. var.
 # value to be consumed by future workflow steps.
 with open(os.environ["GITHUB_ENV"], "a") as ghenv, \
-     open('./built_images.md', "w") as mdfile:
+     open(f'{github_workspace}/built_images.md', "w") as mdfile:
     header = ("IMAGE_TABLE<<EOF\n"
              f"[Cirrus CI build](https://cirrus-ci.com/build/{cirrus_ci_build_id})"
               " successful. [Found built image names and"

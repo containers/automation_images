@@ -91,12 +91,12 @@ jobs:
                 find ./${{ steps.retro.outputs.bid }} \
                     -type f -name 'manifest.json' -print0 | \
                 xargs --null jq -e -c "$FLTR" | \
-                    jq -e -s '.' > ./built_images.json
+                    jq -e -s '.' > $GITHUB_WORKSPACE/built_images.json
 
             - if: steps.manifests.outputs.count > 0
               name: Debug built_images.json contents
               run: |
-                jq --color-output . ./built_images.json
+                jq --color-output . $GITHUB_WORKSPACE/built_images.json
 
             - if: steps.manifests.outputs.count > 0
               uses: actions/checkout@v2
@@ -104,12 +104,14 @@ jobs:
             - if: steps.manifests.outputs.count > 0
               id: body
               name: Format PR-comment body
+              # Consumes $GITHUB_WORKSPACE/built_images.json
+              # Writes into $GITHUB_ENV and $GITHUB_WORKSPACE/built_images.md
               run: .github/actions/bin/create_image_table.py
 
             - if: steps.manifests.outputs.count > 0
               name: Debug built_images.md contents
               # Produced by create_image_table.py
-              run: cat ./built_images.md
+              run: cat $GITHUB_WORKSPACE/built_images.md
 
             # jungwinter/comment cannot consume a file as comment input
             - if: steps.manifests.outputs.count > 0
@@ -140,7 +142,7 @@ jobs:
                   token: ${{ secrets.IMG_GIST_TOKEN }}
                   gist_id: ${{ env.built_images_gist_id }}
                   gist_file_name: images.md
-                  file_path: ./built_images.md
+                  file_path: $GITHUB_WORKSPACE/built_images.md
                   file_type: text
             - if: steps.manifests.outputs.count > 0
               name: Publish image name/id JSON table to gist
@@ -149,5 +151,5 @@ jobs:
                   token: ${{ secrets.IMG_GIST_TOKEN }}
                   gist_id: ${{ secrets.IMG_GIST_TOKEN }}
                   gist_file_name: images.json
-                  file_path: ./built_images.json
+                  file_path: $GITHUB_WORKSPACE/built_images.json
                   file_type: text
