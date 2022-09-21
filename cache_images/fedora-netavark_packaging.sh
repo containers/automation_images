@@ -27,6 +27,7 @@ INSTALL_PACKAGES=(\
     bzip2
     curl
     dbus-daemon
+    dnsmasq
     findutils
     firewalld
     gcc
@@ -51,6 +52,7 @@ INSTALL_PACKAGES=(\
     openssl-devel
     podman
     policycoreutils
+    protobuf-devel
     rsync
     sed
     slirp4netns
