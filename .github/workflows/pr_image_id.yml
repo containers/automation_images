@@ -139,7 +139,7 @@ jobs:
               with:
                   token: ${{ secrets.IMG_GIST_TOKEN }}
                   gist_id: ${{ env.built_images_gist_id }}
-                  file_path: ${{ env.GITHUB_WORKSPACE }}/built_images.md
+                  file_path: built_images.md
                   file_type: text
             - if: steps.manifests.outputs.count > 0
               name: Publish image name/id JSON table to gist
@@ -147,5 +147,5 @@ jobs:
               with:
                   token: ${{ secrets.IMG_GIST_TOKEN }}
                   gist_id: ${{ secrets.IMG_GIST_TOKEN }}
-                  file_path: ${{ env.GITHUB_WORKSPACE }}/built_images.json
+                  file_path: built_images.json
                   file_type: text

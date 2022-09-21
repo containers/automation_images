@@ -26,7 +26,7 @@ if "GITHUB_ENV" not in os.environ:
     raise KeyError("Error: $GITHUB_ENV is undefined.")
 
 cirrus_ci_build_id = None
-github_workspace = os.environ.get("GITHUB_WORKSPACE", "/tmp")
+github_workspace = os.environ.get("GITHUB_WORKSPACE", ".")
 
 # File written by a previous workflow step
 with open(f"{github_workspace}/built_images.json") as bij:
@@ -55,14 +55,16 @@ for item in data:
 # value to be consumed by future workflow steps.
 with open(os.environ["GITHUB_ENV"], "a") as ghenv, \
      open(f'{github_workspace}/built_images.md', "w") as mdfile:
-    header = ("IMAGE_TABLE<<EOF\n"
-             f"[Cirrus CI build](https://cirrus-ci.com/build/{cirrus_ci_build_id})"
-              " successful. [Found built image names and"
-             f' IDs](https://github.com/{os.environ["GITHUB_REPOSITORY"]}'
-             f'/actions/runs/{os.environ["GITHUB_RUN_ID"]}):\n'
-              "\n"
-              "|*Stage*|**Image Name**|`IMAGE_SUFFIX`|\n"
-              "|---|---|---|\n")
+
+    env_header = ("IMAGE_TABLE<<EOF\n")
+    header = (f"[Cirrus CI build](https://cirrus-ci.com/build/{cirrus_ci_build_id})"
+               " successful. [Found built image names and"
+              f' IDs](https://github.com/{os.environ["GITHUB_REPOSITORY"]}'
+              f'/actions/runs/{os.environ["GITHUB_RUN_ID"]}):\n'
+               "\n"
+               "|*Stage*|**Image Name**|`IMAGE_SUFFIX`|\n"
+               "|---|---|---|\n")
+    ghenv.write(env_header)
     ghenv.write(header)
     mdfile.write(header)
     ghenv.writelines(lines)
