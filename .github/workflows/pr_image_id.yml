@@ -57,6 +57,8 @@ jobs:
                       printf "\n::set-output name=is_pr::%s\n" "false"
                   fi
 
+            - uses: actions/checkout@v2
+
             - if: steps.retro.outputs.is_pr == 'true'
               name: Retrieve and process any manifest artifacts
               # Use the CCIA image produce by the `Build Tooling images`
@@ -65,7 +67,7 @@ jobs:
               # (where this workflow runs from).  If that should fail,
               # fall back to using the latest built CCIA image.
               run: |
-                PODMAN="podman run --rm -v $PWD:/data -w /data"
+                PODMAN="podman run --rm -v $GITHUB_WORKSPACE:/data -w /data"
                 PR_CCIA="quay.io/libpod/ccia:c${{ steps.retro.outputs.bid }}"
                 UP_CCIA="quay.io/libpod/ccia:latest"
                 declare -a ARGS
@@ -73,13 +75,10 @@ jobs:
                 $PODMAN $PR_CCIA "${ARGS[@]}" || $PODMAN $UP_CCIA "${ARGS[@]}"
 
             - if: steps.retro.outputs.is_pr == 'true'
-              uses: actions/checkout@v2
-
-            - if: steps.retro.outputs.is_pr == 'true'
               name: Count the number of manifest.json files downloaded
               id: manifests
               run: |
-                dled=$(find ./${{ steps.retro.outputs.bid }} -name manifest.json | wc -l)
+                dled=$(find $GITHUB_WORKSPACE -type f -name 'manifest.json' | wc -l)
                 printf "\n::set-output name=count::%s\n" "$dled"
 
             - if: steps.manifests.outputs.count > 0
@@ -91,8 +90,7 @@ jobs:
                      "sfx": .builds[].custom_data.IMG_SFX,
                      "task": .builds[].custom_data.TASK}
               run: |
-                find ./${{ steps.retro.outputs.bid }} \
-                    -type f -name 'manifest.json' -print0 | \
+                find $GITHUB_WORKSPACE -type f -name 'manifest.json' -print0 | \
                 xargs --null jq -e -c "$FLTR" | \
                     jq -e -s '.' > $GITHUB_WORKSPACE/built_images.json
 
