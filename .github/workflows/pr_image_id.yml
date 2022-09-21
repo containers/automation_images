@@ -149,5 +149,5 @@ jobs:
                   token: ${{ secrets.IMG_GIST_TOKEN }}
                   gist_id: ${{ secrets.IMG_GIST_TOKEN }}
                   gist_file_name: images.json
-                  file_path: $GITHUB_WORKSPACE/built_images.json
+                  file_path: ${{ env.GITHUB_WORKSPACE }}/built_images.json
                   file_type: text
