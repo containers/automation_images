@@ -73,6 +73,9 @@ jobs:
                 $PODMAN $PR_CCIA "${ARGS[@]}" || $PODMAN $UP_CCIA "${ARGS[@]}"
 
             - if: steps.retro.outputs.is_pr == 'true'
+              uses: actions/checkout@v2
+
+            - if: steps.retro.outputs.is_pr == 'true'
               name: Count the number of manifest.json files downloaded
               id: manifests
               run: |
@@ -97,9 +100,6 @@ jobs:
               name: Debug built_images.json contents
               run: |
                 jq --color-output . $GITHUB_WORKSPACE/built_images.json
-
-            - if: steps.manifests.outputs.count > 0
-              uses: actions/checkout@v2
 
             - if: steps.manifests.outputs.count > 0
               id: body
