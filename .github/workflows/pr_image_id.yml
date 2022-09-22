@@ -156,6 +156,6 @@ jobs:
               uses: exuanbo/actions-deploy-gist@v1.1.4
               with:
                   token: ${{ secrets.IMG_GIST_TOKEN }}
-                  gist_id: ${{ secrets.IMG_GIST_TOKEN }}
+                  gist_id: ${{ env.built_images_gist_id }}
                   file_path: images.json
                   file_type: text
