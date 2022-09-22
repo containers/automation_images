@@ -91,6 +91,6 @@ with open(os.environ["GITHUB_ENV"], "a") as ghenv, \
         if dst == ghenv:
             dst.write("EOF\n\n")
 
-    json.dump(images_json, data, indent=4, sort_keys=True)
+    json.dump(data, images_json, indent=4, sort_keys=True)
     msg(f"Wrote github env file '{ghenv.name}', md-file '{mdfile.name}',"
         f" and json-file '{images_json.name}'")
