@@ -8,6 +8,16 @@
 
 import json
 import os
+import sys
+
+
+def msg(msg, newline=True):
+    """Print msg to stderr with optional newline."""
+    nl = ''
+    if newline:
+        nl = '\n'
+    sys.stderr.write(f"{msg}{nl}")
+    sys.stderr.flush()
 
 
 def stage_sort(item):
@@ -30,18 +40,22 @@ github_workspace = os.environ.get("GITHUB_WORKSPACE", ".")
 
 # File written by a previous workflow step
 with open(f"{github_workspace}/built_images.json") as bij:
+  msg(f"Reading image build data from {bij.name}:")
   data = []
   for build in json.load(bij):  # list of build data maps
     stage = build.get("stage", False)
     name = build.get("name", False)
     sfx = build.get("sfx", False)
     task = build.get("task", False)
-    if stage and name and sfx:
+    if bool(stage) and bool(name) and bool(sfx) and bool(task):
         image_suffix = f'{stage[0]}{sfx}'
         data.append(dict(stage=stage, name=name,
                          image_suffix=image_suffix, task=task))
         if cirrus_ci_build_id is None:
             cirrus_ci_build_id = sfx
+        msg(f"Including '{stage}' stage build '{name}' for task '{task}'.")
+    else:
+        msg(f"Skipping  '{stage}' stage build '{name}' for task '{task}'.")
 
 url = 'https://cirrus-ci.com/task'
 lines = []
@@ -51,22 +65,32 @@ for item in data:
     item['name'], '{0}/{1}'.format(url, item['task']),
     item['image_suffix']))
 
+
 # This is the mechanism required to set an multi-line env. var.
 # value to be consumed by future workflow steps.
 with open(os.environ["GITHUB_ENV"], "a") as ghenv, \
-     open(f'{github_workspace}/built_images.md', "w") as mdfile:
+     open(f'{github_workspace}/images.md', "w") as mdfile, \
+     open(f'{github_workspace}/images.json', "w") as images_json:
 
     env_header = ("IMAGE_TABLE<<EOF\n")
     header = (f"[Cirrus CI build](https://cirrus-ci.com/build/{cirrus_ci_build_id})"
                " successful. [Found built image names and"
               f' IDs](https://github.com/{os.environ["GITHUB_REPOSITORY"]}'
               f'/actions/runs/{os.environ["GITHUB_RUN_ID"]}):\n'
-               "\n"
-               "|*Stage*|**Image Name**|`IMAGE_SUFFIX`|\n"
-               "|---|---|---|\n")
-    ghenv.write(env_header)
-    ghenv.write(header)
-    mdfile.write(header)
-    ghenv.writelines(lines)
-    mdfile.writelines(lines)
-    ghenv.write("EOF\n\n")
+               "\n")
+    c_head = ("|*Stage*|**Image Name**|`IMAGE_SUFFIX`|\n"
+              "|---|---|---|\n")
+    # Different output destinations get slightly different content
+    for dst in [ghenv, mdfile, sys.stderr]:
+        if dst == ghenv:
+            dst.write(env_header)
+        if dst != sys.stderr:
+            dst.write(header)
+        dst.write(c_head)
+        dst.writelines(lines)
+        if dst == ghenv:
+            dst.write("EOF\n\n")
+
+    json.dump(images_json, data, indent=4, sort_keys=True)
+    msg(f"Wrote github env file '{ghenv.name}', md-file '{mdfile.name}',"
+        f" and json-file '{images_json.name}'")

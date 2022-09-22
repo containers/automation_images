@@ -90,9 +90,10 @@ jobs:
                      "sfx": .builds[].custom_data.IMG_SFX,
                      "task": .builds[].custom_data.TASK}
               run: |
-                find $GITHUB_WORKSPACE -type f -name 'manifest.json' -print0 | \
+                cd $GITHUB_WORKSPACE
+                find ./ -type f -name 'manifest.json' -print0 | \
                 xargs --null jq -e -c "$FLTR" | \
-                    jq -e -s '.' > $GITHUB_WORKSPACE/built_images.json
+                    jq -e -s '.' > ./built_images.json
 
             - if: steps.manifests.outputs.count > 0
               name: Debug built_images.json contents
@@ -103,7 +104,6 @@ jobs:
               id: body
               name: Format PR-comment body
               # Consumes $GITHUB_WORKSPACE/built_images.json
-              # Writes into $GITHUB_ENV and $GITHUB_WORKSPACE/built_images.md
               run: .github/actions/bin/create_image_table.py
 
             - if: steps.manifests.outputs.count > 0
@@ -139,7 +139,7 @@ jobs:
               with:
                   token: ${{ secrets.IMG_GIST_TOKEN }}
                   gist_id: ${{ env.built_images_gist_id }}
-                  file_path: built_images.md
+                  file_path: images.md
                   file_type: text
             - if: steps.manifests.outputs.count > 0
               name: Publish image name/id JSON table to gist
@@ -147,5 +147,5 @@ jobs:
               with:
                   token: ${{ secrets.IMG_GIST_TOKEN }}
                   gist_id: ${{ secrets.IMG_GIST_TOKEN }}
-                  file_path: built_images.json
+                  file_path: images.json
                   file_type: text

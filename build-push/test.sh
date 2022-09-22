@@ -11,6 +11,9 @@ source $SCRIPT_DIRPATH/../lib.sh
 
 req_env_vars CIRRUS_CI
 
+# No need to test if image wasn't built
+if TARGET_NAME=build-push skip_on_pr_label; then exit 0; fi
+
 # Architectures to test with (golang standard names)
 TESTARCHES="amd64 arm64"
 # main.sh is sensitive to this value
