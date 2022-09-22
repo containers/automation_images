@@ -11,3 +11,7 @@ google_test_task:
 container_test_task:
     container:
         image: something
+
+windows_container_test_task:
+    windows_container:
+        image: cirrusci/windowsservercore:2019
