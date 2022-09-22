@@ -112,9 +112,14 @@ jobs:
               run: .github/actions/bin/create_image_table.py
 
             - if: steps.manifests.outputs.count > 0
-              name: Debug built_images.md contents
+              name: Debug images.md contents
               # Produced by create_image_table.py
-              run: cat $GITHUB_WORKSPACE/built_images.md
+              run: cat $GITHUB_WORKSPACE/images.md
+
+            - if: steps.manifests.outputs.count > 0
+              name: Debug images.json contents
+              # Produced by create_image_table.py
+              run: jq --color-output . $GITHUB_WORKSPACE/images.json
 
             # jungwinter/comment cannot consume a file as comment input
             - if: steps.manifests.outputs.count > 0
