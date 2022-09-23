@@ -17,11 +17,11 @@ if_ci_else = $(if $(findstring true,$(CI)),$(1),$(2))
 
 export CENTOS_STREAM_RELEASE = 8
 
-export FEDORA_RELEASE = 37
-export PRIOR_FEDORA_RELEASE = 36
+export FEDORA_RELEASE = 36
+export PRIOR_FEDORA_RELEASE = 35
 
 # See import_images/README.md
-export FEDORA_IMPORT_IMG_SFX = 1662988741
+export FEDORA_IMPORT_IMG_SFX = 1663877149
 
 export UBUNTU_RELEASE = 22.04
 export UBUNTU_BASE_FAMILY = ubuntu-2204-lts
