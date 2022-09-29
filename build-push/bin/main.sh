@@ -11,10 +11,15 @@
 # resulting image.
 #
 # The second argument to this script is the relative path to the build context
-# subdirectory.  The basename of this subdirectory indicates the
-# type of image being built (i.e. `upstream`, `testing`, or `stable`).
-# Depending on this value, the image may be pushed to multiple container
-# registries.
+# subdirectory.  The basename of this subdirectory may indicates the
+# image flavor (i.e. `upstream`, `testing`, or `stable`). Depending
+# on this value, the image may be pushed to multiple container registries
+# under slightly different rules (see the next option).
+#
+# If the basename of the context directory (second argument) does NOT reflect
+# the image flavor, this name may be passed in as a third argument.  Handling
+# of this argument may be repository-specific, so check the actual code below
+# to understand it's behavior.
 
 set -eo pipefail
 
@@ -30,9 +35,9 @@ else
 fi
 
 # Careful: Changing the error message below could break auto-update test.
-if [[ $# -ne 2 ]]; then
+if [[ "$#" -lt 2 ]]; then
     #shellcheck disable=SC2145
-    die "Must be called with exactly two arguments, got '$@'"
+    die "Must be called with at least two arguments, got '$@'"
 fi
 
 if [[ -z $(type -P build-push.sh) ]]; then
@@ -59,14 +64,23 @@ REPO_URL="$1"
 REPO_NAME=$(basename "${REPO_URL%.git}")
 # Second arg (CTX_SUB) is the context subdirectory relative to the clone path
 CTX_SUB="$2"
-# Basename of second arg names the image contents
-CTX_NAME=$(basename "$CTX_SUB")
+# Historically, the basename of second arg set the image flavor(i.e. `upstream`,
+# `testing`, or `stable`).  For cases where this convention doesn't fit,
+# it's possible to pass the flavor-name as the third argument.  Both methods
+# will populate a "FLAVOR" build-arg value.
+if [[ "$#" -lt 3 ]]; then
+    FLAVOR_NAME=$(basename "$CTX_SUB")
+elif [[ "$#" -ge 3 ]]; then
+    FLAVOR_NAME="$3"  # An empty-value is valid
+else
+    die "Expecting a non-empty third argument indicating the FLAVOR build-arg value."
+fi
 _REG="quay.io"
 if [[ "$REPO_NAME" =~ testing ]]; then
     _REG="example.com"
 fi
-REPO_FQIN="$_REG/$REPO_NAME/$CTX_NAME"
-req_env_vars REPO_URL REPO_NAME CTX_SUB CTX_NAME
+REPO_FQIN="$_REG/$REPO_NAME/$FLAVOR_NAME"
+req_env_vars REPO_URL REPO_NAME CTX_SUB FLAVOR_NAME
 
 # Common library defines SCRIPT_FILENAME
 # shellcheck disable=SC2154
@@ -74,7 +88,7 @@ dbg "$SCRIPT_FILENAME operating constants:
     REPO_URL=$REPO_URL
     REPO_NAME=$REPO_NAME
     CTX_SUB=$CTX_SUB
-    CTX_NAME=$CTX_NAME
+    FLAVOR_NAME=$FLAVOR_NAME
     REPO_FQIN=$REPO_FQIN
 "
 
@@ -89,6 +103,11 @@ fi
 
 ### MAIN
 
+declare -a build_args
+if [[ -n "$FLAVOR_NAME" ]]; then
+    build_args=(--build-arg "FLAVOR=$FLAVOR_NAME")
+fi
+
 head_sha=$(git rev-parse HEAD)
 dbg "HEAD is $head_sha"
 # Labels to add to all images
@@ -99,14 +118,13 @@ lblargs="\
     --label=org.opencontainers.image.created=$(date -u --iso-8601=seconds)"
 dbg "lblargs=$lblargs"
 
-# tag_version.sh is sensitive to this value if set
-export img_cmd_version=""
+modcmdarg="tag_version.sh $FLAVOR_NAME"
 
 # For stable images, the version number of the command is needed for tagging.
-if [[ "$CTX_NAME" == "stable" ]]; then
+if [[ "$FLAVOR_NAME" == "stable" ]]; then
     # only native arch is needed to extract the version
     dbg "Building local-arch image to extract stable version number"
-    podman build -t $REPO_FQIN ./$CTX_SUB
+    podman build -t $REPO_FQIN "${build_args[@]}" ./$CTX_SUB
 
     case "$REPO_NAME" in
         skopeo) version_cmd="--version" ;;
@@ -131,14 +149,18 @@ if [[ "$CTX_NAME" == "stable" ]]; then
     dbg "Un-tagging $REPO_FQIN"
     podman untag $REPO_FQIN
 
+    # tag-version.sh expects this arg. when FLAVOR_NAME=stable
+    modcmdarg+=" $img_cmd_version"
+
     # Stable images get pushed to 'containers' namespace as latest & version-tagged
     build-push.sh \
         $_DRNOPUSH \
         --arches=$ARCHES \
-        --modcmd=tag_version.sh \
+        --modcmd="$modcmdarg" \
         $_REG/containers/$REPO_NAME \
         ./$CTX_SUB \
-        $lblargs
+        $lblargs \
+        "${build_args[@]}"
 fi
 
 # All images are pushed to quay.io/<reponame>, both
@@ -146,7 +168,8 @@ fi
 build-push.sh \
     $_DRNOPUSH \
     --arches=$ARCHES \
-    --modcmd=tag_version.sh \
+    --modcmd="$modcmdarg" \
     $REPO_FQIN \
     ./$CTX_SUB \
-    $lblargs
+    $lblargs \
+    "${build_args[@]}"
