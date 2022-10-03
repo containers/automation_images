@@ -74,8 +74,18 @@ lilto $SUDO dnf update -y $EXARG
 msg "Initializing upstream rust environment."
 export CARGO_HOME="/var/cache/cargo"  # must match .cirrus.yml in netavark repo
 $SUDO mkdir -p $CARGO_HOME
+# Lock onto the stable toolchain for this image build
+export RUSTUP_TOOLCHAIN=stable
 # CI Runtime takes care of recovering $CARGO_HOME/env
-curl https://sh.rustup.rs -sSf | $SUDO env CARGO_HOME=$CARGO_HOME sh -s -- -y
+curl https://sh.rustup.rs -sSf | \
+    $SUDO env RUSTUP_TOOLCHAIN=$RUSTUP_TOOLCHAIN CARGO_HOME=$CARGO_HOME \
+        sh -s -- -y -v
+# need PATH updated so SUDO can find 'rustup' binary
+. $CARGO_HOME/env
+$SUDO env PATH=$PATH rustup default stable
+if [[ $(uname -m) == "aarch64" ]]; then
+    $SUDO env PATH=$PATH rustup target add aarch64-unknown-linux-gnu
+fi
 
 # Downstream users of this image are specifically testing netavark & aardvark-dns
 # code changes.  We want to start with using the RPMs because they deal with any
