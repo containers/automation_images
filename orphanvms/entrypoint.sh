@@ -37,5 +37,6 @@ dbg() {
 
 # shellcheck source=orphanvms/gce
 . /usr/local/bin/_gce
+
 # shellcheck source=orphanvms/ec2
 . /usr/local/bin/_ec2
