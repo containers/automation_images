@@ -17,10 +17,11 @@ FILTER="status!=TERMINATED AND lastStartTimestamp<$THRESHOLD AND labels.list(sho
 # only non-matching output.  Unfortunately, if if there is no output for some
 # reason, this will cause grep to fail.  Ignore this, since the next gcloud
 # command to follow will complain loudly if the credentials aren't sufficient.
+dbg "Initializing gcloud"
 gcloud_init |& grep -Eiv '^Activated service account credentials for:' || true
 
 # shellcheck disable=SC2154,SC2153
-for gcpproject in $gcpprojectS; do
+for gcpproject in $GCPPROJECTS; do
     dbg "Examining $gcpproject"
     OUTPUT=$(mktemp -p '' orphanvms_${gcpproject}_XXXXX)
     echo "Orphaned $gcpproject VMs:" > $OUTPUT
