@@ -71,7 +71,7 @@ jobs:
                 (
                 echo "Detected ${{ steps.orphans.outputs.count }} Orphan GCP VM(s):"
                 echo ""
-                cat /tmp/output.txt
+                cat /tmp/orphanvms_output.txt
                 echo ""
                 echo "# Source: ${{ github.workflow }} workflow on ${{ github.repository }}."
                 # Separate content from sendgrid.com automatic footer.
