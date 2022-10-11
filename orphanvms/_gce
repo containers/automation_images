@@ -27,7 +27,7 @@ for gcpproject in $GCPPROJECTS; do
     echo "Orphaned $gcpproject VMs:" > $OUTPUT
 
     # Ref: https://cloud.google.com/compute/docs/images/create-delete-deprecate-private-images#deprecating_an_image
-    $GCLOUD compute instances list --format="$FORMAT" --filter="$FILTER" | \
+    $GCLOUD compute instances list --project=$gcpproject --format="$FORMAT" --filter="$FILTER" | \
         while read name lastStartTimestamp labels
         do
             dbg "VM $name started $lastStartTimestamp labeled $labels"
