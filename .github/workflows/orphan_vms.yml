@@ -51,7 +51,7 @@ jobs:
                     > /tmp/orphanvms_output.txt
 
             - if: always()
-              uses: actions/upload-artifact@v2
+              uses: actions/upload-artifact@v3
               with:
                   name: orphanvms_output
                   path: /tmp/orphanvms_output.txt
