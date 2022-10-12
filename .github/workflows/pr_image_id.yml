@@ -79,7 +79,7 @@ jobs:
               name: Count the number of manifest.json files downloaded
               id: manifests
               run: |
-                dled=$(find $GITHUB_WORKSPACE -type f -name 'manifest.json' | wc -l)
+                dled=$(find $GITHUB_WORKSPACE -type f -name 'manifest.json' -not -path '*fake_manifests/*/manifest.json' | wc -l)
                 if [[ "$dled" =~ ^[0-9]+$ ]]; then
                     printf "\n::set-output name=count::%s\n" "$dled"
                 else
