@@ -58,7 +58,9 @@ jobs:
                   fi
 
             - if: steps.retro.outputs.is_pr == 'true'
-              uses: actions/checkout@v2
+              uses: actions/checkout@v3
+              with:
+                  persist-credentials: false
 
             - if: steps.retro.outputs.is_pr == 'true'
               name: Retrieve and process any manifest artifacts
