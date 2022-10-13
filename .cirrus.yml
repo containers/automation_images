@@ -304,7 +304,7 @@ imgts_task:
 test_imgobsolete_task: &lifecycle_test
     name: "Test obsolete image detection"
     alias: test_imgobsolete
-    only_if: &not_cron $CIRRUS_CRON == ''
+    only_if: &only_prs $CIRRUS_PR != ''
     skip: *ci_docs
     depends_on:
         - tooling_images
@@ -359,7 +359,7 @@ test_imgprune_task:
 test_gcsupld_task:
     name: "Test uploading to GCS"
     alias: test_gcsupld
-    only_if: *not_cron
+    only_if: *only_prs
     skip: *ci_docs
     depends_on:
         - tooling_images
@@ -378,7 +378,7 @@ test_gcsupld_task:
 test_get_ci_vm_task:
     name: "Test get_ci_vm entrypoint"
     alias: test_get_ci_vm
-    only_if: *not_cron
+    only_if: *only_prs
     skip: *ci_docs
     depends_on:
         - tooling_images
@@ -395,7 +395,7 @@ test_get_ci_vm_task:
 test_ccia_task:
     name: "Test ccia entrypoint"
     alias: test_ccia
-    only_if: *not_cron
+    only_if: *only_prs
     skip: *ci_docs
     depends_on:
         - tooling_images
@@ -412,7 +412,7 @@ test_ccia_task:
 test_build-push_task:
     name: "Test build-push VM functions"
     alias: test_build-push
-    only_if: *not_cron
+    only_if: *only_prs
     skip: *ci_docs_tooling
     depends_on:
         - cache_images

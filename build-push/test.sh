@@ -5,7 +5,8 @@
 # and may cause harm.  It's purpose is to confirm the 'main.sh' script
 # behaves in an expected way, given a local test repository as input.
 
-set -e
+set -eo pipefail
+
 SCRIPT_DIRPATH=$(dirname $(realpath "${BASH_SOURCE[0]}"))
 source $SCRIPT_DIRPATH/../lib.sh
 
@@ -53,62 +54,113 @@ cd "contrib/testimage/stable"
 echo "build-push-test version v$FAKE_VERSION" | tee "FAKE_VERSION"
 cat <<EOF | tee "Containerfile"
 FROM registry.fedoraproject.org/fedora:latest
+ARG FLAVOR
 ADD /FAKE_VERSION /
-RUN dnf install -y iputils
+RUN echo "FLAVOUR=\$FLAVOR" > /FLAVOUR
 EOF
+# As an additional test, build and check images when pasing
+# the 'stable' flavor name as a command-line arg instead
+# of using the subdirectory dirname (old method).
+cd $SRC_TMP/testing/contrib/testimage
+cp stable/* ./
 cd $SRC_TMP/testing
+# The images will have the repo & commit ID set as labels
 git add --all
 git commit -m 'test repo initial commit'
+TEST_REVISION=$(git rev-parse HEAD)
+
+# Given the flavor-name as the first argument, verify built image
+# expectations.  For 'stable' image, verify that main.sh will properly
+# version-tagged both FQINs.  For other flavors, verify expected labels
+# on the `latest` tagged FQINs.
+verify_built_images() {
+    local _fqin _arch xy_ver x_ver img_ver img_src img_rev _fltr
+    local _test_tag expected_flavor _test_fqins
+    expected_flavor="$1"
+    msg "
+##### Testing execution of '$expected_flavor' images for arches $TESTARCHES #####"
+    podman --version
+    req_env_vars TESTARCHES FAKE_VERSION TEST_FQIN TEST_FQIN2
+
+    declare -a _test_fqins
+    _test_fqins=("${TEST_FQIN%stable}$expected_flavor")
+    if [[ "$expected_flavor" == "stable" ]]; then
+        _test_fqins+=("$TEST_FQIN2")
+        test_tag="v$FAKE_VERSION"
+        xy_ver="v$FAKE_VER_X.$FAKE_VER_Y"
+        x_ver="v$FAKE_VER_X"
+    else
+        test_tag="latest"
+        xy_ver="latest"
+        x_ver="latest"
+    fi
+
+    for _fqin in "${_test_fqins[@]}"; do
+        for _arch in $TESTARCHES; do
+            msg "Testing container can execute '/bin/true'"
+            showrun podman run -i --arch=$_arch --rm "$_fqin:$test_tag" /bin/true
+
+            msg "Testing container FLAVOR build-arg passed correctly"
+            showrun podman run -i --arch=$_arch --rm "$_fqin:$test_tag" \
+                cat /FLAVOUR | tee /dev/stderr | fgrep -xq "FLAVOUR=$expected_flavor"
+
+            if [[ "$expected_flavor" == "stable" ]]; then
+                msg "Testing tag '$xy_ver'"
+                if ! showrun podman manifest exists $_fqin:$xy_ver; then
+                    die "Failed to find manifest-list tagged '$xy_ver'"
+                fi
+
+                msg "Testing tag '$x_ver'"
+                if ! showrun podman manifest exists $_fqin:$x_ver; then
+                    die "Failed to find manifest-list tagged '$x_ver'"
+                fi
+            fi
+        done
+
+        if [[ "$expected_flavor" == "stable" ]]; then
+            msg "Testing image $_fqin:$test_tag version label"
+            _fltr='.[].Config.Labels."org.opencontainers.image.version"'
+            img_ver=$(podman inspect $_fqin:$test_tag | jq -r -e "$_fltr")
+            showrun test "$img_ver" == "v$FAKE_VERSION"
+        fi
+
+        msg "Testing image $_fqin:$test_tag source label"
+        _fltr='.[].Config.Labels."org.opencontainers.image.source"'
+        img_src=$(podman inspect $_fqin:$test_tag | jq -r -e "$_fltr")
+        showrun test "$img_src" == "git://testing"
+
+        msg "Testing image $_fqin:$test_tag source revision"
+        _fltr='.[].Config.Labels."org.opencontainers.image.revision"'
+        img_rev=$(podman inspect $_fqin:$test_tag | jq -r -e "$_fltr")
+        showrun test "$img_rev" == "$TEST_REVISION"
+    done
+}
+
+remove_built_images() {
+    buildah --version
+    for _fqin in $TEST_FQIN $TEST_FQIN2; do
+        for tag in latest v$FAKE_VERSION v$FAKE_VER_X.$FAKE_VER_Y v$FAKE_VER_X; do
+            # Don't care if this fails
+            podman manifest rm $_fqin:$tag || true
+        done
+    done
+}
 
 msg "
-##### Testing build-push multi-arch build of '$TEST_FQIN'/'$TEST_FQIN2' #####"
-buildah --version
+##### Testing build-push subdir-flavor run of '$TEST_FQIN' & '$TEST_FQIN2' #####"
+cd $SRC_TMP/testing
 export DRYRUN=1  # Force main.sh not to push anything
 req_env_vars ARCHES DRYRUN
 # main.sh is sensitive to 'testing' value.
-# also confirms main.sh is on $PATH
+# Also confirms main.sh is on $PATH
 env A_DEBUG=1 main.sh git://testing contrib/testimage/stable
+verify_built_images stable
 
-# Because this is a 'stable' image, verify that main.sh will properly
-# version-tagged both FQINs.  No need to check 'latest'.
 msg "
-##### Testing execution of images arches $TESTARCHES #####"
-podman --version
-req_env_vars TESTARCHES FAKE_VERSION TEST_FQIN TEST_FQIN2
-for _fqin in $TEST_FQIN $TEST_FQIN2; do
-    for _arch in $TESTARCHES; do
-        # As of podman 3.4.4, the --arch=$arch argument will cause failures
-        # looking up the image in local storage.  This bug is fixed in later
-        # versions.  For now, query the manifest directly for the image sha256.
-        _q='.manifests[] | select(.platform.architecture == "'"$_arch"'") | .digest'
-        _s=$(podman manifest inspect $_fqin:v$FAKE_VERSION | jq -r "$_q")
-        msg "Found '$_arch' in manifest-list $_fqin:v$FAKE_VERSION as digest $_s"
-        if [[ -z "$_s" ]]; then
-            die "Failed to get sha256 for FQIN '$_fqin:v$FAKE_VERSION' ($_arch)"
-        fi
-        msg "Testing container can ping localhost"
-        showrun podman run -i --rm "$_fqin@$_s" ping -q -c 1 127.0.0.1
-
-        xy_ver="v$FAKE_VER_X.$FAKE_VER_Y"
-        msg "Testing tag '$xy_ver'"
-        if ! podman manifest inspect $_fqin:$xy_ver &> /dev/null; then
-            die "Failed to find manifest-list tagged '$xy_ver'"
-        fi
-
-        x_ver="v$FAKE_VER_X"
-        msg "Testing tag '$x_ver'"
-        if ! podman manifest inspect $_fqin:$x_ver &> /dev/null; then
-            die "Failed to find manifest-list tagged '$x_ver'"
-        fi
-
-        #TODO: Test org.opencontainers.image.source value
-        #TODO: fails, returns null for some reason
-        #msg "Confirming version-label matches tag"
-        #_q='.[0].Labels."org.opencontainers.image.version"'
-        #_v=$(podman image inspect "$_fqin@$_s" | jq -r "$_q")
-        #showrun test $_v -eq $FAKE_VERSION
-    done
-done
+##### Testing build-push flavour-arg run for '$TEST_FQIN' & '$TEST_FQIN2' #####"
+remove_built_images
+env A_DEBUG=1 main.sh git://testing contrib/testimage foobarbaz
+verify_built_images foobarbaz
 
 # This script verifies it's only/ever running inside CI.  Use a fake
 # main.sh to verify it auto-updates itself w/o actually performing
@@ -129,7 +181,7 @@ chmod +x main.sh
 
 # Expect the real main.sh to bark one of two error messages
 # and exit non-zero.
-EXP_RX1="Must.be.called.with.exactly.two.arguments"
+EXP_RX1="Must.be.called.with.at.least.two.arguments"
 EXP_RX2="does.not.appear.to.be.the.root.of.a.git.repo"
 if output=$(env BUILDPUSHAUTOUPDATED=0 ./main.sh 2>&1); then
     die "Fail.  Expected main.sh to exit non-zero"
