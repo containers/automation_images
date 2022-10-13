@@ -78,6 +78,10 @@ setup_obs tools criu
 
 # N/B: DO NOT install the bats package on Ubuntu VMs, it's broken.
 # ref: (still open) https://bugs.launchpad.net/ubuntu/+source/bats/+bug/1882542
+#
+# TODO: ADD podman BACK INTO THIS LIST.  IT'S NEEDED BY CI TESTS IN
+# BUILDAH AND LIKELY ELSEWHERE TOO.
+#
 INSTALL_PACKAGES=(\
     apache2-utils
     apparmor
@@ -141,7 +145,6 @@ INSTALL_PACKAGES=(\
     openssl
     parallel
     pkg-config
-    podman
     podman-plugins
     protobuf-c-compiler
     protobuf-compiler
