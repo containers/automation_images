@@ -82,7 +82,7 @@ jobs:
             - if: steps.orphans.outputs.count > 0
               name: Send orphan notification e-mail
               # Ref: https://github.com/dawidd6/action-send-mail
-              uses: dawidd6/action-send-mail@v2.6.0
+              uses: dawidd6/action-send-mail@v3.7.0
               with:
                 server_address: ${{ secrets.ACTION_MAIL_SERVER }}
                 server_port: 465
@@ -95,7 +95,7 @@ jobs:
 
             - if: failure()
               name: Send error notification e-mail
-              uses: dawidd6/action-send-mail@v2.6.0
+              uses: dawidd6/action-send-mail@v3.7.0
               with:
                 server_address: ${{secrets.ACTION_MAIL_SERVER}}
                 server_port: 465
