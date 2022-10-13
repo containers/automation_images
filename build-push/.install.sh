@@ -16,6 +16,7 @@ then
 fi
 
 source /etc/automation_environment
+source "$AUTOMATION_LIB_PATH/common_lib.sh"
 
 #shellcheck disable=SC2154
 cd $(dirname "$SCRIPT_FILEPATH") || exit 1

@@ -178,12 +178,17 @@ source "$AUTOMATION_LIB_PATH/common_lib.sh"
 source "$AUTOMATION_LIB_PATH/autoupdate.sh"
 EOF
 chmod +x main.sh
+# Back to where we were
+cd -
 
 # Expect the real main.sh to bark one of two error messages
 # and exit non-zero.
 EXP_RX1="Must.be.called.with.at.least.two.arguments"
 EXP_RX2="does.not.appear.to.be.the.root.of.a.git.repo"
-if output=$(env BUILDPUSHAUTOUPDATED=0 ./main.sh 2>&1); then
+if output=$(env --ignore-environment \
+            BUILDPUSHAUTOUPDATED=0 \
+            AUTOMATION_LIB_PATH=$AUTOMATION_LIB_PATH \
+            $SRC_TMP/main.sh 2>&1); then
     die "Fail.  Expected main.sh to exit non-zero"
 else
     if [[ "$output" =~ $EXP_RX1 ]] || [[ "$output" =~ $EXP_RX2 ]]; then
