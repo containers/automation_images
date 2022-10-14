@@ -358,6 +358,12 @@ cache_images: cache_images/manifest.json ## Create, prepare, and import top-leve
 cache_images/manifest.json: cache_images/cloud.json $(wildcard cache_images/*.sh) $(PACKER_INSTALL_DIR)/packer
 	$(call packer_build,cache_images/cloud.json)
 
+.PHONY: win_images
+# This needs to run in a virt/nested-virt capable environment
+win_images: win_images/manifest.json
+win_images/manifest.json: win_images/win-server-wsl.json $(wildcard win_images/*.ps1) $(PACKER_INSTALL_DIR)/packer
+	$(call packer_build,win_images/win-server-wsl.json)
+
 .PHONY: fedora_podman
 fedora_podman:  ## Build Fedora podman development container
 	$(call build_podman_container,$@,$(FEDORA_RELEASE))

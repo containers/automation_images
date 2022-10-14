@@ -34,6 +34,7 @@ validate_task:
         - "make image_builder/gce.json"
         - "make base_images/cloud.json"
         - "make cache_images/cloud.json"
+        - "make win_images/win-server-wsl.json"
 
 
 image_builder_task:
@@ -230,6 +231,32 @@ cache_images_task:
     script: "ci/make.sh cache_images"
     manifest_artifacts:
         path: cache_images/manifest.json
+        type: application/json
+
+
+# Builds Windows server VMs for CI
+# Currently this produces a single Win 2022 Server Base image with WSL enabled
+win_images_task:
+    name: "Build VM Win-images"
+    alias: "win_images"
+    only_if: *is_pr
+    skip: *ci_docs_tooling
+    depends_on:
+        - 'validate'
+    # Packer needs time to clean up partially created VM images
+    auto_cancellation: $CI != "true"
+    stateful: true
+    timeout_in: 45m
+    # Packer WinRM communicator is not reliable on container tasks
+    gce_instance:
+        <<: *ibi_vm
+    env:
+      PACKER_BUILDS: "win-server-wsl"
+      GAC_JSON: *gac_json
+      AWS_INI: *aws_ini
+    script: "ci/make.sh win_images"
+    manifest_artifacts:
+        path: win_images/manifest.json
         type: application/json
 
 
@@ -461,6 +488,7 @@ success_task:
         - tooling_images
         - base_images
         - cache_images
+        - win_images
         - test_imgts
         - imgts
         - test_imgobsolete
