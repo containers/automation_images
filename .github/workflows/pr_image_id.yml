@@ -48,13 +48,13 @@ jobs:
                      [[ $prn -gt 0 ]] && \
                      [[ "$status" == "COMPLETED" ]]
                   then
-                      printf "\n::set-output name=prn::%s\n" "$prn"
-                      printf "\n::set-output name=bid::%s\n" "$bid"
-                      printf "\n::set-output name=is_pr::%s\n" "true"
+                      printf "prn=%s\n" "$prn" >> $GITHUB_OUTPUT
+                      printf "bid=%s\n" "$bid" >> $GITHUB_OUTPUT
+                      printf "is_pr=%s\n" "true" >> $GITHUB_OUTPUT
                   else
-                      printf "\n::set-output name=prn::%s\n" "0"
-                      printf "\n::set-output name=bid::%s\n" "0"
-                      printf "\n::set-output name=is_pr::%s\n" "false"
+                      printf "prn=%s\n" "0" >> $GITHUB_OUTPUT
+                      printf "bid=%s\n" "0" >> $GITHUB_OUTPUT
+                      printf "is_pr=%s\n" "false" >> $GITHUB_OUTPUT
                   fi
 
             - if: steps.retro.outputs.is_pr == 'true'
@@ -83,9 +83,9 @@ jobs:
               run: |
                 dled=$(find $GITHUB_WORKSPACE -type f -name 'manifest.json' -not -path '*fake_manifests/*/manifest.json' | wc -l)
                 if [[ "$dled" =~ ^[0-9]+$ ]]; then
-                    printf "\n::set-output name=count::%s\n" "$dled"
+                    printf "count=%s\n" "$dled" >> $GITHUB_OUTPUT
                 else
-                    printf "\n::set-output name=count::0\n"
+                    printf "count=0\n" >> $GITHUB_OUTPUT
                 fi
 
             - if: steps.manifests.outputs.count > 0

@@ -156,9 +156,9 @@ INSTALL_PACKAGES=(\
     zstd
 )
 
-# test with CNI in F35 and lower
+# Test with CNI in Fedora N-1
 EXARG=""
-if [[ "$OS_RELEASE_VER" -le 35 ]]; then
+if [[ "$PACKER_BUILD_NAME" =~ prior ]]; then
     EXARG="--exclude=netavark --exclude=aardvark-dns"
 fi
 

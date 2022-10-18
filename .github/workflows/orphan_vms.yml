@@ -62,7 +62,11 @@ jobs:
                 count=$(egrep -x '\* VM .+' /tmp/orphanvms_output.txt | wc -l)
                 # Assist with debugging job (step-outputs are otherwise hidden)
                 printf "Orphan VMs count:%d\n" $count
-                printf "::set-output name=count::%d\n" $count
+                if [[ "$count" =~ ^[0-9]+$ ]]; then
+                    printf "count=%d\n" $count >> $GITHUB_OUTPUT
+                else
+                    printf "count=0\n" >> $GITHUB_OUTPUT
+                fi
 
             - if: steps.orphans.outputs.count > 0
               shell: bash
