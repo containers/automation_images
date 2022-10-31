@@ -73,7 +73,7 @@ jobs:
               run: |
                 set -eo pipefail
                 (
-                echo "Detected ${{ steps.orphans.outputs.count }} Orphan GCP VM(s):"
+                echo "Detected ${{ steps.orphans.outputs.count }} Orphan VM(s):"
                 echo ""
                 cat /tmp/orphanvms_output.txt
                 echo ""
