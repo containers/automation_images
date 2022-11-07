@@ -79,12 +79,15 @@ _REG="quay.io"
 if [[ "$REPO_NAME" =~ testing ]]; then
     _REG="example.com"
 fi
-REPO_FQIN="$_REG/$REPO_NAME/$FLAVOR_NAME"
+# Allow detection of non-default REPO_FQIN
+DEFAULT_REPO_FQIN="$_REG/$REPO_NAME/$FLAVOR_NAME"
+REPO_FQIN="${REPO_FQIN:-$DEFAULT_REPO_FQIN}"
 req_env_vars REPO_URL REPO_NAME CTX_SUB FLAVOR_NAME
 
 # Common library defines SCRIPT_FILENAME
 # shellcheck disable=SC2154
 dbg "$SCRIPT_FILENAME operating constants:
+    ARCHES=$ARCHES
     REPO_URL=$REPO_URL
     REPO_NAME=$REPO_NAME
     CTX_SUB=$CTX_SUB
@@ -129,7 +132,12 @@ if [[ "$FLAVOR_NAME" == "stable" ]]; then
     case "$REPO_NAME" in
         skopeo) version_cmd="--version" ;;
         buildah) version_cmd="buildah --version" ;;
-        podman) version_cmd="podman --version" ;;
+        podman)
+            version_cmd="podman --version"
+            if [[ "$REPO_FQIN" =~ pipglr ]]; then
+                version_cmd="--version"
+            fi
+            ;;
         testing) version_cmd="cat FAKE_VERSION" ;;
         *) die "Unknown/unsupported repo '$REPO_NAME'" ;;
     esac
@@ -140,7 +148,13 @@ if [[ "$FLAVOR_NAME" == "stable" ]]; then
     dbg "version output:
     $version_output
     "
-    img_cmd_version=$(awk -r -e '/^.+ version /{print $3}' <<<"$version_output")
+
+    # `gitlab-runner --version` outputs a table of version numbers. to parse.
+    if [[ "$REPO_FQIN" =~ pipglr ]]; then
+        img_cmd_version=$(egrep '^Version:' <<<"$version_output" | tr -d '[:space:]' | cut -d: -f2)
+    else
+        img_cmd_version=$(awk -r -e '/^.+ version /{print $3}' <<<"$version_output")
+    fi
     dbg "parsed version: $img_cmd_version"
     test -n "$img_cmd_version"
     lblargs="$lblargs --label=org.opencontainers.image.version=$img_cmd_version"
@@ -152,7 +166,10 @@ if [[ "$FLAVOR_NAME" == "stable" ]]; then
     # tag-version.sh expects this arg. when FLAVOR_NAME=stable
     modcmdarg+=" $img_cmd_version"
 
-    # Stable images get pushed to 'containers' namespace as latest & version-tagged
+    # Stable images get pushed to 'containers' namespace as latest & version-tagged,
+    # unless they're using an overriden $REPO_FQIN value.  In the later case,
+    # assume the author knows what they're doing.
+    [[ "$REPO_FQIN" != "$DEFAULT_REPO_FQIN" ]] || \
     build-push.sh \
         $_DRNOPUSH \
         --arches=$ARCHES \
