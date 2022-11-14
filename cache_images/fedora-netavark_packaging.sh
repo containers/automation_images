@@ -59,6 +59,7 @@ INSTALL_PACKAGES=(\
     systemd-devel
     tar
     time
+    wireguard-tools
     xz
     zip
 )

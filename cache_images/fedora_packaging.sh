@@ -29,6 +29,10 @@ if [[ ! "$PACKER_BUILD_NAME" =~ prior ]]; then
     warn "Enabling updates-testing repository for $PACKER_BUILD_NAME"
     lilto ooe.sh $SUDO dnf install -y 'dnf-command(config-manager)'
     lilto ooe.sh $SUDO dnf config-manager --set-enabled updates-testing
+
+    # Could be on prior-fedora also, but copr isn't installed by default
+    warn "Enabling sbrivio/passt repo. for passt packages"
+    $SUDO dnf copr enable -y sbrivio/passt
 else
     warn "NOT enabling updates-testing repository for $PACKER_BUILD_NAME"
 fi
@@ -108,6 +112,7 @@ INSTALL_PACKAGES=(\
     ostree-devel
     pandoc
     parallel
+    passt
     perl-FindBin
     pkgconfig
     podman
@@ -118,8 +123,8 @@ INSTALL_PACKAGES=(\
     protobuf-devel
     python-pip-wheel
     python-setuptools-wheel
-    python-wheel-wheel
     python-toml
+    python-wheel-wheel
     python2
     python3-PyYAML
     python3-coverage
@@ -186,10 +191,10 @@ DOWNLOAD_PACKAGES=(\
     python3-virtualenv
 )
 
-echo "Installing general build/test dependencies"
+msg "Installing general build/test dependencies"
 bigto $SUDO dnf install -y $EXARG "${INSTALL_PACKAGES[@]}"
 
-echo "Downloading packages for optional installation at runtime, as needed."
+msg "Downloading packages for optional installation at runtime, as needed."
 $SUDO mkdir -p "$PACKAGE_DOWNLOAD_DIR"
 cd "$PACKAGE_DOWNLOAD_DIR"
 lilto ooe.sh $SUDO dnf install -y 'dnf-command(download)'
