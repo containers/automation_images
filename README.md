@@ -414,7 +414,7 @@ producing images proceeds as follows:
    tasks).  Build the image-builder container image, by executing
    ```
    make image_builder_debug GAC_FILEPATH=</home/path/to/gac.json> \
-                            AWS_SHARED_CREDENTIALS_FILE=</path/to/credentials>
+                            AWS_SHARED_CREDENTIALS_FILE=</path/to/credentials> \
                             IMG_SFX=<ID chosen in step 1>
    ```
 
