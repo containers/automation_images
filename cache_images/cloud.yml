@@ -78,10 +78,10 @@ builders:
       instance_type: 'm5zn.metal'
       source_ami_filter:  # Will fail if >1 or no AMI found
         owners:
-            # Docs are wrong, specifying the Account ID required to make AMIs private.
-            # The Account ID is hard-coded here out of expediency, since passing in
-            # more packer args from the command-line (in Makefile) is non-trivial.
-            - &accountid '449134212816'
+            # Docs are wrong, specifying the Account ID required to search only for
+            # our own imported AMIs. The Account ID is hard-coded here out of
+            # expediency.
+            - '449134212816'
         # It's necessary to 'search' for the base-image by these criteria.  If
         # more than one image is found, Packer will fail the build (and display
         # the conflicting AMI IDs).
@@ -124,9 +124,7 @@ builders:
       run_tags: *ami_tags
       run_volume_tags: *ami_tags
       snapshot_tags: *ami_tags
-      # Also required to make AMI private
-      ami_users:
-        - *accountid
+      ami_groups: ["all"]  # Make resulting AMI publically accessable to all users
       ssh_username: 'root'
       ssh_clear_authorized_keys: true
       # N/B: Required Packer >= 1.8.0
@@ -136,8 +134,6 @@ builders:
     - <<: *fedora-aws
       name: 'fedora-netavark-aws-arm64'
       source_ami_filter:
-        owners:
-            - *accountid
         filters:
             <<: *ami_filters
             architecture: 'arm64'
@@ -154,8 +150,6 @@ builders:
     - <<: *fedora-aws
       name: 'fedora-podman-aws-arm64'
       source_ami_filter:
-        owners:
-            - *accountid
         filters:
             <<: *ami_filters
             architecture: 'arm64'

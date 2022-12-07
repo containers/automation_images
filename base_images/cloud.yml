@@ -110,9 +110,9 @@ builders:
       type: 'amazon-ebs'
       source_ami_filter:  # Will fail if >1 or no AMI found
         owners:
-            # Docs are wrong, specifying the Account ID required to make AMIs private.
-            # The Account ID is hard-coded here out of expediency, since passing in
-            # more packer args from the command-line (in Makefile) is non-trivial.
+            # Docs are wrong, specifying the Account ID required to search only for
+            # our own imported AMIs. The Account ID is hard-coded here out of
+            # expediency.
             - &accountid '449134212816'
         # It's necessary to 'search' for the base-image by these criteria.  If
         # more than one image is found, Packer will fail the build (and display
@@ -156,10 +156,7 @@ builders:
       run_tags: *awstags
       run_volume_tags: *awstags
       snapshot_tags: *awstags
-      # This is necessary for security - The CI service accounts are not permitted
-      # to use AMI's from any other account, including public ones.
-      ami_users:
-        - *accountid
+      ami_groups: ["all"]  # Make resulting AMI publically accessable to all users
       ssh_username: 'fedora'
       ssh_clear_authorized_keys: true
       # N/B: Required Packer >= 1.8.0
