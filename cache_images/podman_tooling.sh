@@ -36,14 +36,6 @@ export GOCACHE="${GOCACHE:-$GOPATH/cache}"
 eval $(go env | tee /dev/stderr)
 export PATH="$GOPATH/bin:$PATH"
 
-echo "Installing runtime tooling"
-lilto git clone --quiet https://github.com/containers/podman.git "$GOSRC"
-
-cd "$GOSRC" || die "Podman repo. not cloned to expected directory: '$GOSRC'"
-# Calling script already loaded lib.sh
-lilto ./hack/install_catatonit.sh
-bigto make install.tools
-
 # shellcheck disable=SC2154
 if [[ "$OS_RELEASE_ID" == "fedora" ]]; then
     if [[ $(uname -m) == "x86_64" ]]; then
@@ -55,9 +47,6 @@ if [[ "$OS_RELEASE_ID" == "fedora" ]]; then
         chmod +x /usr/local/bin/swagger
         /usr/local/bin/swagger version
     fi
-
-    # This is needed for rootless testing
-    make install.modules-load
 fi
 
 # Make pristine for other runtime usage/expectations also save a bit
