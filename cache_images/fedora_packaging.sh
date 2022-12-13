@@ -167,6 +167,13 @@ if [[ "$PACKER_BUILD_NAME" =~ prior ]]; then
     EXARG="--exclude=netavark --exclude=aardvark-dns"
 fi
 
+# Workarond: Around the time of this commit, the `criu` package
+# was found to be missing a recommends-dependency on criu-libs.
+# Until a fixed rpm lands in the Fedora repositories, manually
+# include it here.  This workaround should be removed once the
+# package is corrected (likely > 3.17.1-3).
+INSTALL_PACKAGES+=(criu-libs)
+
 # When installing during a container-build, having this present
 # will seriously screw up future dnf operations in very non-obvious ways.
 if ! ((CONTAINER)); then
