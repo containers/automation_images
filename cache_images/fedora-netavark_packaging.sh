@@ -83,10 +83,13 @@ curl https://sh.rustup.rs -sSf | \
         sh -s -- -y -v
 # need PATH updated so SUDO can find 'rustup' binary
 . $CARGO_HOME/env
-$SUDO env PATH=$PATH rustup default stable
+$SUDO env PATH=$PATH CARGO_HOME=$CARGO_HOME rustup default stable
 if [[ $(uname -m) == "aarch64" ]]; then
-    $SUDO env PATH=$PATH rustup target add aarch64-unknown-linux-gnu
+    $SUDO env PATH=$PATH CARGO_HOME=$CARGO_HOME rustup target add aarch64-unknown-linux-gnu
 fi
+
+msg "Install mandown to generate man pages"
+$SUDO env PATH=$PATH CARGO_HOME=$CARGO_HOME cargo install mandown
 
 # Downstream users of this image are specifically testing netavark & aardvark-dns
 # code changes.  We want to start with using the RPMs because they deal with any
