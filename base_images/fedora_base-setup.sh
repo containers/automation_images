@@ -16,18 +16,10 @@ REPO_DIRPATH=$(realpath "$SCRIPT_DIRPATH/../")
 # shellcheck source=./lib.sh
 source "$REPO_DIRPATH/lib.sh"
 
-# When installing during a container-build, installing anything
-# selinux-related will seriously screw up the rest of your day
-# with rpm debugging.
-# Ref: https://github.com/rpm-software-management/rpm/commit/8cbe8baf9c3ff4754369bcd29441df14ecc6889d
 declare -a PKGS
 PKGS=(rng-tools git coreutils cloud-init)
-XSELINUX=
-if ((CONTAINER)); then
-    if ((OS_RELEASE_VER<35)); then
-        XSELINUX="--exclude=selinux*"
-    fi
-else  # A VM
+XARGS=--disablerepo=updates
+if ! ((CONTAINER)); then
     # Packer defines this automatically for us
     # shellcheck disable=SC2154
     if [[ "$PACKER_BUILD_NAME" =~ "aws" ]]; then
@@ -43,8 +35,15 @@ else  # A VM
     fi
 fi
 
-$SUDO dnf -y update $XSELINUX
-$SUDO dnf -y install $XSELINUX "${PKGS[@]}"
+# Due to https://bugzilla.redhat.com/show_bug.cgi?id=1907030
+# updates cannot be installed or even looked at during this stage.
+# Pawn the problem off to the cache-image stage where more memory
+# is available and debugging is also easier.  Try to save some more
+# memory by pre-populating repo metadata prior to any transactions.
+$SUDO dnf makecache $XARGS
+# Updates disable, see comment above
+# $SUDO dnf -y update $XARGS
+$SUDO dnf -y install $XARGS "${PKGS[@]}"
 
 if ! ((CONTAINER)); then
     $SUDO systemctl enable rngd
