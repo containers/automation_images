@@ -41,18 +41,6 @@ fi
 
 # Only on VMs
 if ! ((CONTAINER)); then
-    # Due to https://bugzilla.redhat.com/show_bug.cgi?id=2159066 we
-    # cannot use kernels after 6.0.15 until bug is fixed.  Since there's
-    # no simple way to compare kernel versions, just hard-code what we want.
-    # TODO: Remove this entire conditional when bug is fixed
-    if [[ "$OS_RELEASE_VER" -eq 37 ]]; then
-      $SUDO dnf install -y kernel-6.0.7-301.fc37
-      $SUDO grubby --set-default /boot/vmlinuz-6.0.7-301.fc37.$(uname -m)
-    elif [[ "$OS_RELEASE_VER" -eq 36 ]]; then
-      $SUDO dnf install -y kernel-5.17.5-300.fc36
-      $SUDO grubby --set-default /boot/vmlinuz-5.17.5-300.fc36.$(uname -m)
-    fi
-
     if [[ "$PACKER_BUILD_NAME" =~ netavark ]]; then
         msg "Setting up VM for netavark testing"
         echo -e '# Added during VM Image build\nsctp' |
