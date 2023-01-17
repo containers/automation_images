@@ -26,7 +26,8 @@ Set-ExecutionPolicy Bypass -Scope Process -Force
 iex ((New-Object System.Net.WebClient).DownloadString('https://community.chocolatey.org/install.ps1'))
 
 # Install Git, BZ2 archive support, Go, and the MingW (GCC for Win) compiler for CGO support
-choco install -y git mingw archiver; CheckExit
+# Add pstools to workaorund sess 0 WSL bug
+choco install -y git mingw archiver psexec; CheckExit
 choco install golang --version 1.19.2 -y; CheckExit
 
 # Install WSL, and capture text output which is not normally visible
