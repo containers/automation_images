@@ -11,7 +11,7 @@ env:
     # Version of packer to use when building images
     PACKER_VERSION: &PACKER_VERSION "1.8.3"
     # Unique suffix label to use for all images produced by _this_ run (build)
-    IMG_SFX: "${CIRRUS_BUILD_ID}"
+    IMG_SFX: "${GITHUB_CHECK_SUITE_ID}"
 
 gcp_credentials: ENCRYPTED[823fdbc2fee3c27fa054ba1e9cfca084829b5e71572f1703a28e0746b1a924ee5860193f931adce197d40bf89e7027fe]
 
