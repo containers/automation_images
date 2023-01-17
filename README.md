@@ -145,23 +145,25 @@ see step 4 below.
 
 ### Process: ###
 
-1. After you make your script changes, push to a PR.  They will be
-   validated and linted before VM image production begins.
+1. Whether or not you made any script changes, before pushing to a PR run
+   `make IMG_SFX` and commit the change.  This helps avoid overwriting
+   existing images - potentially already in use by CI.  The 'validate'
+   CI task will asserts every PR makes changes to this file.
 
-2. The name of all output GCE images will share a common suffix (*image ID*).
+2. The name of all output images will share a common `IMG_SFX` value
    Assuming a successful image-build, a
    [github-action](.github/workflows/pr_image_id.yml)
-   will post the new *image ID* as a comment in the PR.  If this automation
-   breaks, you may need to [figure the ID out the hard
+   will post the types and names of all built images as a comment in the PR.
+   If this automation breaks, you may need to [figure the ID out the hard
    way](README.md#Looking-up-an-image-ID).  For AWS EC2 images, every one
    will have a unique AMI ID assigned.  You'll need to
    [look these up separately](README.md#Looking-up-an-image-ID)
-   until the github action is updated.
+   until the github action is fixed.
 
 3. Go over to whatever other containers/repository needed the image update.
    Open the `.cirrus.yml` file, and find the 'env' line referencing the *image
    ID* and/or *AMI*.  It will likely be named `IMAGE_SUFFIX:` or something
-   similar.  Paste in the *image ID* or *AMI*.
+   similar.  Paste in the *image ID* (it should begin with the letter `c`).
 
 4. Open up a PR with this change, and push it.  Once all tests pass and you're
    satisfied with the image changes, ask somebody to review/approve both
@@ -173,30 +175,27 @@ see step 4 below.
 
 ### Looking up an image ID: ###
 
-A GCE *image ID* is simply big number prefixed by the letter 'c'.  You may
-need to look it up in a PR for example, if
+A *image ID* is simply the `IMG_SFX` value prefixed by a letter.  The letter
+`b` represents base-images, and 'c' represents cache-images.  You may
+need to look the value up if (for example),
 [the automated comment posting github-action](.github/workflows/pr_image_id.yml)
-fails.  For AWS EC2 images, you'll need to look up the AMI ID (string) for each
-cache-image produced.
+failed.
 
-1. In a PR, find and click the build task for the image you're interested in.
-   Near the top of the Cirrus-CI WebUI, will be a section labeled 'Artifacts'.
+1. In any PR, find and click the *details* link for one of the build tasks.
+   Near the top of the *Cirrus-CI WebUI*, will be a section labeled 'Artifacts'.
 
-2. Click the `manifest` artifact
+2. Click the `manifest` artifact.
 
-3. Click the `cache_images` folder
+3. Click the nested folder name (if there is one).
 
 4. Click the `manifest.json` file, it should open in your browser window.
 
-5. For *GCE images* look at the `artifact_id` field.  It will end in a
-   `c<big number` suffix.  This is the *image ID* for all GCE images.
+5. For *GCE images* look at the `artifact_id` field.  It will contain the
+   full *image id* value in the form `c<IMG_SFX>`.
 
-6. For *AWS EC2 images* look at the `artifact_id` field.  It will contain
-   a region prefix, like `us-east-1`, ignore this.  At the end of the value
-   will be the AMI ID, similar to `ami-<big number>`.  This is the ID for
-   this one, specific image.  **Every AWS image will have a unique AMI ID**
-   (unlike the shared ID for GCE images).
-
+6. For *AWS EC2 images* look under the `custom_data` field for the `IMG_SFX`
+   value.  If this was a base-image, simply prefix the value with a `b`, or
+   a `c` for a cache-image.
 
 ## The image-builder image (overview step 1)
 
@@ -404,26 +403,20 @@ credential files and ensure correct account configuration.  Having these files
 stored *in your home directory* on your laptop/workstation, the process of
 producing images proceeds as follows:
 
-1. Invent some unique identity suffix for your images.  It may contain (***only***)
-   lowercase letters, numbers and dashes; nothing else.  Some suggestions
-   of useful values would be your name and today's date.  If you manage to screw
-   this up somehow, stern errors will be presented without causing any real harm.
-
-2. Ensure you have podman installed, and lots of available network and CPU
+1. Ensure you have podman installed, and lots of available network and CPU
    resources (i.e. turn off YouTube, shut down background VMs and other hungry
    tasks).  Build the image-builder container image, by executing
    ```
    make image_builder_debug GAC_FILEPATH=</home/path/to/gac.json> \
-                            AWS_SHARED_CREDENTIALS_FILE=</path/to/credentials> \
-                            IMG_SFX=<ID chosen in step 1>
+                            AWS_SHARED_CREDENTIALS_FILE=</path/to/credentials>
    ```
 
-3. You will be dropped into a debugging container, inside a volume-mount of
+2. You will be dropped into a debugging container, inside a volume-mount of
    the repository root.  This container is practically identical to the VM
    produced and used in *overview step 1*.  If changes are made, the container
    image should be re-built to reflect them.
 
-4. If you wish to build only a subset of available images, list the names
+3. If you wish to build only a subset of available images, list the names
    you want as comma-separated values of the `PACKER_BUILDS` variable.  Be
    sure you *export* this variable so that `make` has access to it.  For
    example, `export PACKER_BUILDS=ubuntu,prior-fedora`.
