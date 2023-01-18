@@ -59,10 +59,12 @@ provisioners:
     inline:
       # Disable WinRM as a security precuation (cirrus launches an agent from user-data, so we don't need it)
       - Set-Service winrm -StartupType Disabled
-      # NOTE: For now, we do not run sysprep, since initialization with reboots are exceptionally slow on metal nodes, which these
-      # target to run. This will lead to a duplicate machine id, which is not ideal, but allows instances to start instantly. 
-      # So, instead of sysprep, trigger a reset so that the admin password reset, and activation rerun on boot
-      - '& ''C:/Program Files/Amazon/EC2Launch/ec2launch'' reset --block'
+      # Also disable RDP (can be enabled via user-data manually)
+      - Set-ItemProperty -Path "HKLM:\System\CurrentControlSet\Control\Terminal Server" -Name "fDenyTSConnections" -Value 1
+      - Disable-NetFirewallRule -DisplayGroup "Remote Desktop"
+  # Setup Autologon and reset, must be last, due to pw change
+  - type: powershell
+    script: '{{template_dir}}/auto_logon.ps1'
 
 
 post-processors:
