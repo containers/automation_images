@@ -73,10 +73,10 @@ please [see it's documentation page](https://www.packer.io/docs).
    Use this VM to
    [build and then import base-level VM
    image](README.md#the-base-images-overview-step-3) for supported platforms
-   (Fedora or Ubuntu; as of this writing).  For GCE use, convert the
+   (Fedora or Debian; as of this writing).  For GCE use, convert the
    generic distribution provided QCOW files, into bootable *GCE VMs*.  For
    AWS, boot the pre-build AMI's, add minimal tooling, and save them as
-   private, non-expiring AMIs.  In parallel, build Fedora and Ubuntu
+   private, non-expiring AMIs.  In parallel, build Fedora and Debian
    container images and push them to ``quay.io/libpod/<name>_podman``
 
 4. [Boot *VMs* from each image produced in step
@@ -126,7 +126,7 @@ see step 4 below.
 * The bulk of the packaging work occurs next, from the `cache_images/*_packaging.sh`
   scripts.  **This is most likely what you want to modify.**
 
-* Unlike the Fedora and Ubuntu scripts, the `build-push` VM image is not
+* Unlike the Fedora and Debian scripts, the `build-push` VM image is not
   for general-purpose use.  It's intended to be used by it's embedded
   `main.sh` script, in downstream repositories for building container images.
   The image and `main.sh` are both tightly coupled with `build-push` tool
@@ -258,13 +258,13 @@ an overview of the process followed **by automation** to produce the
 ### Podman
 
 Several instances of the image-builder VM are used to create container
-images.  In particular, Fedora and Ubuntu images are created that
+images.  In particular, Fedora and Debian images are created that
 more-or-less duplicate the setup of the VM Cache-images.  They are
 then automatically pushed to:
 
 * https://quay.io/repository/libpod/fedora_podman
 * https://quay.io/repository/libpod/prior-fedora_podman
-* https://quay.io/repository/libpod/ubuntu_podman
+* https://quay.io/repository/libpod/debian_podman
 
 The meaning of *prior* and *current*, is defined by the contents of
 the `*_release` files within the `podman` subdirectory.  This is
@@ -419,7 +419,7 @@ producing images proceeds as follows:
 3. If you wish to build only a subset of available images, list the names
    you want as comma-separated values of the `PACKER_BUILDS` variable.  Be
    sure you *export* this variable so that `make` has access to it.  For
-   example, `export PACKER_BUILDS=ubuntu,prior-fedora`.
+   example, `export PACKER_BUILDS=debian,prior-fedora`.
 
 4. Still within the container, again ensure you have plenty of network and CPU
    resources available.  Build the VM Base images by executing the command

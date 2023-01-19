@@ -19,11 +19,11 @@ variables:  # Empty value means it must be passed in on command-line
     # See Makefile for definitions
     FEDORA_RELEASE: "{{env `FEDORA_RELEASE`}}"
     PRIOR_FEDORA_RELEASE: "{{env `PRIOR_FEDORA_RELEASE`}}"
-    UBUNTU_RELEASE: "{{env `UBUNTU_RELEASE`}}"
+    DEBIAN_RELEASE: "{{env `DEBIAN_RELEASE`}}"
 
 builders:
     - &gce_hosted_image
-      name: 'ubuntu'
+      name: 'debian'
       type: 'googlecompute'
       # N/B: This implies base images always built with same IMG_SFX.
       source_image: '{{ build_name }}-b{{user `IMG_SFX`}}'
@@ -39,7 +39,7 @@ builders:
       labels: &gce_labels # For the VM
         sfx: '{{user `IMG_SFX`}}'
         src: '{{ build_name }}-b{{user `IMG_SFX` }}'
-        release: 'ubuntu-{{user `UBUNTU_RELEASE` | clean_resource_name}}'
+        release: 'debian-{{user `DEBIAN_RELEASE` | clean_resource_name}}'
         stage: cache
       ssh_username: packer  # arbitrary, packer will create & setup w/ temp. keypair
       ssh_pty: 'true'
@@ -179,17 +179,17 @@ provisioners:
       source: '{{ pwd }}/'
       destination: "/tmp/automation_images"
 
-    - except: ['ubuntu']
+    - except: ['debian']
       type: 'shell'
       inline:
         - 'set -e'
         - '/bin/bash /tmp/automation_images/cache_images/fedora_setup.sh'
 
-    - only: ['ubuntu']
+    - only: ['debian']
       type: 'shell'
       inline:
         - 'set -e'
-        - '/bin/bash /tmp/automation_images/cache_images/ubuntu_setup.sh'
+        - '/bin/bash /tmp/automation_images/cache_images/debian_setup.sh'
 
 post-processors:
     # This is critical for human-interaction.  Copntents will be used

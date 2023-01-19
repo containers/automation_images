@@ -216,6 +216,3 @@ cd -
 
 # It was observed in F33, dnf install doesn't always get you the latest/greatest
 lilto $SUDO dnf update -y
-
-chmod +x $SCRIPT_DIRPATH/podman_tooling.sh
-$SUDO $SCRIPT_DIRPATH/podman_tooling.sh

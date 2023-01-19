@@ -87,12 +87,14 @@ container_images_task: &container_images
             DEST_FQIN: *fqin
         - name: *name
           env:
-            TARGET_NAME: 'ubuntu_podman'
-            DEST_FQIN: *fqin
-        - name: *name
-          env:
             TARGET_NAME: 'skopeo_cidev'
             DEST_FQIN: *fqin
+        # Upgrading from stable -> SID fails for container-images
+        # TODO: Re-enable once fixed
+        # - name: *name
+        #   env:
+        #     TARGET_NAME: 'debian'
+        #     DEST_FQIN: *fqin
     env: &image_env
         # For quay.io/libpod namespace
         REG_USERNAME: ENCRYPTED[de755aef351c501ee480231c24eae25b15e2b2a2b7c629f477c1d427fc5269e360bb358a53bd8914605bae588e99b52a]
@@ -163,7 +165,7 @@ base_images_task:
             PACKER_BUILDS: "fedora-aws-arm64"
         - <<: *base_image
           env:
-            PACKER_BUILDS: "ubuntu"
+            PACKER_BUILDS: "debian"
     env:
       GAC_JSON: &gac_json ENCRYPTED[7fba7fb26ab568ae39f799ab58a476123206576b0135b3d1019117c6d682391370c801e149f29324ff4b50133012aed9]
       AWS_INI: &aws_ini ENCRYPTED[4cd69097cd29a9899e51acf3bbacceeb83cb5c907d272ca1e2a8ccd515b03f2368a0680870c0d120fc32bc578bb0a930]
@@ -219,7 +221,7 @@ cache_images_task:
             PACKER_BUILDS: "build-push"
         - <<: *cache_image
           env:
-            PACKER_BUILDS: "ubuntu"
+            PACKER_BUILDS: "debian"
     env:
       GAC_JSON: *gac_json
       AWS_INI: *aws_ini
@@ -283,12 +285,12 @@ test_imgts_task: &imgts
             image-builder-${IMG_SFX}
             fedora-b${IMG_SFX}
             prior-fedora-b${IMG_SFX}
-            ubuntu-b${IMG_SFX}
+            debian-b${IMG_SFX}
             fedora-c${IMG_SFX}
             prior-fedora-c${IMG_SFX}
             fedora-netavark-c${IMG_SFX}
             fedora-podman-py-c${IMG_SFX}
-            ubuntu-c${IMG_SFX}
+            debian-c${IMG_SFX}
             build-push-c${IMG_SFX}
         EC2IMGNAMES: |
             fedora-aws-b${IMG_SFX}

@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# This is intended to be executed stand-alone, on a Fedora or Ubuntu VM
+# This is intended to be executed stand-alone, on a Fedora or Debian VM
 # by automation.  Alternatively, it may be executed with the '--list'
 # option to return the list of systemd units defined for disablement
 # (useful for testing).
@@ -32,7 +32,7 @@ do
     ) &> /dev/null
 done
 
-# Sigh, for Ubuntu the above isn't enough.  There are also periodic apt jobs.
+# Sigh, for Debian the above isn't enough.  There are also periodic apt jobs.
 EAAD="/etc/apt/apt.conf.d"
 PERIODIC_APT_RE='^(APT::Periodic::.+")1"\;'
 if [[ -d "$EAAD" ]]; then
