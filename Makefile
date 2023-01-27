@@ -94,9 +94,8 @@ override _PACKER_URL := https://releases.hashicorp.com/packer/$(strip $(call err
 # Align each line properly to the header
 override _HLPFMT = "%-20s %s\n"
 
-# Suffix used to identify images produce by _this_ execution
-# N/B: There are length/character limitations in GCE for image names
-IMG_SFX ?=
+# Suffix value for any images built from this make execution
+_IMG_SFX ?= $(file <IMG_SFX)
 
 # Env. vars needed by packer
 export CHECKPOINT_DISABLE = 1  # Disable hashicorp phone-home
@@ -114,6 +113,14 @@ help: ## Default target, parses special in-line comments as documentation.
 	@printf $(_HLPFMT) "--------------" "--------------------"
 	@grep -E '^[[:print:]]+:.*?## .*$$' $(MAKEFILE_LIST) | \
 		awk 'BEGIN {FS = ":(.*)?## "}; {printf $(_HLPFMT), $$1, $$2}'
+
+# N/B: This will become part of the GCE image name and AWS Image name-tag.
+# There are length/character limitations (a-z, 0-9, -) in GCE for image
+# names and a max-length of 63.
+.PHONY: IMG_SFX
+IMG_SFX:  ## Generate a new date-based image suffix, store in the file IMG_SFX
+	$(file >$@,$(shell date --utc +%Y%m%dt%H%M%Sz)-f$(FEDORA_RELEASE)f$(PRIOR_FEDORA_RELEASE)u$(subst .,,$(UBUNTU_RELEASE)))
+	@echo "$(file <IMG_SFX)"
 
 .PHONY: ci_debug
 ci_debug: $(_TEMPDIR)/ci_debug.tar ## Build and enter container for local development/debugging of container-based Cirrus-CI tasks
@@ -208,7 +215,7 @@ define packer_build
 			$(PACKER_INSTALL_DIR)/packer build \
 			-force \
 			-var TEMPDIR="$(_TEMPDIR)" \
-			-var IMG_SFX="$(call err_if_empty,IMG_SFX)" \
+			-var IMG_SFX="$(call err_if_empty,_IMG_SFX)" \
 			$(if $(PACKER_BUILDS),-only=$(PACKER_BUILDS)) \
 			$(if $(DEBUG_NESTED_VM),-var TTYDEV=$(shell tty),-var TTYDEV=/dev/null) \
 			$(if $(PACKER_BUILD_ARGS),$(PACKER_BUILD_ARGS)) \
@@ -234,7 +241,7 @@ image_builder_debug: $(_TEMPDIR)/image_builder_debug.tar ## Build and enter cont
 		-v /dev/kvm:/dev/kvm \
 		-e PACKER_INSTALL_DIR=/usr/local/bin \
 		-e PACKER_VERSION=$(call err_if_empty,PACKER_VERSION) \
-		-e IMG_SFX=$(call err_if_empty,IMG_SFX) \
+		-e IMG_SFX=$(call err_if_empty,_IMG_SFX) \
 		-e GAC_FILEPATH=$(GAC_FILEPATH) \
 		-e AWS_SHARED_CREDENTIALS_FILE=$(AWS_SHARED_CREDENTIALS_FILE) \
 		docker-archive:$<
@@ -244,14 +251,14 @@ $(_TEMPDIR)/image_builder_debug.tar: $(_TEMPDIR)/.cache/centos $(wildcard image_
 
 # Avoid re-downloading unnecessarily
 # Ref: https://www.gnu.org/software/make/manual/html_node/Special-Targets.html#Special-Targets
-.PRECIOUS: $(_TEMPDIR)/fedora-aws-$(IMG_SFX).$(IMPORT_FORMAT)
-$(_TEMPDIR)/fedora-aws-$(IMG_SFX).$(IMPORT_FORMAT): $(_TEMPDIR)
+.PRECIOUS: $(_TEMPDIR)/fedora-aws-$(_IMG_SFX).$(IMPORT_FORMAT)
+$(_TEMPDIR)/fedora-aws-$(_IMG_SFX).$(IMPORT_FORMAT): $(_TEMPDIR)
 	bash import_images/handle_image.sh \
 		$@ \
 		$(call err_if_empty,FEDORA_IMAGE_URL) \
 		$(call err_if_empty,FEDORA_CSUM_URL)
 
-$(_TEMPDIR)/fedora-aws-arm64-$(IMG_SFX).$(IMPORT_FORMAT): $(_TEMPDIR)
+$(_TEMPDIR)/fedora-aws-arm64-$(_IMG_SFX).$(IMPORT_FORMAT): $(_TEMPDIR)
 	bash import_images/handle_image.sh \
 		$@ \
 		$(call err_if_empty,FEDORA_ARM64_IMAGE_URL) \
@@ -298,17 +305,17 @@ $(_TEMPDIR)/%.snapshot_id: $(_TEMPDIR)/%.import_task_id
 define _register_sed
 	sed -r \
 		-e 's/@@@NAME@@@/$(1)/' \
-		-e 's/@@@IMG_SFX@@@/$(IMG_SFX)/' \
+		-e 's/@@@IMG_SFX@@@/$(_IMG_SFX)/' \
 		-e 's/@@@ARCH@@@/$(2)/' \
 		-e 's/@@@SNAPSHOT_ID@@@/$(3)/' \
 		import_images/register.json.in \
 	> $(4)
 endef
 
-$(_TEMPDIR)/fedora-aws-$(IMG_SFX).register.json: $(_TEMPDIR)/fedora-aws-$(IMG_SFX).snapshot_id import_images/register.json.in
+$(_TEMPDIR)/fedora-aws-$(_IMG_SFX).register.json: $(_TEMPDIR)/fedora-aws-$(_IMG_SFX).snapshot_id import_images/register.json.in
 	$(call _register_sed,fedora-aws,x86_64,$(file <$<),$@)
 
-$(_TEMPDIR)/fedora-aws-arm64-$(IMG_SFX).register.json: $(_TEMPDIR)/fedora-aws-arm64-$(IMG_SFX).snapshot_id import_images/register.json.in
+$(_TEMPDIR)/fedora-aws-arm64-$(_IMG_SFX).register.json: $(_TEMPDIR)/fedora-aws-arm64-$(_IMG_SFX).snapshot_id import_images/register.json.in
 	$(call _register_sed,fedora-aws-arm64,arm64,$(file <$<),$@)
 
 # Avoid multiple registrations for the same image
@@ -333,9 +340,9 @@ $(_TEMPDIR)/%.ami.json: $(_TEMPDIR)/%.ami.id $(_TEMPDIR)/%.ami.name
 		| tee $@
 
 .PHONY: import_images
-import_images: $(_TEMPDIR)/fedora-aws-$(IMG_SFX).ami.json $(_TEMPDIR)/fedora-aws-arm64-$(IMG_SFX).ami.json import_images/manifest.json.in  ## Import generic Fedora cloud images into AWS EC2.
+import_images: $(_TEMPDIR)/fedora-aws-$(_IMG_SFX).ami.json $(_TEMPDIR)/fedora-aws-arm64-$(_IMG_SFX).ami.json import_images/manifest.json.in  ## Import generic Fedora cloud images into AWS EC2.
 	sed -r \
-		-e 's/@@@IMG_SFX@@@/$(IMG_SFX)/' \
+		-e 's/@@@IMG_SFX@@@/$(_IMG_SFX)/' \
 		-e 's/@@@CIRRUS_TASK_ID@@@/$(CIRRUS_TASK_ID)/' \
 		import_images/manifest.json.in \
 	> import_images/manifest.json
@@ -343,7 +350,7 @@ import_images: $(_TEMPDIR)/fedora-aws-$(IMG_SFX).ami.json $(_TEMPDIR)/fedora-aws
 	@echo "############################################################"
 	@echo "Please update Makefile value:"
 	@echo ""
-	@echo "    FEDORA_IMPORT_IMG_SFX = $(IMG_SFX)"
+	@echo "    FEDORA_IMPORT_IMG_SFX = $(_IMG_SFX)"
 	@echo "############################################################"
 
 .PHONY: base_images
@@ -377,7 +384,7 @@ ubuntu_podman:  ## Build Ubuntu podman development container
 	$(call build_podman_container,$@,$(UBUNTU_RELEASE))
 
 $(_TEMPDIR)/%_podman.tar: podman/Containerfile podman/setup.sh $(wildcard base_images/*.sh) $(wildcard cache_images/*.sh) $(_TEMPDIR)/.cache/%
-	podman build -t $*_podman:$(call err_if_empty,IMG_SFX) \
+	podman build -t $*_podman:$(call err_if_empty,_IMG_SFX) \
 		--security-opt seccomp=unconfined \
 		--build-arg=BASE_NAME=$(subst prior-,,$*) \
 		--build-arg=BASE_TAG=$(call err_if_empty,BASE_TAG) \
@@ -386,40 +393,40 @@ $(_TEMPDIR)/%_podman.tar: podman/Containerfile podman/setup.sh $(wildcard base_i
 		-v $(_TEMPDIR)/.cache/$*:/var/cache/apt:Z \
 		-f podman/Containerfile .
 	rm -f $@
-	podman save --quiet -o $@ $*_podman:$(IMG_SFX)
+	podman save --quiet -o $@ $*_podman:$(_IMG_SFX)
 
 .PHONY: skopeo_cidev
 skopeo_cidev: $(_TEMPDIR)/skopeo_cidev.tar  ## Build Skopeo development and CI container
 $(_TEMPDIR)/skopeo_cidev.tar: $(wildcard skopeo_base/*) $(_TEMPDIR)/.cache/fedora
-	podman build -t skopeo_cidev:$(call err_if_empty,IMG_SFX) \
+	podman build -t skopeo_cidev:$(call err_if_empty,_IMG_SFX) \
 		--security-opt seccomp=unconfined \
 		--build-arg=BASE_TAG=$(FEDORA_RELEASE) \
 		-v $(_TEMPDIR)/.cache/fedora:/var/cache/dnf:Z \
 		skopeo_cidev
 	rm -f $@
-	podman save --quiet -o $@ skopeo_cidev:$(IMG_SFX)
+	podman save --quiet -o $@ skopeo_cidev:$(_IMG_SFX)
 
 # TODO: Temporarily force F36 due to:
 # https://github.com/aio-libs/aiohttp/issues/6600
 .PHONY: ccia
 ccia: $(_TEMPDIR)/ccia.tar  ## Build the Cirrus-CI Artifacts container image
 $(_TEMPDIR)/ccia.tar: ccia/Containerfile
-	podman build -t ccia:$(call err_if_empty,IMG_SFX) \
+	podman build -t ccia:$(call err_if_empty,_IMG_SFX) \
 		--security-opt seccomp=unconfined \
 		--build-arg=BASE_TAG=36 \
 		ccia
 	rm -f $@
-	podman save --quiet -o $@ ccia:$(IMG_SFX)
+	podman save --quiet -o $@ ccia:$(_IMG_SFX)
 
 .PHONY: imgts
 imgts: $(_TEMPDIR)/imgts.tar  ## Build the VM image time-stamping container image
 $(_TEMPDIR)/imgts.tar: imgts/Containerfile imgts/entrypoint.sh imgts/google-cloud-sdk.repo imgts/lib_entrypoint.sh $(_TEMPDIR)/.cache/centos
-	$(call podman_build,$@,imgts:$(call err_if_empty,IMG_SFX),imgts,centos)
+	$(call podman_build,$@,imgts:$(call err_if_empty,_IMG_SFX),imgts,centos)
 
 define imgts_base_podman_build
 	podman load -i $(_TEMPDIR)/imgts.tar
-	podman tag imgts:$(call err_if_empty,IMG_SFX) imgts:latest
-	$(call podman_build,$@,$(1):$(call err_if_empty,IMG_SFX),$(1),centos)
+	podman tag imgts:$(call err_if_empty,_IMG_SFX) imgts:latest
+	$(call podman_build,$@,$(1):$(call err_if_empty,_IMG_SFX),$(1),centos)
 endef
 
 .PHONY: imgobsolete
@@ -445,9 +452,9 @@ $(_TEMPDIR)/orphanvms.tar: $(_TEMPDIR)/imgts.tar imgts/lib_entrypoint.sh orphanv
 .PHONY: .get_ci_vm
 get_ci_vm: $(_TEMPDIR)/get_ci_vm.tar  ## Build the get_ci_vm container image
 $(_TEMPDIR)/get_ci_vm.tar: lib.sh get_ci_vm/Containerfile get_ci_vm/entrypoint.sh get_ci_vm/setup.sh $(_TEMPDIR)
-	podman build -t get_ci_vm:$(call err_if_empty,IMG_SFX) -f get_ci_vm/Containerfile .
+	podman build -t get_ci_vm:$(call err_if_empty,_IMG_SFX) -f get_ci_vm/Containerfile .
 	rm -f $@
-	podman save --quiet -o $@ get_ci_vm:$(IMG_SFX)
+	podman save --quiet -o $@ get_ci_vm:$(_IMG_SFX)
 
 .PHONY: clean
 clean: ## Remove all generated files referenced in this Makefile
