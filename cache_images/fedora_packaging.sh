@@ -129,6 +129,7 @@ INSTALL_PACKAGES=(\
     python3-PyYAML
     python3-coverage
     python3-dateutil
+    python3-devel
     python3-docker
     python3-fixtures
     python3-libselinux
@@ -193,7 +194,6 @@ DOWNLOAD_PACKAGES=(\
     parallel
     podman-docker
     podman-plugins
-    podman-gvproxy
     python3-pytest
     python3-virtualenv
 )
