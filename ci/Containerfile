@@ -33,6 +33,7 @@ RUN dnf update -y && \
         rootfiles \
         rsync \
         sed \
+        skopeo \
         tar \
         util-linux \
         unzip \
