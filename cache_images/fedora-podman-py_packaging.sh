@@ -14,6 +14,11 @@ REPO_DIRPATH=$(realpath "$SCRIPT_DIRPATH/../")
 # shellcheck source=./lib.sh
 source "$REPO_DIRPATH/lib.sh"
 
+# shellcheck disable=SC2154
+warn "Enabling updates-testing repository for $PACKER_BUILD_NAME"
+lilto ooe.sh $SUDO dnf install -y 'dnf-command(config-manager)'
+lilto ooe.sh $SUDO dnf config-manager --set-enabled updates-testing
+
 msg "Updating/Installing repos and packages for $OS_REL_VER"
 
 bigto ooe.sh $SUDO dnf update -y
