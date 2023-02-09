@@ -1,7 +1,7 @@
 
 
 # This file is intended to be sourced by other scripts running on
-# aa Fedora or Ubuntu VM during various stages of initial setup.
+# a Fedora or Ubuntu VM during various stages of initial setup.
 # Using it in any other way or context unlikely to do anything
 # useful for you.
 

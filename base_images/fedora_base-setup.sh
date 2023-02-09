@@ -16,6 +16,12 @@ REPO_DIRPATH=$(realpath "$SCRIPT_DIRPATH/../")
 # shellcheck source=./lib.sh
 source "$REPO_DIRPATH/lib.sh"
 
+# Update to Rawhide
+# NOTE: Should not break Fedora releases
+if [[ -z BUILD_RAWHIDE ]]; then
+    $SUDO dnf -qqy distro-sync --releasever=rawhide --allowerasing
+fi
+
 declare -a PKGS
 PKGS=(rng-tools git coreutils cloud-init)
 XARGS=--disablerepo=updates
