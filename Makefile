@@ -23,8 +23,10 @@ export PRIOR_FEDORA_RELEASE = 36
 # See import_images/README.md
 export FEDORA_IMPORT_IMG_SFX = 1669819494
 
-export UBUNTU_RELEASE = 22.04
-export UBUNTU_BASE_FAMILY = ubuntu-2204-lts
+# Automation assumes the actual release number (after SID upgrade)
+# is always one-greater than the latest DEBIAN_BASE_FAMILY (GCE image).
+export DEBIAN_RELEASE = 12
+export DEBIAN_BASE_FAMILY = debian-11
 
 IMPORT_FORMAT = vhdx
 
@@ -119,7 +121,7 @@ help: ## Default target, parses special in-line comments as documentation.
 # names and a max-length of 63.
 .PHONY: IMG_SFX
 IMG_SFX:  ## Generate a new date-based image suffix, store in the file IMG_SFX
-	$(file >$@,$(shell date --utc +%Y%m%dt%H%M%Sz)-f$(FEDORA_RELEASE)f$(PRIOR_FEDORA_RELEASE)u$(subst .,,$(UBUNTU_RELEASE)))
+	$(file >$@,$(shell date --utc +%Y%m%dt%H%M%Sz)-f$(FEDORA_RELEASE)f$(PRIOR_FEDORA_RELEASE)d$(subst .,,$(DEBIAN_RELEASE)))
 	@echo "$(file <IMG_SFX)"
 
 .PHONY: ci_debug
@@ -378,10 +380,6 @@ fedora_podman:  ## Build Fedora podman development container
 .PHONY: prior-fedora_podman
 prior-fedora_podman:  ## Build Prior-Fedora podman development container
 	$(call build_podman_container,$@,$(PRIOR_FEDORA_RELEASE))
-
-.PHONY: ubuntu_podman
-ubuntu_podman:  ## Build Ubuntu podman development container
-	$(call build_podman_container,$@,$(UBUNTU_RELEASE))
 
 $(_TEMPDIR)/%_podman.tar: podman/Containerfile podman/setup.sh $(wildcard base_images/*.sh) $(wildcard cache_images/*.sh) $(_TEMPDIR)/.cache/%
 	podman build -t $*_podman:$(call err_if_empty,_IMG_SFX) \

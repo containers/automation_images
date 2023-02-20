@@ -12,9 +12,9 @@ REPO_DIRPATH=$(realpath "$SCRIPT_DIRPATH/../")
 # shellcheck source=./lib.sh
 source "$REPO_DIRPATH/lib.sh"
 
-if   [[ "$OS_RELEASE_ID" == "ubuntu" ]]; then
-    bash base_images/ubuntu_base-setup.sh
-    bash cache_images/ubuntu_setup.sh
+if   [[ "$OS_RELEASE_ID" == "debian" ]]; then
+    bash base_images/debian_base-setup.sh
+    bash cache_images/debian_setup.sh
 elif [[ "$OS_RELEASE_ID" == "fedora" ]]; then
     bash base_images/fedora_base-setup.sh
     bash cache_images/fedora_setup.sh

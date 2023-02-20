@@ -28,19 +28,19 @@ variables:  # Empty value means it must be passed in on command-line
 
     FEDORA_IMPORT_IMG_SFX: "{{env `FEDORA_IMPORT_IMG_SFX`}}"
 
-    UBUNTU_RELEASE: "{{env `UBUNTU_RELEASE`}}"
-    UBUNTU_BASE_FAMILY: "{{env `UBUNTU_BASE_FAMILY`}}"
+    DEBIAN_RELEASE: "{{env `DEBIAN_RELEASE`}}"
+    DEBIAN_BASE_FAMILY: "{{env `DEBIAN_BASE_FAMILY`}}"
 
 
 builders:
-    - name: 'ubuntu'
+    - name: 'debian'
       type: 'googlecompute'
       # Prefix IMG_SFX with "b" so this is never confused with a cache_image name
       image_name: '{{build_name}}-b{{user `IMG_SFX`}}'
       image_family: '{{build_name}}-base'
       image_description: 'Built in https://cirrus-ci.com/task/{{user `CIRRUS_TASK_ID`}}'
-      source_image_family: '{{user `UBUNTU_BASE_FAMILY`}}'
-      source_image_project_id: 'ubuntu-os-cloud'
+      source_image_family: '{{user `DEBIAN_BASE_FAMILY`}}'
+      source_image_project_id: 'debian-cloud'
       project_id: '{{user `GCP_PROJECT_ID`}}'
       # Can't use env. var for this, googlecompute-import only supports filepath
       account_file: '{{user `GAC_FILEPATH`}}'
@@ -49,10 +49,10 @@ builders:
       # Identify the instance
       labels: &imgcpylabels
         sfx: '{{user `IMG_SFX`}}'
-        src: '{{user `UBUNTU_BASE_FAMILY`}}'
+        src: '{{user `DEBIAN_BASE_FAMILY`}}'
         stage: 'base'
         arch: 'x86_64'
-        release: 'ubuntu-{{user `UBUNTU_RELEASE` | clean_resource_name}}'
+        release: 'debian-{{user `DEBIAN_RELEASE` | clean_resource_name}}'
       # Gotcha: https://www.packer.io/docs/builders/googlecompute#gotchas
       ssh_username: 'packer'
       temporary_key_pair_type: ed25519
@@ -183,7 +183,7 @@ builders:
       snapshot_tags: *awsarm64tags
 
 
-provisioners:  # Ubuntu images come bundled with GCE integrations provisioned
+provisioners:  # Debian images come bundled with GCE integrations provisioned
     - type: 'shell'
       inline:
         - 'set -e'
@@ -193,17 +193,17 @@ provisioners:  # Ubuntu images come bundled with GCE integrations provisioned
       source: '{{ pwd }}/'
       destination: '/tmp/automation_images/'
 
-    - except: ['ubuntu']
+    - except: ['debian']
       type: 'shell'
       inline:
         - 'set -e'
         - '/bin/bash /tmp/automation_images/base_images/fedora_base-setup.sh'
 
-    - only: ['ubuntu']
+    - only: ['debian']
       type: 'shell'
       inline:
         - 'set -e'
-        - '/bin/bash /tmp/automation_images/base_images/ubuntu_base-setup.sh'
+        - '/bin/bash /tmp/automation_images/base_images/debian_base-setup.sh'
 
 post-processors:
     # Must be double-nested to guarantee execution order

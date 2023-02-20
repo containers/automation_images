@@ -4,7 +4,7 @@
 # top-level Makefile.
 
 # N/B: The BASE_NAME and BASE_TAG build-vars are required.  Supported
-#      values for Fedora and Ubuntu, are specified in the *_release
+#      values for Fedora and Debian, are specified in the *_release
 #      files within this dir.
 
 ARG BASE_NAME=

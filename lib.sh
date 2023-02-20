@@ -1,7 +1,7 @@
 
 
 # This file is intended to be sourced by other scripts running on
-# aa Fedora or Ubuntu VM during various stages of initial setup.
+# aa Fedora or Debian VM during various stages of initial setup.
 # Using it in any other way or context unlikely to do anything
 # useful for you.
 
@@ -13,7 +13,7 @@ OS_RELEASE_ID="$(source /etc/os-release; echo $ID)"
 OS_REL_VER="$OS_RELEASE_ID-$OS_RELEASE_VER"
 
 # Avoid getting stuck waiting for user input
-[[ "$OS_RELEASE_ID" != "ubuntu" ]] || \
+[[ "$OS_RELEASE_ID" != "debian" ]] || \
     export DEBIAN_FRONTEND="noninteractive"
 
 # This location is checked by automation in other repos, please do not change.
@@ -35,7 +35,7 @@ if [[ -n "$UID" ]] && [[ "$UID" -ne 0 ]]; then
     SUDO="sudo"
 fi
 
-if [[ "$OS_RELEASE_ID" == "ubuntu" ]]; then
+if [[ "$OS_RELEASE_ID" == "debian" ]]; then
     export DEBIAN_FRONTEND=noninteractive
     SUDO="$SUDO env DEBIAN_FRONTEND=$DEBIAN_FRONTEND"
 fi
@@ -74,6 +74,7 @@ custom_cloud_init() {
     if [[ -d "$CUSTOM_CLOUD_CONFIG_DEFAULTS" ]]
     then
         echo "Installing custom cloud-init defaults"
+        mkdir -p /etc/cloud/cloud.cfg.d  # Should exist, sometimes doesn't.
         $SUDO cp -v --dereference \
             "$CUSTOM_CLOUD_CONFIG_DEFAULTS"/* \
             /etc/cloud/cloud.cfg.d/
@@ -221,9 +222,9 @@ remove_netavark_aardvark_files() {
     req_env_vars OS_RELEASE_ID
     # OS_RELEASE_ID is defined by automation-library
     # shellcheck disable=SC2154
-    if [[ "$OS_RELEASE_ID" =~ "ubuntu" ]]
+    if [[ "$OS_RELEASE_ID" =~ "debian" ]]
     then
-        die "Ubuntu netavark/aardvark-dns testing is not supported"
+        die "Debian netavark/aardvark-dns testing is not supported"
     fi
 
         LISTING_CMD="rpm -ql podman"
@@ -256,7 +257,7 @@ clean_automatic_users() {
         DELUSER="userdel --remove";
         DELGROUP="groupdel"
     fi
-    # Avoid needing to parse login.defs (fedora) and deluser.conf (Ubuntu)
+    # Avoid needing to parse login.defs (fedora) and deluser.conf (Debian)
     # for the UID/GID ranges standard user accounts.
     cd /home || exit
     for account in *; do
@@ -319,11 +320,11 @@ rh_finalize() {
 }
 
 # Called during VM Image setup, not intended for general use.
-ubuntu_finalize() {
+debian_finalize() {
     set +e  # Don't fail at the very end
     # N/B: Several CI setups depend on VMs with downloaded/cached
     # packages under /var/cache/download a.k.a. /var/cache/apt/archives.
-    # Avoid apt cache cleaning on Ubuntu VMs!
+    # Avoid apt cache cleaning on Debian VMs!
     if ((CONTAINER)); then  # try to save a little space for containers
         msg "Cleaning up packaging metadata and cache"
         $SUDO apt-get clean
@@ -339,8 +340,8 @@ finalize() {
         rh_finalize
     elif [[ "$OS_RELEASE_ID" == "fedora" ]]; then
         rh_finalize
-    elif [[ "$OS_RELEASE_ID" == "ubuntu" ]]; then
-        ubuntu_finalize
+    elif [[ "$OS_RELEASE_ID" == "debian" ]]; then
+        debian_finalize
     else
         die "Unknown/Unsupported Distro '$OS_RELEASE_ID'"
     fi
