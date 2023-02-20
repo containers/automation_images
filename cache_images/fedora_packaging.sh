@@ -56,6 +56,7 @@ INSTALL_PACKAGES=(\
     containers-common
     criu
     crun
+    crun-wasm
     curl
     device-mapper-devel
     dnsmasq
