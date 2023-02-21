@@ -81,7 +81,7 @@ INSTALL_PACKAGES=(\
     lsb-release
     lsof
     make
-    netcat-traditional
+    ncat
     openssl
     parallel
     pkg-config
@@ -121,6 +121,9 @@ lilto $SUDO apt-get -q -y update
 
 echo "Installing general build/testing dependencies"
 bigto $SUDO apt-get -q -y install "${INSTALL_PACKAGES[@]}"
+
+# The nc installed by default is missing many required options
+$SUDO update-alternatives --set nc /usr/bin/ncat
 
 # Buildah conformance testing needs to install packages from docker.io
 # at runtime.  Setup the repo here, so it only affects downloaded
