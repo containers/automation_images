@@ -85,6 +85,7 @@ INSTALL_PACKAGES=(\
     openssl
     parallel
     pkg-config
+    passt
     podman
     protobuf-c-compiler
     protobuf-compiler
