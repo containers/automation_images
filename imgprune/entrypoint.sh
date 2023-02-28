@@ -11,7 +11,7 @@ set -e
 # shellcheck source=imgts/lib_entrypoint.sh
 source /usr/local/bin/lib_entrypoint.sh
 
-req_env_vars GCPJSON GCPNAME GCPPROJECT
+req_env_vars GCPJSON GCPNAME GCPPROJECT AWSINI
 
 gcloud_init
 
@@ -31,7 +31,7 @@ PROJRE="/v1/projects/$GCPPROJECT/global/"
 FILTER="selfLink~$PROJRE AND deprecated.state=OBSOLETE AND deprecated.deleted<$ABOUTNOW"
 TODELETE=$(mktemp -p '' todelete.XXXXXX)
 
-msg "Searching for obsolete images using filter:${NOR} $FILTER"
+msg "Searching for obsolete GCP images using filter:${NOR} $FILTER"
 # Ref: https://cloud.google.com/compute/docs/images/create-delete-deprecate-private-images#deprecating_an_image
 $GCLOUD compute images list --show-deprecated \
     --format="$FORMAT" --filter="$FILTER" | \
@@ -45,8 +45,41 @@ $GCLOUD compute images list --show-deprecated \
         [[ "$dep_state" == "OBSOLETE" ]] || \
             die 1 "Unexpected depreciation-state encountered for $name: $dep_state; labels: $labels"
         reason="Obsolete as of $del_date; labels: $labels"
-        echo "$name $reason" >> $TODELETE
+        echo "GCP $name $reason" >> $TODELETE
     done
+
+msg "Searching for deprecated EC2 images prior to${NOR} $ABOUTNOW"
+aws_init
+
+# The AWS cli returns a huge blob of data we mostly don't need.
+# # Use query statement to simplify the results.  N/B: The get_tag_value()
+# # function expects to find a "TAGS" item w/ list value.
+ami_query='Images[*].{ID:ImageId,TAGS:Tags,DEP:DeprecationTime,SNAP:BlockDeviceMappings[0].Ebs.SnapshotId}'
+all_amis=$($AWS ec2 describe-images --owners self --query "$ami_query")
+nr_amis=$(jq -r -e length<<<"$all_amis")
+
+req_env_vars all_amis nr_amis
+for (( i=nr_amis ; i ; i-- )); do
+    count_image
+    unset ami ami_id dep snap permanent
+    ami=$(jq -r -e ".[$((i-1))]"<<<"$all_amis")
+    ami_id=$(jq -r -e ".ID"<<<"$ami")
+    dep=$(jq -r -e ".DEP"<<<"$ami")
+    if [[ "$dep" == null ]] || [[ -z "$dep" ]]; then continue; fi
+    dep_ymd=$(date --date="$dep" --iso-8601=date)
+    snap=$(jq -r -e ".SNAP"<<<$ami)
+
+    if permanent=$(get_tag_value "permanent" "$ami") && \
+       [[ "$permanent" == "true" ]]
+    then
+      die 1 "Found image '$ami_id' labeled permanent=true with deprecation set for '$dep_ymd'.  This should never happen, manual intervention required."
+    fi
+
+    if [[ $(echo -e "$ABOUTNOW\n$dep_ymd" | sort | tail -1) == "$ABOUTNOW" ]]; then
+      reason="Obsolete as of '$dep_ymd'; snap=$snap"
+      echo "EC2 $ami_id $reason" >> $TODELETE
+    fi
+done
 
 COUNT=$(<"$IMGCOUNT")
 msg "########################################################################"
@@ -59,12 +92,30 @@ then
 fi
 
 sort --random-sort $TODELETE | tail -$DELETE_LIMIT | \
-    while read -r image_name reason; do
+    while read -r cloud image_name reason; do
 
-    msg "Deleting $image_name:${NOR} $reason"
+    msg "Deleting $cloud $image_name:${NOR} $reason"
     if ((DRY_RUN)); then
         msg "Dry-run: No changes made"
-    else
+    elif [[ "$cloud" == "GCP" ]]; then
         $GCLOUD compute images delete $image_name
+    elif [[ "$cloud" == "EC2" ]]; then
+        # Snapshot ID's always start with 'snap-' followed by a hexadecimal string
+        snap_id=$(echo "$reason" | sed -r -e 's/.* snap=(snap-[a-f0-9]+).*/\1/')
+        [[ -n "$snap_id" ]] || \
+            die 1 "Failed to parse EC2 snapshot ID for '$image_name' from string: '$reason'"
+        # Because it aims to be as helpful and useful as possible, not all failure conditions
+        # result in a non-zero exit >:(
+        unset output
+        output=$($AWS ec2 deregister-image --image-id "$image_name")
+        [[ ! "$output" =~ An\ error\ occurred ]] || \
+          die 1 "$output"
+
+        msg " ...deleting snapshot $snap_id:${NOR} (formerly used by $image_name)"
+        output=$($AWS ec2 delete-snapshot --snapshot-id "$snap_id")
+        [[ ! "$output" =~ An\ error\ occurred ]] || \
+          die 1 "$output"
+    else
+        die 1 "Unknown/Unsupported cloud '$cloud' record encountered in \$TODELETE file"
     fi
 done
