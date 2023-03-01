@@ -91,7 +91,7 @@ aws_init
 # The AWS cli returns a huge blob of data we mostly don't need.
 # Use query statement to simplify the results.  N/B: The get_tag_value()
 # function expects to find a "TAGS" item w/ list value.
-ami_query='Images[*].{ID:ImageId,CREATED:CreationDate,STATE:State,TAGS:Tags}'
+ami_query='Images[*].{ID:ImageId,CREATED:CreationDate,STATE:State,TAGS:Tags,DEP:DeprecationTime}'
 all_amis=$($AWS ec2 describe-images --owners self --query "$ami_query")
 nr_amis=$(jq -r -e length<<<"$all_amis")
 
@@ -109,12 +109,13 @@ lltcmd=(\
 
 req_env_vars all_amis nr_amis
 for (( i=nr_amis ; i ; i-- )); do
-    unset ami ami_id state created created_ymd name name_tag
+    unset ami ami_id state created created_ymd name name_tag dep
     ami=$(jq -r -e ".[$((i-1))]"<<<"$all_amis")
     ami_id=$(jq -r -e ".ID"<<<"$ami")
     state=$(jq -r -e ".STATE"<<<"$ami")
     created=$(jq -r -e ".CREATED"<<<"$ami")
     created_ymd=$(date --date="$created" --iso-8601=date)
+    dep=$(jq -r -e ".DEP"<<<"$ami")
 
     unset tags
     # The name-tag is easier on human eys if on is set.
@@ -154,6 +155,12 @@ for (( i=nr_amis ; i ; i-- )); do
         reason="Missing 'automation' metadata; Tags: $tags"
         echo "EC2 $ami_id $reason" >> $TOOBSOLETE
         continue
+    fi
+
+    # Avoid perpetually updating the depreciation date on already deprecated AMIs
+    if [[ $dep != null ]]; then
+      echo "Skipping '$ami_id' already deprecated on '$dep'"
+      continue
     fi
 
     unset lltvalue last_used_timestamp last_used_ymd
