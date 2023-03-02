@@ -293,6 +293,7 @@ test_imgts_task: &imgts
             debian-c${IMG_SFX}
             build-push-c${IMG_SFX}
         EC2IMGNAMES: |
+            fedora-aws-i${IMPORT_IMG_SFX}
             fedora-aws-b${IMG_SFX}
             fedora-aws-c${IMG_SFX}
             fedora-aws-arm64-b${IMG_SFX}
