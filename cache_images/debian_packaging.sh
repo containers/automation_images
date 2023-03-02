@@ -145,10 +145,7 @@ curl --fail --silent --location \
     $SUDO tee /etc/apt/trusted.gpg.d/docker_com.gpg &> /dev/null
 
 # Buildah CI does conformance testing vs the most recent Docker version.
-# However, there is no Docker release for SID, so just use latest stable
-# release for Docker, whatever debian release that cooresponds to.
-# Ref: https://wiki.debian.org/DebianReleases
-docker_debian_release=bullseye
+docker_debian_release=$(source /etc/os-release; echo "$VERSION_CODENAME")
 
 echo "deb https://download.docker.com/linux/debian $docker_debian_release stable" | \
     ooe.sh $SUDO tee /etc/apt/sources.list.d/docker.list &> /dev/null
