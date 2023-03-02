@@ -1,5 +1,5 @@
 {
- "Name": "@@@NAME@@@-i@@@IMG_SFX@@@",
+ "Name": "@@@NAME@@@-i@@@IMPORT_IMG_SFX@@@",
  "VirtualizationType": "hvm",
  "Architecture": "@@@ARCH@@@",
  "EnaSupport": true,

@@ -21,7 +21,7 @@ export FEDORA_RELEASE = 37
 export PRIOR_FEDORA_RELEASE = 36
 
 # See import_images/README.md
-export FEDORA_IMPORT_IMG_SFX = 1669819494
+export FEDORA_IMPORT_IMG_SFX = $(_IMPORT_IMG_SFX)
 
 # Automation assumes the actual release number (after SID upgrade)
 # is always one-greater than the latest DEBIAN_BASE_FAMILY (GCE image).
@@ -98,6 +98,7 @@ override _HLPFMT = "%-20s %s\n"
 
 # Suffix value for any images built from this make execution
 _IMG_SFX ?= $(file <IMG_SFX)
+_IMPORT_IMG_SFX ?= $(file <IMPORT_IMG_SFX)
 
 # Env. vars needed by packer
 export CHECKPOINT_DISABLE = 1  # Disable hashicorp phone-home
@@ -123,6 +124,10 @@ help: ## Default target, parses special in-line comments as documentation.
 IMG_SFX:  ## Generate a new date-based image suffix, store in the file IMG_SFX
 	$(file >$@,$(shell date --utc +%Y%m%dt%H%M%Sz)-f$(FEDORA_RELEASE)f$(PRIOR_FEDORA_RELEASE)d$(subst .,,$(DEBIAN_RELEASE)))
 	@echo "$(file <IMG_SFX)"
+
+IMPORT_IMG_SFX:  ## Generate a new date-based import-image suffix, store in the file IMPORT_IMG_SFX
+	$(file >$@,$(shell date --utc +%Y%m%dt%H%M%Sz)-f$(FEDORA_RELEASE)f$(PRIOR_FEDORA_RELEASE)d$(subst .,,$(DEBIAN_RELEASE)))
+	@echo "$(file <IMPORT_IMG_SFX)"
 
 .PHONY: ci_debug
 ci_debug: $(_TEMPDIR)/ci_debug.tar ## Build and enter container for local development/debugging of container-based Cirrus-CI tasks
@@ -244,6 +249,7 @@ image_builder_debug: $(_TEMPDIR)/image_builder_debug.tar ## Build and enter cont
 		-e PACKER_INSTALL_DIR=/usr/local/bin \
 		-e PACKER_VERSION=$(call err_if_empty,PACKER_VERSION) \
 		-e IMG_SFX=$(call err_if_empty,_IMG_SFX) \
+		-e IMPORT_IMG_SFX=$(call err_if_empty,_IMPORT_IMG_SFX) \
 		-e GAC_FILEPATH=$(GAC_FILEPATH) \
 		-e AWS_SHARED_CREDENTIALS_FILE=$(AWS_SHARED_CREDENTIALS_FILE) \
 		docker-archive:$<
@@ -253,14 +259,14 @@ $(_TEMPDIR)/image_builder_debug.tar: $(_TEMPDIR)/.cache/centos $(wildcard image_
 
 # Avoid re-downloading unnecessarily
 # Ref: https://www.gnu.org/software/make/manual/html_node/Special-Targets.html#Special-Targets
-.PRECIOUS: $(_TEMPDIR)/fedora-aws-$(_IMG_SFX).$(IMPORT_FORMAT)
-$(_TEMPDIR)/fedora-aws-$(_IMG_SFX).$(IMPORT_FORMAT): $(_TEMPDIR)
+.PRECIOUS: $(_TEMPDIR)/fedora-aws-$(_IMPORT_IMG_SFX).$(IMPORT_FORMAT)
+$(_TEMPDIR)/fedora-aws-$(_IMPORT_IMG_SFX).$(IMPORT_FORMAT): $(_TEMPDIR)
 	bash import_images/handle_image.sh \
 		$@ \
 		$(call err_if_empty,FEDORA_IMAGE_URL) \
 		$(call err_if_empty,FEDORA_CSUM_URL)
 
-$(_TEMPDIR)/fedora-aws-arm64-$(_IMG_SFX).$(IMPORT_FORMAT): $(_TEMPDIR)
+$(_TEMPDIR)/fedora-aws-arm64-$(_IMPORT_IMG_SFX).$(IMPORT_FORMAT): $(_TEMPDIR)
 	bash import_images/handle_image.sh \
 		$@ \
 		$(call err_if_empty,FEDORA_ARM64_IMAGE_URL) \
@@ -307,17 +313,17 @@ $(_TEMPDIR)/%.snapshot_id: $(_TEMPDIR)/%.import_task_id
 define _register_sed
 	sed -r \
 		-e 's/@@@NAME@@@/$(1)/' \
-		-e 's/@@@IMG_SFX@@@/$(_IMG_SFX)/' \
+		-e 's/@@@IMPORT_IMG_SFX@@@/$(_IMPORT_IMG_SFX)/' \
 		-e 's/@@@ARCH@@@/$(2)/' \
 		-e 's/@@@SNAPSHOT_ID@@@/$(3)/' \
 		import_images/register.json.in \
 	> $(4)
 endef
 
-$(_TEMPDIR)/fedora-aws-$(_IMG_SFX).register.json: $(_TEMPDIR)/fedora-aws-$(_IMG_SFX).snapshot_id import_images/register.json.in
+$(_TEMPDIR)/fedora-aws-$(_IMPORT_IMG_SFX).register.json: $(_TEMPDIR)/fedora-aws-$(_IMPORT_IMG_SFX).snapshot_id import_images/register.json.in
 	$(call _register_sed,fedora-aws,x86_64,$(file <$<),$@)
 
-$(_TEMPDIR)/fedora-aws-arm64-$(_IMG_SFX).register.json: $(_TEMPDIR)/fedora-aws-arm64-$(_IMG_SFX).snapshot_id import_images/register.json.in
+$(_TEMPDIR)/fedora-aws-arm64-$(_IMPORT_IMG_SFX).register.json: $(_TEMPDIR)/fedora-aws-arm64-$(_IMPORT_IMG_SFX).snapshot_id import_images/register.json.in
 	$(call _register_sed,fedora-aws-arm64,arm64,$(file <$<),$@)
 
 # Avoid multiple registrations for the same image
@@ -342,17 +348,18 @@ $(_TEMPDIR)/%.ami.json: $(_TEMPDIR)/%.ami.id $(_TEMPDIR)/%.ami.name
 		| tee $@
 
 .PHONY: import_images
-import_images: $(_TEMPDIR)/fedora-aws-$(_IMG_SFX).ami.json $(_TEMPDIR)/fedora-aws-arm64-$(_IMG_SFX).ami.json import_images/manifest.json.in  ## Import generic Fedora cloud images into AWS EC2.
+import_images: $(_TEMPDIR)/fedora-aws-$(_IMPORT_IMG_SFX).ami.json $(_TEMPDIR)/fedora-aws-arm64-$(_IMPORT_IMG_SFX).ami.json import_images/manifest.json.in  ## Import generic Fedora cloud images into AWS EC2.
 	sed -r \
-		-e 's/@@@IMG_SFX@@@/$(_IMG_SFX)/' \
+		-e 's/@@@IMG_SFX@@@/$(_IMPORT_IMG_SFX)/' \
 		-e 's/@@@CIRRUS_TASK_ID@@@/$(CIRRUS_TASK_ID)/' \
 		import_images/manifest.json.in \
 	> import_images/manifest.json
 	@echo "Image import(s) successful."
 	@echo "############################################################"
-	@echo "Please update Makefile value:"
+	@echo "Please update IMPORT_IMG_SFX file with value:"
 	@echo ""
-	@echo "    FEDORA_IMPORT_IMG_SFX = $(_IMG_SFX)"
+	@echo "$(_IMPORT_IMG_SFX)"
+	@echo ""
 	@echo "############################################################"
 
 .PHONY: base_images
