@@ -417,6 +417,11 @@ ccia: $(_TEMPDIR)/ccia.tar  ## Build the Cirrus-CI Artifacts container image
 $(_TEMPDIR)/ccia.tar: ccia/Containerfile
 	$(call podman_build,$@,ccia:$(call err_if_empty,_IMG_SFX),ccia,fedora)
 
+.PHONY: bench_stuff
+bench_stuff: $(_TEMPDIR)/bench_stuff.tar  ## Build the Cirrus-CI Artifacts container image
+$(_TEMPDIR)/bench_stuff.tar: bench_stuff/Containerfile
+	$(call podman_build,$@,bench_stuff:$(call err_if_empty,_IMG_SFX),bench_stuff,fedora)
+
 .PHONY: imgts
 imgts: $(_TEMPDIR)/imgts.tar  ## Build the VM image time-stamping container image
 $(_TEMPDIR)/imgts.tar: imgts/Containerfile imgts/entrypoint.sh imgts/google-cloud-sdk.repo imgts/lib_entrypoint.sh $(_TEMPDIR)/.cache/centos
