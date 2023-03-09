@@ -146,6 +146,7 @@ ci_debug: $(_TEMPDIR)/ci_debug.tar ## Build and enter container for local develo
 
 # Takes 4 arguments: export filepath, FQIN, context dir, package cache key
 define podman_build
+	mkdir -p $(_TEMPDIR)/.cache/$(4)
 	podman build -t $(2) \
 		--security-opt seccomp=unconfined \
 		-v $(_TEMPDIR)/.cache/$(4):/var/cache/dnf:Z \
@@ -411,17 +412,10 @@ $(_TEMPDIR)/skopeo_cidev.tar: $(wildcard skopeo_base/*) $(_TEMPDIR)/.cache/fedor
 	rm -f $@
 	podman save --quiet -o $@ skopeo_cidev:$(_IMG_SFX)
 
-# TODO: Temporarily force F36 due to:
-# https://github.com/aio-libs/aiohttp/issues/6600
 .PHONY: ccia
 ccia: $(_TEMPDIR)/ccia.tar  ## Build the Cirrus-CI Artifacts container image
 $(_TEMPDIR)/ccia.tar: ccia/Containerfile
-	podman build -t ccia:$(call err_if_empty,_IMG_SFX) \
-		--security-opt seccomp=unconfined \
-		--build-arg=BASE_TAG=36 \
-		ccia
-	rm -f $@
-	podman save --quiet -o $@ ccia:$(_IMG_SFX)
+	$(call podman_build,$@,ccia:$(call err_if_empty,_IMG_SFX),ccia,fedora)
 
 .PHONY: imgts
 imgts: $(_TEMPDIR)/imgts.tar  ## Build the VM image time-stamping container image

@@ -3,8 +3,7 @@ ARG BASE_TAG=latest
 FROM ${BASE_NAME}:${BASE_TAG} as updated_base
 
 RUN microdnf update -y && \
-    microdnf clean all && \
-    rm -rf /var/cache/dnf
+    microdnf clean all
 
 ENV _RUNTIME_DEPS="bash python3"
 ENV _BUILD_DEPS="coreutils curl git python3 python3-pip python3-virtualenv python3-devel gcc g++"
@@ -22,8 +21,7 @@ RUN microdnf install -y ${_RUNTIME_DEPS} ${_BUILD_DEPS} && \
 FROM updated_base as final
 
 RUN microdnf install -y ${_RUNTIME_DEPS} && \
-    microdnf clean all && \
-    rm -rf /var/cache/dnf
+    microdnf clean all
 
 COPY --from=builder /usr/share/automation /usr/share/automation
 COPY --from=builder /etc/automation_environment /etc/automation_environment
