@@ -126,9 +126,6 @@ tooling_images_task:
             export DEST_FQIN="quay.io/libpod/${TARGET_NAME}:c${IMG_SFX}";
             ci/make_container_images.sh;
         done
-    package_cache:
-        folder: "/tmp/automation_images_tmp/.cache/**"
-        fingerprint_key: "tooling-cache-version-1"
 
 
 base_images_task:

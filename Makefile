@@ -144,13 +144,9 @@ ci_debug: $(_TEMPDIR)/ci_debug.tar ## Build and enter container for local develo
 		-e TEMPDIR=$(_TEMPDIR) \
 		docker-archive:$<
 
-# Takes 4 arguments: export filepath, FQIN, context dir, package cache key
+# Takes 4 arguments: export filepath, FQIN, context dir
 define podman_build
-	mkdir -p $(_TEMPDIR)/.cache/$(4)
 	podman build -t $(2) \
-		--security-opt seccomp=unconfined \
-		-v $(_TEMPDIR)/.cache/$(4):/var/cache/dnf:Z \
-		-v $(_TEMPDIR)/.cache/$(4):/var/cache/apt:Z \
 		--build-arg CENTOS_STREAM_RELEASE=$(CENTOS_STREAM_RELEASE) \
 		--build-arg PACKER_VERSION=$(call err_if_empty,PACKER_VERSION) \
 		-f $(3)/Containerfile .
@@ -158,19 +154,13 @@ define podman_build
 	podman save --quiet -o $(1) $(2)
 endef
 
-$(_TEMPDIR)/ci_debug.tar: $(_TEMPDIR)/.cache/fedora $(wildcard ci/*)
-	$(call podman_build,$@,ci_debug,ci,fedora)
+$(_TEMPDIR)/ci_debug.tar: $(_TEMPDIR) $(wildcard ci/*)
+	$(call podman_build,$@,ci_debug,ci)
 
 $(_TEMPDIR):
 	mkdir -p $@
 
 $(_TEMPDIR)/bin: $(_TEMPDIR)
-	mkdir -p $@
-
-$(_TEMPDIR)/.cache: $(_TEMPDIR)
-	mkdir -p $@
-
-$(_TEMPDIR)/.cache/%: $(_TEMPDIR)/.cache
 	mkdir -p $@
 
 $(_TEMPDIR)/packer.zip: $(_TEMPDIR)
@@ -255,8 +245,8 @@ image_builder_debug: $(_TEMPDIR)/image_builder_debug.tar ## Build and enter cont
 		-e AWS_SHARED_CREDENTIALS_FILE=$(AWS_SHARED_CREDENTIALS_FILE) \
 		docker-archive:$<
 
-$(_TEMPDIR)/image_builder_debug.tar: $(_TEMPDIR)/.cache/centos $(wildcard image_builder/*)
-	$(call podman_build,$@,image_builder_debug,image_builder,centos)
+$(_TEMPDIR)/image_builder_debug.tar: $(_TEMPDIR) $(wildcard image_builder/*)
+	$(call podman_build,$@,image_builder_debug,image_builder)
 
 # Avoid re-downloading unnecessarily
 # Ref: https://www.gnu.org/software/make/manual/html_node/Special-Targets.html#Special-Targets
@@ -389,68 +379,65 @@ fedora_podman:  ## Build Fedora podman development container
 prior-fedora_podman:  ## Build Prior-Fedora podman development container
 	$(call build_podman_container,$@,$(PRIOR_FEDORA_RELEASE))
 
-$(_TEMPDIR)/%_podman.tar: podman/Containerfile podman/setup.sh $(wildcard base_images/*.sh) $(wildcard cache_images/*.sh) $(_TEMPDIR)/.cache/%
+$(_TEMPDIR)/%_podman.tar: podman/Containerfile podman/setup.sh $(wildcard base_images/*.sh) $(_TEMPDIR) $(wildcard cache_images/*.sh)
 	podman build -t $*_podman:$(call err_if_empty,_IMG_SFX) \
 		--security-opt seccomp=unconfined \
 		--build-arg=BASE_NAME=$(subst prior-,,$*) \
 		--build-arg=BASE_TAG=$(call err_if_empty,BASE_TAG) \
 		--build-arg=PACKER_BUILD_NAME=$(subst _podman,,$*) \
-		-v $(_TEMPDIR)/.cache/$*:/var/cache/dnf:Z \
-		-v $(_TEMPDIR)/.cache/$*:/var/cache/apt:Z \
 		-f podman/Containerfile .
 	rm -f $@
 	podman save --quiet -o $@ $*_podman:$(_IMG_SFX)
 
 .PHONY: skopeo_cidev
 skopeo_cidev: $(_TEMPDIR)/skopeo_cidev.tar  ## Build Skopeo development and CI container
-$(_TEMPDIR)/skopeo_cidev.tar: $(wildcard skopeo_base/*) $(_TEMPDIR)/.cache/fedora
+$(_TEMPDIR)/skopeo_cidev.tar: $(_TEMPDIR) $(wildcard skopeo_base/*)
 	podman build -t skopeo_cidev:$(call err_if_empty,_IMG_SFX) \
 		--security-opt seccomp=unconfined \
 		--build-arg=BASE_TAG=$(FEDORA_RELEASE) \
-		-v $(_TEMPDIR)/.cache/fedora:/var/cache/dnf:Z \
 		skopeo_cidev
 	rm -f $@
 	podman save --quiet -o $@ skopeo_cidev:$(_IMG_SFX)
 
 .PHONY: ccia
 ccia: $(_TEMPDIR)/ccia.tar  ## Build the Cirrus-CI Artifacts container image
-$(_TEMPDIR)/ccia.tar: ccia/Containerfile
-	$(call podman_build,$@,ccia:$(call err_if_empty,_IMG_SFX),ccia,fedora)
+$(_TEMPDIR)/ccia.tar: ccia/Containerfile $(_TEMPDIR)
+	$(call podman_build,$@,ccia:$(call err_if_empty,_IMG_SFX),ccia)
 
 .PHONY: bench_stuff
 bench_stuff: $(_TEMPDIR)/bench_stuff.tar  ## Build the Cirrus-CI Artifacts container image
-$(_TEMPDIR)/bench_stuff.tar: bench_stuff/Containerfile
-	$(call podman_build,$@,bench_stuff:$(call err_if_empty,_IMG_SFX),bench_stuff,fedora)
+$(_TEMPDIR)/bench_stuff.tar: bench_stuff/Containerfile $(_TEMPDIR)
+	$(call podman_build,$@,bench_stuff:$(call err_if_empty,_IMG_SFX),bench_stuff)
 
 .PHONY: imgts
 imgts: $(_TEMPDIR)/imgts.tar  ## Build the VM image time-stamping container image
-$(_TEMPDIR)/imgts.tar: imgts/Containerfile imgts/entrypoint.sh imgts/google-cloud-sdk.repo imgts/lib_entrypoint.sh $(_TEMPDIR)/.cache/centos
-	$(call podman_build,$@,imgts:$(call err_if_empty,_IMG_SFX),imgts,centos)
+$(_TEMPDIR)/imgts.tar: imgts/Containerfile imgts/entrypoint.sh imgts/google-cloud-sdk.repo imgts/lib_entrypoint.sh $(_TEMPDIR)
+	$(call podman_build,$@,imgts:$(call err_if_empty,_IMG_SFX),imgts)
 
 define imgts_base_podman_build
 	podman load -i $(_TEMPDIR)/imgts.tar
 	podman tag imgts:$(call err_if_empty,_IMG_SFX) imgts:latest
-	$(call podman_build,$@,$(1):$(call err_if_empty,_IMG_SFX),$(1),centos)
+	$(call podman_build,$@,$(1):$(call err_if_empty,_IMG_SFX),$(1))
 endef
 
 .PHONY: imgobsolete
 imgobsolete: $(_TEMPDIR)/imgobsolete.tar  ## Build the VM Image obsoleting container image
-$(_TEMPDIR)/imgobsolete.tar: $(_TEMPDIR)/imgts.tar imgts/lib_entrypoint.sh imgobsolete/Containerfile imgobsolete/entrypoint.sh $(_TEMPDIR)/.cache/centos
+$(_TEMPDIR)/imgobsolete.tar: $(_TEMPDIR)/imgts.tar imgts/lib_entrypoint.sh imgobsolete/Containerfile imgobsolete/entrypoint.sh $(_TEMPDIR)
 	$(call imgts_base_podman_build,imgobsolete)
 
 .PHONY: imgprune
 imgprune: $(_TEMPDIR)/imgprune.tar  ## Build the VM Image pruning container image
-$(_TEMPDIR)/imgprune.tar: $(_TEMPDIR)/imgts.tar imgts/lib_entrypoint.sh imgprune/Containerfile imgprune/entrypoint.sh $(_TEMPDIR)/.cache/centos
+$(_TEMPDIR)/imgprune.tar: $(_TEMPDIR)/imgts.tar imgts/lib_entrypoint.sh imgprune/Containerfile imgprune/entrypoint.sh $(_TEMPDIR)
 	$(call imgts_base_podman_build,imgprune)
 
 .PHONY: gcsupld
 gcsupld: $(_TEMPDIR)/gcsupld.tar  ## Build the GCS Upload container image
-$(_TEMPDIR)/gcsupld.tar: $(_TEMPDIR)/imgts.tar imgts/lib_entrypoint.sh gcsupld/Containerfile gcsupld/entrypoint.sh $(_TEMPDIR)/.cache/centos
+$(_TEMPDIR)/gcsupld.tar: $(_TEMPDIR)/imgts.tar imgts/lib_entrypoint.sh gcsupld/Containerfile gcsupld/entrypoint.sh $(_TEMPDIR)
 	$(call imgts_base_podman_build,gcsupld)
 
 .PHONY: orphanvms
 orphanvms: $(_TEMPDIR)/orphanvms.tar  ## Build the Orphaned VM container image
-$(_TEMPDIR)/orphanvms.tar: $(_TEMPDIR)/imgts.tar imgts/lib_entrypoint.sh orphanvms/Containerfile orphanvms/entrypoint.sh orphanvms/_gce orphanvms/_ec2 $(_TEMPDIR)/.cache/centos
+$(_TEMPDIR)/orphanvms.tar: $(_TEMPDIR)/imgts.tar imgts/lib_entrypoint.sh orphanvms/Containerfile orphanvms/entrypoint.sh orphanvms/_gce orphanvms/_ec2 $(_TEMPDIR)
 	$(call imgts_base_podman_build,orphanvms)
 
 .PHONY: .get_ci_vm
