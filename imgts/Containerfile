@@ -1,19 +1,18 @@
 ARG CENTOS_STREAM_RELEASE=8
 FROM quay.io/centos/centos:stream${CENTOS_STREAM_RELEASE}
 
-ARG dnfycache="dnf -y --setopt=keepcache=true"
-
 # Only needed for installing build-time dependencies
 COPY /imgts/google-cloud-sdk.repo /etc/yum.repos.d/google-cloud-sdk.repo
-RUN ${dnfycache} update && \
-    ${dnfycache} install epel-release && \
-    ${dnfycache} install python3 jq && \
-    ${dnfycache} --exclude=google-cloud-sdk-366.0.0-1 \
-        install google-cloud-sdk
+RUN dnf -y update && \
+    dnf -y install epel-release && \
+    dnf -y install python3 jq && \
+    dnf -y install google-cloud-sdk && \
+    dnf clean all
 
 # https://docs.aws.amazon.com/cli/latest/userguide/getting-started-install.html
 ARG AWSURL="https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip"
-RUN ${dnfycache} install unzip glibc groff-base less && \
+RUN dnf -y install unzip glibc groff-base less && \
+    dnf clean all && \
     cd /tmp && \
     curl --fail --location -O "${AWSURL}" && \
     unzip awscli*.zip && \
