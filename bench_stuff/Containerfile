@@ -15,17 +15,18 @@ RUN microdnf install -y ${_RUNTIME_DEPS} ${_BUILD_DEPS} && \
     export INSTALL_PREFIX=/usr/share && \
     curl -sL \
         https://raw.githubusercontent.com/containers/automation/main/bin/install_automation.sh | \
-        bash -s latest cirrus-ci_artifacts
+        bash -s latest bench_stuff
 
 
 FROM updated_base as final
 
+ADD bench_stuff/entrypoint.sh /usr/local/bin/
+
 RUN microdnf install -y ${_RUNTIME_DEPS} && \
-    microdnf clean all
+    microdnf clean all && \
+    chmod +x /usr/local/bin/entrypoint.sh
 
 COPY --from=builder /usr/share/automation /usr/share/automation
 COPY --from=builder /etc/automation_environment /etc/automation_environment
 
-# Env. is used by test.sh script.
-ENV CCIABIN=/usr/share/automation/bin/cirrus-ci_artifacts
-ENTRYPOINT ["$CCIABIN"]
+ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
