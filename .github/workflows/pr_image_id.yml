@@ -71,11 +71,7 @@ jobs:
               # fall back to using the latest built CCIA image.
               run: |
                 PODMAN="podman run --rm -v $GITHUB_WORKSPACE:/data -w /data"
-                PR_CCIA="quay.io/libpod/ccia:c${{ steps.retro.outputs.bid }}"
-                UP_CCIA="quay.io/libpod/ccia:latest"
-                declare -a ARGS
-                ARGS=("--verbose" "${{ steps.retro.outputs.bid }}" ".*/manifest.json")
-                $PODMAN $PR_CCIA "${ARGS[@]}" || $PODMAN $UP_CCIA "${ARGS[@]}"
+                $PODMAN quay.io/libpod/ccia:latest --verbose "${{ steps.retro.outputs.bid }}" ".*/manifest.json"
 
             - if: steps.retro.outputs.is_pr == 'true'
               name: Count the number of manifest.json files downloaded
