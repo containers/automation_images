@@ -28,4 +28,4 @@ COPY --from=builder /etc/automation_environment /etc/automation_environment
 
 # Env. is used by test.sh script.
 ENV CCIABIN=/usr/share/automation/bin/cirrus-ci_artifacts
-ENTRYPOINT ["$CCIABIN"]
+ENTRYPOINT ["/usr/share/automation/bin/cirrus-ci_artifacts"]
