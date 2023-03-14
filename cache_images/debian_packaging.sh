@@ -70,6 +70,7 @@ INSTALL_PACKAGES=(\
     libnet1
     libnet1-dev
     libnl-3-dev
+    libostree-dev
     libprotobuf-c-dev
     libprotobuf-dev
     libseccomp-dev
@@ -84,8 +85,8 @@ INSTALL_PACKAGES=(\
     ncat
     openssl
     parallel
-    pkg-config
     passt
+    pkg-config
     podman
     protobuf-c-compiler
     protobuf-compiler
