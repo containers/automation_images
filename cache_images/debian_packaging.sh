@@ -97,7 +97,8 @@ INSTALL_PACKAGES=(\
     python3-pip
     python3-protobuf
     python3-psutil
-    python3-pytoml
+    python3-toml
+    python3-tomli
     python3-requests
     python3-setuptools
     rsync
