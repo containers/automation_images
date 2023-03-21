@@ -45,6 +45,7 @@ INSTALL_PACKAGES=(\
     emacs-nox
     file
     fuse3
+    fuse-overlayfs
     gcc
     gettext
     git-daemon-run
@@ -113,6 +114,7 @@ INSTALL_PACKAGES=(\
     unzip
     vim
     wget
+    xfsprogs
     xz-utils
     zip
     zlib1g-dev
