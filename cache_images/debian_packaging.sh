@@ -80,6 +80,7 @@ INSTALL_PACKAGES=(\
     libsystemd-dev
     libtool
     libudev-dev
+    "linux-headers-$(uname -r)"
     lsb-release
     lsof
     make
@@ -118,8 +119,12 @@ INSTALL_PACKAGES=(\
     xz-utils
     zip
     zlib1g-dev
+    zfsutils
     zstd
 )
+
+# Necessary to add zfs support needed for c/storage CI.
+$SUDO sed -i -r 's/^(deb.*)/\1 contrib/g' /etc/apt/sources.list
 
 # Necessary to update cache of newly added repos
 lilto $SUDO apt-get -q -y update
