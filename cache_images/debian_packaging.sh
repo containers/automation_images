@@ -125,7 +125,7 @@ INSTALL_PACKAGES=(\
 lilto $SUDO apt-get -q -y update
 
 echo "Installing general build/testing dependencies"
-bigto $SUDO apt-get -q -y install "${INSTALL_PACKAGES[@]}"
+bigto $SUDO env DEBIAN_FRONTEND=noninteractive apt-get -q -y install "${INSTALL_PACKAGES[@]}"
 
 # The nc installed by default is missing many required options
 $SUDO update-alternatives --set nc /usr/bin/ncat

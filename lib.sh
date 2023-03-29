@@ -35,11 +35,6 @@ if [[ -n "$UID" ]] && [[ "$UID" -ne 0 ]]; then
     SUDO="sudo"
 fi
 
-if [[ "$OS_RELEASE_ID" == "debian" ]]; then
-    export DEBIAN_FRONTEND=noninteractive
-    SUDO="$SUDO env DEBIAN_FRONTEND=$DEBIAN_FRONTEND"
-fi
-
 if [[ -r "/etc/automation_environment" ]]; then
     source /etc/automation_environment
     #shellcheck disable=SC1090,SC2154
