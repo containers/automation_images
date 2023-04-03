@@ -41,3 +41,44 @@ if [[ -d "$EAAD" ]]; then
         echo "Checking/Patching $filename"
         $SUDO sed -i -r -e "s/$PERIODIC_APT_RE/"'\10"\;/' "$EAAD/$filename"; done
 fi
+
+# Early 2023: https://github.com/containers/podman/issues/16973
+#
+# We see countless instances of "lookup cdn03.quay.io" flakes.
+# Disabling the systemd resolver (Podman #17505) seems to have almost
+# eliminated those -- the exceptions are early-on steps that run
+# before that happens.
+#
+# Opinions differ on the merits of systemd-resolve, but the fact is
+# it breaks our CI testing. Here we disable it for all VMs.
+# shellcheck disable=SC2154
+if ! ((CONTAINER)); then
+    nsswitch=/etc/authselect/nsswitch.conf
+    if [[ -e $nsswitch ]]; then
+        if grep -q -E 'hosts:.*resolve' $nsswitch; then
+            echo "Disabling systemd-resolved"
+            $SUDO sed -i -e 's/^\(hosts: *\).*/\1files dns myhostname/' $nsswitch
+            $SUDO systemctl disable --now systemd-resolved
+            $SUDO rm -f /etc/resolv.conf
+
+            # NetworkManager may already be running, or it may not....
+            $SUDO systemctl start NetworkManager
+            sleep 1
+            $SUDO systemctl restart NetworkManager
+
+            # ...and it may create resolv.conf upon start/restart, or it
+            # may not. Keep restarting until it does. (Yes, I realize
+            # this is cargocult thinking. Don't care. Not worth the effort
+            # to diagnose and solve properly.)
+            retries=10
+            while ! test -e /etc/resolv.conf;do
+                retries=$((retries - 1))
+                if [[ $retries -eq 0 ]]; then
+                    die "Timed out waiting for resolv.conf"
+                fi
+                $SUDO systemctl restart NetworkManager
+                sleep 5
+            done
+        fi
+    fi
+fi
