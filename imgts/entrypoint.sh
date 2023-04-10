@@ -181,6 +181,10 @@ if [[ -n "$EC2IMGNAMES" ]]; then
         else
             msg "${DRPREFIX}Updated image $image ($amiid) metadata."
         fi
+
+        # Ensure image wasn't previously marked as deprecated.  Ignore
+        # confirmation output.
+        $AWS ec2 disable-image-deprecation --image-id "$amiid" > /dev/null
     done
 fi
 
