@@ -108,13 +108,10 @@ if [[ -n "$FLAVOR_NAME" ]]; then
     build_args=(--build-arg "FLAVOR=$FLAVOR_NAME")
 fi
 
-head_sha=$(git rev-parse HEAD)
-dbg "HEAD is $head_sha"
 # Labels to add to all images
 # N/B: These won't show up in the manifest-list itself, only it's constituents.
 lblargs="\
     --label=org.opencontainers.image.source=$REPO_URL \
-    --label=org.opencontainers.image.revision=$head_sha \
     --label=org.opencontainers.image.created=$(date -u --iso-8601=seconds)"
 dbg "lblargs=$lblargs"
 
