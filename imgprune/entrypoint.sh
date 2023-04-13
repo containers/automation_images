@@ -72,7 +72,9 @@ for (( i=nr_amis ; i ; i-- )); do
     if permanent=$(get_tag_value "permanent" "$ami") && \
        [[ "$permanent" == "true" ]]
     then
-      die 1 "Found image '$ami_id' labeled permanent=true with deprecation set for '$dep_ymd'.  This should never happen, manual intervention required."
+        warn 0 "Found permanent image '$ami_id' with deprecation '$dep_ymd'.  Clearing deprecation date."
+        $AWS ec2 disable-image-deprecation --image-id "$ami_id" > /dev/null
+        continue
     fi
 
     if [[ $(echo -e "$ABOUTNOW\n$dep_ymd" | sort | tail -1) == "$ABOUTNOW" ]]; then

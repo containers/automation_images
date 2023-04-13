@@ -118,7 +118,7 @@ for (( i=nr_amis ; i ; i-- )); do
     dep=$(jq -r -e ".DEP"<<<"$ami")
 
     unset tags
-    # The name-tag is easier on human eys if on is set.
+    # The name-tag is easier on human eys if one is set.
     name="$ami_id"
     if name_tag=$(get_tag_value "Name" "$ami"); then
         name="$name_tag"
@@ -146,6 +146,8 @@ for (( i=nr_amis ; i ; i-- )); do
 
     if [[ -n "$permanent" ]]; then
         msg "Retaining forever $name | $tags"
+        # Permanent AMIs should never ever have a deprecation date set
+        $AWS ec2 disable-image-deprecation --image-id "$ami_id" > /dev/null
         continue
     fi
 
@@ -155,12 +157,6 @@ for (( i=nr_amis ; i ; i-- )); do
         reason="Missing 'automation' metadata; Tags: $tags"
         echo "EC2 $ami_id $reason" >> $TOOBSOLETE
         continue
-    fi
-
-    # Avoid perpetually updating the depreciation date on already deprecated AMIs
-    if [[ $dep != null ]]; then
-      echo "Skipping '$ami_id' already deprecated on '$dep'"
-      continue
     fi
 
     unset lltvalue last_used_timestamp last_used_ymd
@@ -180,6 +176,11 @@ for (( i=nr_amis ; i ; i-- )); do
         continue
     else
         msg "Retaining $ami_id | $created_ymd | $state | $tags"
+        if [[ "$dep" != "null" ]]; then
+            msg "    Removing previously set AMI deprecation timestamp: $dep"
+            # Ignore confirmation output.
+            $AWS ec2 disable-image-deprecation --image-id "$ami_id" > /dev/null
+        fi
     fi
 done
 
