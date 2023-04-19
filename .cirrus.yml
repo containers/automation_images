@@ -118,7 +118,7 @@ tooling_images_task:
     gce_instance: *ibi_vm
     env:
         <<: *image_env
-        TARGET_NAMES: imgts imgobsolete imgprune gcsupld get_ci_vm orphanvms ccia bench_stuff
+        TARGET_NAMES: imgts imgobsolete imgprune gcsupld get_ci_vm orphanvms ccia
         PUSH_LATEST: 1  # scripts force to 0 if $CIRRUS_PR
     script: |
         for TARGET_NAME in $TARGET_NAMES; do
@@ -429,20 +429,6 @@ test_ccia_task:
     test_script: ./ccia/test.sh
 
 
-test_bench_stuff_task:
-    name: "Test bench_stuff entrypoint"
-    alias: test_bench_stuff
-    only_if: *only_prs
-    skip: *ci_docs
-    depends_on:
-        - tooling_images
-    container:
-        image: 'quay.io/libpod/bench_stuff:c$IMG_SFX'
-        cpu: 2
-        memory: '2G'
-    test_script: ./bench_stuff/test.sh
-
-
 test_build-push_task:
     name: "Test build-push VM functions"
     alias: test_build-push
@@ -506,7 +492,6 @@ success_task:
         - test_gcsupld
         - test_get_ci_vm
         - test_ccia
-        - test_bench_stuff
         - test_build-push
     container:
         <<: *ci_container
