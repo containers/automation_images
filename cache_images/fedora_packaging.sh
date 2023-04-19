@@ -60,7 +60,6 @@ INSTALL_PACKAGES=(\
     curl
     device-mapper-devel
     dnsmasq
-    docker-compose
     e2fsprogs-devel
     emacs-nox
     fakeroot
@@ -131,7 +130,6 @@ INSTALL_PACKAGES=(\
     python3-coverage
     python3-dateutil
     python3-devel
-    python3-docker
     python3-fixtures
     python3-libselinux
     python3-libsemanage
@@ -169,6 +167,14 @@ if [[ "$PACKER_BUILD_NAME" =~ prior ]]; then
     EXARG="--exclude=netavark --exclude=aardvark-dns"
 fi
 
+# Rawhide images don't need these pacakges
+if [[ "$PACKER_BUILD_NAME" =~ fedora ]]; then
+    INSTALL_PACKAGES+=( \
+        docker-compose
+        python3-docker
+    )
+fi
+
 # Workarond: Around the time of this commit, the `criu` package
 # was found to be missing a recommends-dependency on criu-libs.
 # Until a fixed rpm lands in the Fedora repositories, manually
@@ -202,18 +208,20 @@ DOWNLOAD_PACKAGES=(\
 msg "Installing general build/test dependencies"
 bigto $SUDO dnf install -y $EXARG "${INSTALL_PACKAGES[@]}"
 
-msg "Downloading packages for optional installation at runtime, as needed."
-$SUDO mkdir -p "$PACKAGE_DOWNLOAD_DIR"
-cd "$PACKAGE_DOWNLOAD_DIR"
-lilto ooe.sh $SUDO dnf install -y 'dnf-command(download)'
-lilto $SUDO dnf download -y --resolve "${DOWNLOAD_PACKAGES[@]}"
-# Also cache the current/latest version of minikube
-# for use in some specialized testing.
-# Ref: https://minikube.sigs.k8s.io/docs/start/
-$SUDO curl --fail --silent --location -O \
-    https://storage.googleapis.com/minikube/releases/latest/minikube-latest.x86_64.rpm
-cd -
-
+# Rawhide images don't need to cache optional packages
+if [[ "$PACKER_BUILD_NAME" =~ fedora ]]; then
+    msg "Downloading packages for optional installation at runtime, as needed."
+    $SUDO mkdir -p "$PACKAGE_DOWNLOAD_DIR"
+    cd "$PACKAGE_DOWNLOAD_DIR"
+    lilto ooe.sh $SUDO dnf install -y 'dnf-command(download)'
+    lilto $SUDO dnf download -y --resolve "${DOWNLOAD_PACKAGES[@]}"
+    # Also cache the current/latest version of minikube
+    # for use in some specialized testing.
+    # Ref: https://minikube.sigs.k8s.io/docs/start/
+    $SUDO curl --fail --silent --location -O \
+        https://storage.googleapis.com/minikube/releases/latest/minikube-latest.x86_64.rpm
+    cd -
+fi
 
 # It was observed in F33, dnf install doesn't always get you the latest/greatest
 lilto $SUDO dnf update -y

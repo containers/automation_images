@@ -201,6 +201,9 @@ cache_images_task:
             PACKER_BUILDS: "prior-fedora"
         - <<: *cache_image
           env:
+            PACKER_BUILDS: "rawhide"
+        - <<: *cache_image
+          env:
             PACKER_BUILDS: "fedora-netavark"
         - <<: *cache_image
           env:
