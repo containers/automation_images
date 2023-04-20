@@ -2,7 +2,7 @@ ARG BASE_NAME=registry.fedoraproject.org/fedora-minimal
 ARG BASE_TAG=latest
 FROM ${BASE_NAME}:${BASE_TAG} as updated_base
 
-RUN microdnf update -y && \
+RUN microdnf upgrade -y && \
     microdnf clean all
 
 ENV _RUNTIME_DEPS="bash python3"

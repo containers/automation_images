@@ -19,6 +19,7 @@ variables:  # Empty value means it must be passed in on command-line
     # See Makefile for definitions
     FEDORA_RELEASE: "{{env `FEDORA_RELEASE`}}"
     PRIOR_FEDORA_RELEASE: "{{env `PRIOR_FEDORA_RELEASE`}}"
+    RAWHIDE_RELEASE: "{{env `RAWHIDE_RELEASE`}}"
     DEBIAN_RELEASE: "{{env `DEBIAN_RELEASE`}}"
 
 builders:
@@ -47,6 +48,15 @@ builders:
       ssh_clear_authorized_keys: true
       # Permit running nested VM's to support specialized testing
       image_licenses: ["projects/vm-options/global/licenses/enable-vmx"]
+
+    - <<: *gce_hosted_image
+      name: 'rawhide'
+      # The latest fedora base image will be "upgraded" to rawhide
+      source_image: 'fedora-b{{user `IMG_SFX`}}'
+      labels:
+        <<: *gce_labels
+        src: 'fedora-b{{user `IMG_SFX` }}'
+        release: 'rawhide-{{user `RAWHIDE_RELEASE`}}'
 
     - <<: *gce_hosted_image
       name: 'fedora'
@@ -178,6 +188,13 @@ provisioners:
     - type: 'file'
       source: '{{ pwd }}/'
       destination: "/tmp/automation_images"
+
+    - only: ['rawhide']
+      type: 'shell'
+      expect_disconnect: true  # VM will be rebooted at end of script
+      inline:
+        - 'set -e'
+        - '/bin/bash /tmp/automation_images/cache_images/rawhide_setup.sh'
 
     - except: ['debian']
       type: 'shell'

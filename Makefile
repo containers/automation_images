@@ -20,6 +20,9 @@ export CENTOS_STREAM_RELEASE = 8
 export FEDORA_RELEASE = 37
 export PRIOR_FEDORA_RELEASE = 36
 
+# This should always be one-greater than $FEDORA_RELEASE (assuming it's actually the latest)
+export RAWHIDE_RELEASE = 38
+
 # See import_images/README.md
 export FEDORA_IMPORT_IMG_SFX = $(_IMPORT_IMG_SFX)
 
