@@ -291,6 +291,7 @@ test_imgts_task: &imgts
             prior-fedora-c${IMG_SFX}
             fedora-netavark-c${IMG_SFX}
             fedora-podman-py-c${IMG_SFX}
+            rawhide-c${IMG_SFX}
             debian-c${IMG_SFX}
             build-push-c${IMG_SFX}
         EC2IMGNAMES: |
