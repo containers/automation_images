@@ -65,7 +65,7 @@ for (( i=$TIMEOUT_SECONDS ; i ; i=i-$SLEEP_SECONDS )); do \
         [[ ! "$st_msg" =~ null ]]
     then
         die "Unexpected result: $st_msg"
-    elif egrep -iq '(error)|(fail)' <<<"$st_msg"; then
+    elif grep -Eiq '(error)|(fail)' <<<"$st_msg"; then
         die "$task_id: $st_msg"
     fi
 
