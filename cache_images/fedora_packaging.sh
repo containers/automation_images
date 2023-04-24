@@ -197,7 +197,6 @@ fi
 # Download these package files, but don't install them; Any tests
 # wishing to, may install them using their native tools at runtime.
 DOWNLOAD_PACKAGES=(\
-    oci-umount
     parallel
     podman-docker
     podman-plugins
