@@ -197,7 +197,6 @@ fi
 # Download these package files, but don't install them; Any tests
 # wishing to, may install them using their native tools at runtime.
 DOWNLOAD_PACKAGES=(\
-    oci-umount
     parallel
     podman-docker
     podman-plugins
@@ -208,20 +207,17 @@ DOWNLOAD_PACKAGES=(\
 msg "Installing general build/test dependencies"
 bigto $SUDO dnf install -y $EXARG "${INSTALL_PACKAGES[@]}"
 
-# Rawhide images don't need to cache optional packages
-if [[ "$PACKER_BUILD_NAME" =~ fedora ]]; then
-    msg "Downloading packages for optional installation at runtime, as needed."
-    $SUDO mkdir -p "$PACKAGE_DOWNLOAD_DIR"
-    cd "$PACKAGE_DOWNLOAD_DIR"
-    lilto ooe.sh $SUDO dnf install -y 'dnf-command(download)'
-    lilto $SUDO dnf download -y --resolve "${DOWNLOAD_PACKAGES[@]}"
-    # Also cache the current/latest version of minikube
-    # for use in some specialized testing.
-    # Ref: https://minikube.sigs.k8s.io/docs/start/
-    $SUDO curl --fail --silent --location -O \
-        https://storage.googleapis.com/minikube/releases/latest/minikube-latest.x86_64.rpm
-    cd -
-fi
+msg "Downloading packages for optional installation at runtime, as needed."
+$SUDO mkdir -p "$PACKAGE_DOWNLOAD_DIR"
+cd "$PACKAGE_DOWNLOAD_DIR"
+lilto ooe.sh $SUDO dnf install -y 'dnf-command(download)'
+lilto $SUDO dnf download -y --resolve "${DOWNLOAD_PACKAGES[@]}"
+# Also cache the current/latest version of minikube
+# for use in some specialized testing.
+# Ref: https://minikube.sigs.k8s.io/docs/start/
+$SUDO curl --fail --silent --location -O \
+    https://storage.googleapis.com/minikube/releases/latest/minikube-latest.x86_64.rpm
+cd -
 
 # It was observed in F33, dnf install doesn't always get you the latest/greatest
 lilto $SUDO dnf update -y

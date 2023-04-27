@@ -18,7 +18,7 @@ ENV CIRRUS_WORKING_DIR=/tmp/automation_images \
 RUN test -n "$PACKER_VERSION"
 RUN dnf update -y && \
     dnf mark remove $(rpm -qa | grep -Ev '(gpg-pubkey)|(dnf)|(sudo)') && \
-    dnf install -y --exclude selinux-policy-targeted \
+    dnf install -y \
         ShellCheck \
         bash-completion \
         coreutils \

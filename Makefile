@@ -17,11 +17,11 @@ if_ci_else = $(if $(findstring true,$(CI)),$(1),$(2))
 
 export CENTOS_STREAM_RELEASE = 8
 
-export FEDORA_RELEASE = 37
-export PRIOR_FEDORA_RELEASE = 36
+export FEDORA_RELEASE = 38
+export PRIOR_FEDORA_RELEASE = 37
 
 # This should always be one-greater than $FEDORA_RELEASE (assuming it's actually the latest)
-export RAWHIDE_RELEASE = 38
+export RAWHIDE_RELEASE = 39
 
 # See import_images/README.md
 export FEDORA_IMPORT_IMG_SFX = $(_IMPORT_IMG_SFX)
@@ -147,7 +147,7 @@ ci_debug: $(_TEMPDIR)/ci_debug.tar ## Build and enter container for local develo
 		-e TEMPDIR=$(_TEMPDIR) \
 		docker-archive:$<
 
-# Takes 4 arguments: export filepath, FQIN, context dir
+# Takes 3 arguments: export filepath, FQIN, context dir
 define podman_build
 	podman build -t $(2) \
 		--build-arg CENTOS_STREAM_RELEASE=$(CENTOS_STREAM_RELEASE) \
@@ -348,13 +348,7 @@ import_images: $(_TEMPDIR)/fedora-aws-$(_IMPORT_IMG_SFX).ami.json $(_TEMPDIR)/fe
 		-e 's/@@@CIRRUS_TASK_ID@@@/$(CIRRUS_TASK_ID)/' \
 		import_images/manifest.json.in \
 	> import_images/manifest.json
-	@echo "Image import(s) successful."
-	@echo "############################################################"
-	@echo "Please update IMPORT_IMG_SFX file with value:"
-	@echo ""
-	@echo "$(_IMPORT_IMG_SFX)"
-	@echo ""
-	@echo "############################################################"
+	@echo "Image import(s) successful!"
 
 .PHONY: base_images
 # This needs to run in a virt/nested-virt capable environment
