@@ -515,8 +515,8 @@ init_gcevm() {
     DNS_NAME=$INST_NAME  # gcloud compute ssh wrapper will resolve this
     GCLOUD="${GCLOUD:-gcloud} --configuration=$GCLOUD_CFG --project=$GCLOUD_PROJECT"
     _args="--force-key-file-overwrite --strict-host-key-checking=no --zone=$GCLOUD_ZONE"
-    SSH_CMD="$GCLOUD compute ssh $_args root@$DNS_NAME --"
-    SCP_CMD="$GCLOUD compute scp $_args"
+    SSH_CMD="$GCLOUD compute ssh --ssh-flag=-o=AddKeysToAgent=yes $_args root@$DNS_NAME --"
+    SCP_CMD="$GCLOUD compute scp --scp-flag=-o=AddKeysToAgent=yes $_args"
     CREATE_CMD="$GCLOUD compute instances create \
         --zone=$GCLOUD_ZONE --image-project=$GCLOUD_IMGPROJECT \
         --image=$INST_IMAGE --custom-cpu=$GCLOUD_CPUS \
@@ -533,9 +533,6 @@ init_gcevm() {
 Can't find valid GCP credentials, attempting to (re)initialize.
 If asked, please choose '#1: Re-initialize', 'login', and a nearby
 GCLOUD_ZONE, otherwise simply follow the prompts.
-
-Note: If asked to set a SSH-key passphrase, DO NOT SET ONE, it
-      will make your life miserable! Set an empty password for the key.
 "
         $GCLOUD init --project=$GCLOUD_PROJECT --console-only --skip-diagnostics
         if ! has_valid_gcp_credentials; then
