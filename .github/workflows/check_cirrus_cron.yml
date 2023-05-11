@@ -13,5 +13,5 @@ on:
 jobs:
   # Ref: https://docs.github.com/en/actions/using-workflows/reusing-workflows
   call_cron_failures:
-    uses: containers/buildah/.github/workflows/check_cirrus_cron.yml@main
+    uses: containers/podman/.github/workflows/check_cirrus_cron.yml@main
     secrets: inherit
