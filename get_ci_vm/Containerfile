@@ -19,8 +19,7 @@ RUN bash ./get_ci_vm/setup.sh
 # conflicts.
 
 ADD /get_ci_vm/entrypoint.sh ./get_ci_vm/
-# Add this late to optomize cache effecacy for development workflows
-ENTRYPOINT ["/bin/bash", "/usr/src/automation_images/get_ci_vm/entrypoint.sh"]
+ENTRYPOINT ["/usr/bin/ssh-agent", "/bin/bash", "/usr/src/automation_images/get_ci_vm/entrypoint.sh"]
 WORKDIR "/root"
 ENV HOME="/root" \
     SRCDIR="" \
