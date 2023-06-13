@@ -154,7 +154,10 @@ curl --fail --silent --location \
     $SUDO tee /etc/apt/trusted.gpg.d/docker_com.gpg &> /dev/null
 
 # Buildah CI does conformance testing vs the most recent Docker version.
-docker_debian_release=$(source /etc/os-release; echo "$VERSION_CODENAME")
+# FIXME: At the time of this comment, there is no 'trixie' dist for docker.
+#        Fix the next lines once that changes.
+#docker_debian_release=$(source /etc/os-release; echo "$VERSION_CODENAME")
+docker_debian_release="bookworm"
 
 echo "deb https://download.docker.com/linux/debian $docker_debian_release stable" | \
     ooe.sh $SUDO tee /etc/apt/sources.list.d/docker.list &> /dev/null

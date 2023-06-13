@@ -28,8 +28,8 @@ export FEDORA_IMPORT_IMG_SFX = $(_IMPORT_IMG_SFX)
 
 # Automation assumes the actual release number (after SID upgrade)
 # is always one-greater than the latest DEBIAN_BASE_FAMILY (GCE image).
-export DEBIAN_RELEASE = 12
-export DEBIAN_BASE_FAMILY = debian-11
+export DEBIAN_RELEASE = 13
+export DEBIAN_BASE_FAMILY = debian-12
 
 IMPORT_FORMAT = vhdx
 
