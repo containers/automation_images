@@ -298,6 +298,7 @@ test_imgts_task: &imgts
             fedora-aws-i${IMPORT_IMG_SFX}
             fedora-aws-b${IMG_SFX}
             fedora-aws-c${IMG_SFX}
+            fedora-aws-arm64-i${IMG_SFX}
             fedora-aws-arm64-b${IMG_SFX}
             fedora-podman-aws-arm64-c${IMG_SFX}
             fedora-netavark-aws-arm64-c${IMG_SFX}
