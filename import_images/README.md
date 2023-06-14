@@ -64,10 +64,7 @@ Any exceptions are noted in the individual steps below with *[HOST]*
    1. Essential tags are added to the AMI
    1. Details ascii-table about the new AMI is printed on success.
 1. Assuming all image imports were successful, a final success message will be
-   printed by `make` with instructions for updating the `IMPORT_IMG_SFX` file.
-1. *[HOST]* Update the `Makefile` as instructed, commit the
-   changes and push to a PR.  The automated image building process
-   takes over and runs as usual.
+   printed by `make`.
 
 ## Failure responses
 

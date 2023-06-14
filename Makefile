@@ -28,8 +28,8 @@ export FEDORA_IMPORT_IMG_SFX = $(_IMPORT_IMG_SFX)
 
 # Automation assumes the actual release number (after SID upgrade)
 # is always one-greater than the latest DEBIAN_BASE_FAMILY (GCE image).
-export DEBIAN_RELEASE = 12
-export DEBIAN_BASE_FAMILY = debian-11
+export DEBIAN_RELEASE = 13
+export DEBIAN_BASE_FAMILY = debian-12
 
 IMPORT_FORMAT = vhdx
 
@@ -128,6 +128,7 @@ IMG_SFX:  ## Generate a new date-based image suffix, store in the file IMG_SFX
 	$(file >$@,$(shell date --utc +%Y%m%dt%H%M%Sz)-f$(FEDORA_RELEASE)f$(PRIOR_FEDORA_RELEASE)d$(subst .,,$(DEBIAN_RELEASE)))
 	@echo "$(file <IMG_SFX)"
 
+.PHONY: IMPORT_IMG_SFX
 IMPORT_IMG_SFX:  ## Generate a new date-based import-image suffix, store in the file IMPORT_IMG_SFX
 	$(file >$@,$(shell date --utc +%Y%m%dt%H%M%Sz)-f$(FEDORA_RELEASE)f$(PRIOR_FEDORA_RELEASE)d$(subst .,,$(DEBIAN_RELEASE)))
 	@echo "$(file <IMPORT_IMG_SFX)"
