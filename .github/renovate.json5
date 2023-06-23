@@ -60,6 +60,8 @@
       "depNameTemplate": "containers/automation",
       "datasourceTemplate": "github-tags",
       "versioningTemplate": "semver-coerced",
+      // "v" included in tag, but should not be used in lib.sh
+      "extractVersionTemplate": "v(?<version>.+)",
     },
   ],
 
@@ -69,7 +71,6 @@
     {
       "matchManagers": ["regex"],
       "matchFiles": ["lib.sh"],  // full-path exact-match
-      "groupName": "Automation library update",
       // Don't wait, roll out CI VM Updates immediately
       "schedule": ["at any time"],
       // Override default `[CI:DOCS]`, DO build new CI VM images.
