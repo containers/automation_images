@@ -24,7 +24,7 @@ INSTALL_AUTOMATION_VERSION="4.2.1"
 PUSH_LATEST="${PUSH_LATEST:-0}"
 
 # Mask secrets in show_env_vars() from automation library
-SECRET_ENV_RE='(ACCOUNT)|(.+_JSON)|(AWS.+)|(SSH)|(PASSWORD)|(TOKEN)'
+SECRET_ENV_RE='(^PATH$)|(^BASH_FUNC)|(^_.*)|(.*PASSWORD.*)|(.*TOKEN.*)|(.*SECRET.*)|(.*ACCOUNT.*)|(.+_JSON)|(AWS.+)|(.*SSH.*)|(.*GCP.*)'
 
 # Some platforms set and make this read-only
 [[ -n "$UID" ]] || \
