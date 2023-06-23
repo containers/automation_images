@@ -50,6 +50,48 @@
   // Don't leave dep. update. PRs "hanging", assign them to people.
   "assignees": ["cevich"],
 
-  // Don't build CI VM images for dep. update PRs
+  // Don't build CI VM images for dep. update PRs (by default)
   commitMessagePrefix: "[CI:DOCS]",
+
+  "regexManagers": [
+    {
+      "fileMatch": "^lib.sh$",
+      "matchStrings": ["^INSTALL_AUTOMATION_VERSION=\"(?<currentValue>.+)\""],
+      "depNameTemplate": "containers/automation",
+      "datasourceTemplate": "github-tags",
+      "versioningTemplate": "semver-coerced",
+    },
+  ],
+
+  // N/B: LAST MATCHING RULE WINS, match statems are ANDed together.
+  // https://docs.renovatebot.com/configuration-options/#packagerules
+  "packageRules": [
+    {
+      "matchManagers": ["regex"],
+      "matchFiles": ["lib.sh"],  // full-path exact-match
+      "groupName": "Automation library update",
+      // Don't wait, roll out CI VM Updates immediately
+      "schedule": ["at any time"],
+      // Override default `[CI:DOCS]`, DO build new CI VM images.
+      commitMessagePrefix: null,
+      // Frequently, library updates require adjustments to build-scripts
+      "draftPR": true,
+      "reviewers": ["cevich"],
+      "prBodyNotes": [
+// handlebar conditionals don't have logical operators, and renovate
+// does not provide an 'isMinor' template field
+"\
+{{#if isMajor}}\
+:warning: Changes are **likely** required for build-scripts \
+and/or downstream CI VM image users. Please check very carefully. :warning:\
+{{/if}}\
+{{#if isPatch}}\
+{{else}}\
+:warning: Changes *might be* required for build-scripts \
+and/or downstream CI VM image users. Please double-check. :warning:\
+{{/if}}\
+"
+      ],
+    }
+  ]
 }
