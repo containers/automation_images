@@ -13,7 +13,9 @@ REPO_DIRPATH=$(realpath "$SCRIPT_DIRPATH/../")
 # shellcheck source=./lib.sh
 source "$REPO_DIRPATH/lib.sh"
 
-req_env_vars CIRRUS_PR CIRRUS_BASE_SHA CIRRUS_CHANGE_TITLE
+req_env_vars CIRRUS_PR CIRRUS_BASE_SHA CIRRUS_PR_TITLE
+
+show_env_vars
 
 # die() will add a reference to this file and line number.
 [[ "$CIRRUS_CI" == "true" ]] || \
@@ -32,10 +34,17 @@ if [[ -z "$CIRRUS_PR" ]]; then
   exit 0
 fi
 
+# For Docs-only PRs, no further checks are needed
 # Variable is defined by Cirrus-CI at runtime
 # shellcheck disable=SC2154
-if [[ ! "$CIRRUS_CHANGE_TITLE" =~ CI:DOCS ]] && \
-   ! git diff --name-only ${CIRRUS_BASE_SHA}..HEAD | grep -q IMG_SFX; then
+if [[ "$CIRRUS_PR_TITLE" =~ CI:DOCS ]]; then
+  msg "This looks like a docs-only PR, skipping further validation checks."
+  exit 0
+fi
+
+# Variable is defined by Cirrus-CI at runtime
+# shellcheck disable=SC2154
+if ! git diff --name-only ${CIRRUS_BASE_SHA}..HEAD | grep -q IMG_SFX; then
 
   die "Every PR that builds images must include an updated IMG_SFX file.
 Simply run 'make IMG_SFX', commit the result, and re-push."
