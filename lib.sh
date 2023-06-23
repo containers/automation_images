@@ -163,8 +163,12 @@ skip_on_pr_label() {
 
 # print a space-separated list of labels when run under Cirrus-CI for a PR
 get_pr_labels() {
-    req_env_vars CIRRUS_CI CIRRUS_PR CIRRUS_REPO_CLONE_TOKEN
+    req_env_vars CIRRUS_CI CIRRUS_REPO_CLONE_TOKEN
     req_env_vars CIRRUS_REPO_OWNER CIRRUS_REPO_NAME
+
+    # Empty for non-PRs
+    # shellcheck disable=SC2154
+    [[ -n "$CIRRUS_PR" ]] || return 0
 
     local query h_accept h_content api result fltrpfx
     local filter labels h_auth h_accept h_content
