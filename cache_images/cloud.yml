@@ -206,7 +206,7 @@ provisioners:
       type: 'shell'
       inline:
         - 'set -e'
-        - '/bin/bash /tmp/automation_images/cache_images/debian_setup.sh'
+        - 'env DEBIAN_FRONTEND=noninteractive /bin/bash /tmp/automation_images/cache_images/debian_setup.sh'
 
 post-processors:
     # This is critical for human-interaction.  Copntents will be used
