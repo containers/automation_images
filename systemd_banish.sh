@@ -7,9 +7,10 @@
 
 set +e  # Not all of these exist on every platform
 
-SUDO=""
-[[ "$UID" -eq 0 ]] || \
-    SUDO="sudo"
+# Setting noninteractive is critical, apt-get can hang w/o it.
+if [[ "$UID" -ne 0 ]]; then
+    export SUDO="sudo env DEBIAN_FRONTEND=noninteractive"
+fi
 
 EVIL_UNITS="cron crond atd apt-daily-upgrade apt-daily fstrim motd-news systemd-tmpfiles-clean update-notifier-download mlocate-updatedb"
 

@@ -26,15 +26,6 @@ PUSH_LATEST="${PUSH_LATEST:-0}"
 # Mask secrets in show_env_vars() from automation library
 SECRET_ENV_RE='(^PATH$)|(^BASH_FUNC)|(^_.*)|(.*PASSWORD.*)|(.*TOKEN.*)|(.*SECRET.*)|(.*ACCOUNT.*)|(.+_JSON)|(AWS.+)|(.*SSH.*)|(.*GCP.*)'
 
-# Some platforms set and make this read-only
-[[ -n "$UID" ]] || \
-    UID=$(getent passwd $USER | cut -d : -f 3)
-
-SUDO=""
-if [[ -n "$UID" ]] && [[ "$UID" -ne 0 ]]; then
-    SUDO="sudo"
-fi
-
 if [[ -r "/etc/automation_environment" ]]; then
     source /etc/automation_environment
     #shellcheck disable=SC1090,SC2154
@@ -48,6 +39,13 @@ else  # Automation common library not installed yet
     die() { echo "ERROR: ${1:-No error message provided}"; exit 1; }
     lilto() { die "Automation library not installed; Required for lilto()"; }
     bigto() { die "Automation library not installed; Required for bigto()"; }
+fi
+
+# Setting noninteractive is critical, apt-get can hang w/o it.
+# N/B: Must be done _after_ potential loading of automation libraries
+export SUDO="env DEBIAN_FRONTEND=noninteractive"
+if [[ "$UID" -ne 0 ]]; then
+    export SUDO="sudo env DEBIAN_FRONTEND=noninteractive"
 fi
 
 install_automation_tooling() {
@@ -233,7 +231,7 @@ remove_netavark_aardvark_files() {
     do
         # Sub-directories may contain unrelated/valuable stuff
         if [[ -d "$fullpath" ]]; then continue; fi
-        sudo rm -vf "$fullpath"
+        $SUDO rm -vf "$fullpath"
     done
 }
 

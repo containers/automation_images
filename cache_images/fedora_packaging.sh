@@ -18,21 +18,17 @@ source "$REPO_DIRPATH/lib.sh"
 # for both VM and container image build workflows.
 req_env_vars PACKER_BUILD_NAME
 
-# Do not enable updates-testing on the 'prior' Fedora release images
+# Only enable updates-testing on all 'latest' Fedora images (except rawhide)
 # as a matter of general policy.  Historically there have been many
 # problems with non-uniform behavior when both supported Fedora releases
 # receive container-related dependency updates at the same time.  Since
 # the 'prior' release has the shortest support lifetime, keep it's behavior
 # stable by only using released updates.
 # shellcheck disable=SC2154
-if [[ ! "$PACKER_BUILD_NAME" =~ prior ]]; then
+if [[ "$PACKER_BUILD_NAME" == "fedora" ]] && [[ ! "$PACKER_BUILD_NAME" =~ "prior" ]]; then
     warn "Enabling updates-testing repository for $PACKER_BUILD_NAME"
     lilto ooe.sh $SUDO dnf install -y 'dnf-command(config-manager)'
     lilto ooe.sh $SUDO dnf config-manager --set-enabled updates-testing
-
-    # Could be on prior-fedora also, but copr isn't installed by default
-    warn "Enabling sbrivio/passt repo. for passt packages"
-    $SUDO dnf copr enable -y sbrivio/passt
 else
     warn "NOT enabling updates-testing repository for $PACKER_BUILD_NAME"
 fi
@@ -121,25 +117,6 @@ INSTALL_PACKAGES=(\
     protobuf-c
     protobuf-c-devel
     protobuf-devel
-    python-pip-wheel
-    python-setuptools-wheel
-    python-toml
-    python-wheel-wheel
-    python2
-    python3-PyYAML
-    python3-coverage
-    python3-dateutil
-    python3-devel
-    python3-fixtures
-    python3-libselinux
-    python3-libsemanage
-    python3-libvirt
-    python3-pip
-    python3-psutil
-    python3-pylint
-    python3-pyxdg
-    python3-requests
-    python3-requests-mock
     redhat-rpm-config
     rpcbind
     rsync
@@ -171,7 +148,26 @@ fi
 if [[ "$PACKER_BUILD_NAME" =~ fedora ]]; then
     INSTALL_PACKAGES+=( \
         docker-compose
+        python-pip-wheel
+        python-setuptools-wheel
+        python-toml
+        python-wheel-wheel
+        python2
+        python3-PyYAML
+        python3-coverage
+        python3-dateutil
+        python3-devel
         python3-docker
+        python3-fixtures
+        python3-libselinux
+        python3-libsemanage
+        python3-libvirt
+        python3-pip
+        python3-psutil
+        python3-pylint
+        python3-pyxdg
+        python3-requests
+        python3-requests-mock
     )
 fi
 

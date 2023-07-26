@@ -14,12 +14,9 @@ REPO_DIRPATH=$(realpath "$SCRIPT_DIRPATH/../")
 # shellcheck source=./lib.sh
 source "$REPO_DIRPATH/lib.sh"
 
-echo "Updating/Installing repos and packages for $OS_REL_VER"
-
+msg "Updating/Installing repos and packages for $OS_REL_VER"
 lilto ooe.sh $SUDO apt-get -qq -y update
 bigto ooe.sh $SUDO apt-get -qq -y upgrade
-
-echo "Configuring additional package repositories"
 
 INSTALL_PACKAGES=(\
     apache2-utils
@@ -80,7 +77,6 @@ INSTALL_PACKAGES=(\
     libsystemd-dev
     libtool
     libudev-dev
-    "linux-headers-$(uname -r)"
     lsb-release
     lsof
     make
@@ -119,18 +115,20 @@ INSTALL_PACKAGES=(\
     xz-utils
     zip
     zlib1g-dev
-    zfsutils
     zstd
 )
 
-# Necessary to add zfs support needed for c/storage CI.
+msg "Installing general build/testing dependencies"
+bigto $SUDO apt-get -q -y install "${INSTALL_PACKAGES[@]}"
+
+msg "Enabling contrib source & installing ZFS support (for containers/storage CI)"
+ZFS_PACKAGES=(\
+    linux-headers-cloud-amd64
+    zfsutils
+)
 $SUDO sed -i -r 's/^(deb.*)/\1 contrib/g' /etc/apt/sources.list
-
-# Necessary to update cache of newly added repos
-lilto $SUDO apt-get -q -y update
-
-echo "Installing general build/testing dependencies"
-bigto $SUDO env DEBIAN_FRONTEND=noninteractive apt-get -q -y install "${INSTALL_PACKAGES[@]}"
+lilto ooe.sh $SUDO apt-get -qq -y update
+bigto $SUDO apt-get -q -y install "${ZFS_PACKAGES[@]}"
 
 # The nc installed by default is missing many required options
 $SUDO update-alternatives --set nc /usr/bin/ncat
@@ -154,8 +152,7 @@ curl --fail --silent --location \
     $SUDO tee /etc/apt/trusted.gpg.d/docker_com.gpg &> /dev/null
 
 # Buildah CI does conformance testing vs the most recent Docker version.
-# FIXME: At the time of this comment, there is no 'trixie' dist for docker.
-#        Fix the next lines once that changes.
+# FIXME: As of 7-2023, there is no 'trixie' dist for docker. Fix the next lines once that changes.
 #docker_debian_release=$(source /etc/os-release; echo "$VERSION_CODENAME")
 docker_debian_release="bookworm"
 
@@ -165,7 +162,7 @@ echo "deb https://download.docker.com/linux/debian $docker_debian_release stable
 if ((CONTAINER==0)) && [[ ${#DOWNLOAD_PACKAGES[@]} -gt 0 ]]; then
     $SUDO apt-get clean  # no reason to keep previous downloads around
     # Needed to install .deb files + resolve dependencies
-    lilto $SUDO apt-get -q -y update
+    lilto $SUDO apt-get -qq -y update
     echo "Downloading packages for optional installation at runtime."
     $SUDO ln -s /var/cache/apt/archives "$PACKAGE_DOWNLOAD_DIR"
     bigto $SUDO apt-get -q -y install --download-only "${DOWNLOAD_PACKAGES[@]}"
