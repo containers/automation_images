@@ -396,6 +396,7 @@ test_orphanvms_task:
         GCPPROJECT: 'libpod-218412'
         GCPPROJECTS: 'libpod-218412' # value for testing, otherwise see gcpprojects.txt
         AWSINI: ENCRYPTED[1ab89ff7bc1515dc964efe7ef6e094e01164ba8dd2e11c9a01259c6af3b3968ab841dbe473fe4ab5b573f2f5fa3653e8]
+        DRY_RUN: 1
         EVERYTHING: 1  # Alter age-limit from 3-days -> 3 seconds for a test-run.
     script: /usr/local/bin/entrypoint.sh
 

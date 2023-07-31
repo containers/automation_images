@@ -40,8 +40,10 @@ fi
 # I don't expect there will ever be more than maybe 0-20 instances at any time.
 for instance_index in $(seq 1 $(jq -e 'length'<<<"$simple_inst_list")); do
     instance=$(jq -e ".[$instance_index - 1]"<<<"$simple_inst_list")
+    # aws commands require an instance ID
+    instid=$(jq -r ".ID"<<<"$instance")
     # A Name-tag isn't guaranteed, default to stupid, unreadable, generated ID
-    name=$(jq -r ".ID"<<<"$instance")
+    name=$instid
     if name_tag=$(get_tag_value "Name" "$instance"); then
         # This is MUCH more human-friendly and easier to find in the WebUI.
         # If it was an instance leaked by Cirrus-CI, it may even include the
@@ -69,6 +71,7 @@ for instance_index in $(seq 1 $(jq -e 'length'<<<"$simple_inst_list")); do
         continue
     fi
 
+    # First part of the status line item to append in the e-mail
     line="* VM $name running $age_days days"
 
     # It would be nice to list all the tags like we do for GCE VMs,
@@ -76,7 +79,39 @@ for instance_index in $(seq 1 $(jq -e 'length'<<<"$simple_inst_list")); do
     # Only print this handy-one (set by get_ci_vm) if it's there.
     if inuseby_tag=$(get_tag_value "in-use-by" "$instance"); then
         dbg "Found instance '$name' tagged in-use-by=$inuseby_tag."
-        line+=" tagged in-use-by=$inuseby_tag"
+        line+="; likely get_ci_vm, in-use-by=$inuseby_tag"
+    elif ((DRY_RUN==0)); then # NOT a persistent or a get_ci_vm instance
+        # Around Jun/Jul '23 an annoyingly steady stream of EC2 orphans were
+        # reported to Cirrus-support.  They've taken actions to resolve,
+        # but the failure-modes are many and complex.  Since most of the EC2
+        # instances are rather expensive to keep needlessly running, and manual
+        # cleanup is annoying, try to terminate them automatically.
+        dbg "Attempting to terminate instance '$name'"
+
+        # Operation runs asynchronously, no error reported for already terminated instance.
+        # Any stdout/stderr here would make the eventual e-mail unreadable.
+        if ! termout=$(aws ec2 terminate-instances --no-paginate --output json --instance-ids "$instid" 2>&1)
+        then
+            echo "::error::Auto-term. of '$instid' failed, 'aws' output: $termout" > /dev/stderr
+
+            # Catch rare TOCTOU race, instance was running, terminated, and pruned while looping.
+            # (terminated instances stick around for a while until purged automatically)
+            if [[ "$termout" =~ InvalidInstanceID ]]; then
+                line+="; auto-term. failed, instance vanished"
+            else  # Something else horrible broke, let the operators know.
+                line+="; auto-term. failed, see GHA workflow log"
+            fi
+        else
+            dbg "Successful term. command output: '$termout'"
+            # At this point, the script could sit around in a poll-loop, waiting to confirm
+            # the `$termout` JSON contains `CurrentState: { Code: 48, Name: terminated }`.
+            # However this could take _minutes_, and there may be a LOT of instances left
+            # to process.  Do the next best thing: Hope the termination eventually works,
+            # but also let the operator know an attempt was made.
+            line+="; probably successful auto-termination"
+        fi
+    else  # no in-use-by tag, DRY_RUN==1
+        dbg "DRY_RUN: Would normally have tried to terminate instance '$name' (ID $instid)"
     fi
 
     echo "$line" >> "$OUTPUT"
