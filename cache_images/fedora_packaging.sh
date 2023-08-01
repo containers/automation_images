@@ -196,6 +196,8 @@ DOWNLOAD_PACKAGES=(\
     parallel
     podman-docker
     podman-plugins
+    python3-devel
+    python3-pip
     python3-pytest
     python3-virtualenv
 )
