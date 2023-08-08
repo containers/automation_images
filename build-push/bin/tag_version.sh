@@ -45,7 +45,7 @@ if [[ "$FLAVOR_NAME" == "stable" ]]; then
     # Confirm this value is passed in by caller.
     req_env_vars VERSION
     VERSION=v${VERSION#v}
-    if egrep -q '^v[0-9]+\.[0-9]+\.[0-9]+'<<<"$VERSION"; then
+    if grep -E -q '^v[0-9]+\.[0-9]+\.[0-9]+'<<<"$VERSION"; then
         msg "Found image command version '$VERSION'"
     else
         die "Encountered unexpected/non-conforming version '$VERSION'"
