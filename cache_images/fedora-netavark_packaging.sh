@@ -88,8 +88,9 @@ if [[ $(uname -m) == "aarch64" ]]; then
     $SUDO env PATH=$PATH CARGO_HOME=$CARGO_HOME rustup target add aarch64-unknown-linux-gnu
 fi
 
-msg "Install mandown to generate man pages"
-$SUDO env PATH=$PATH CARGO_HOME=$CARGO_HOME cargo install mandown
+msg "Install tool to generate man pages"
+$SUDO go install github.com/cpuguy83/go-md2man/v2@latest
+$SUDO install /root/go/bin/go-md2man /usr/local/bin/
 
 # Downstream users of this image are specifically testing netavark & aardvark-dns
 # code changes.  We want to start with using the RPMs because they deal with any
