@@ -39,6 +39,9 @@ $SUDO sed -i -r -e 's/^gpgcheck=.+/gpgcheck=0/' /etc/yum.repos.d/*.repo
 $SUDO dnf5 -y distro-sync --releasever=rawhide --allowerasing
 $SUDO dnf5 upgrade -y
 
+# A shared fedora_packaging.sh script is called next that doesn't always support dnf5
+$SUDO ln -s $(type -P dnf5) /usr/local/bin/dnf
+
 # Packer will try to run 'cache_images/fedora_setup.sh' next, make sure the system
 # is actually running rawhide (and verify it boots).
 $SUDO reboot
