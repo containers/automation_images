@@ -22,8 +22,8 @@ if ! ((BUILDPUSHAUTOUPDATED)); then
     git clone --quiet --depth=1 \
         https://github.com/containers/automation_images.git \
         "$GITTMP"
-    msg "Installing..."
     cd $GITTMP/build-push || exit 1
+    msg "Replacing build-push scripts from containers/automation_images commit $(git rev-parse --short=8 HEAD)..."
     bash ./.install.sh
     # Important: Return to directory main.sh was started from
     cd - || exit 1
