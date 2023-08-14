@@ -132,7 +132,7 @@ tooling_images_task:
     alias: tooling_images
     name: 'Build Tooling image ${TARGET_NAME}'
     only_if: $CIRRUS_CRON == ''
-    skip: &ci_docs $CIRRUS_CHANGE_TITLE =~ '.*CI:DOCS.*'
+    skip: *ci_docs
     depends_on:
         - imgts_build
     timeout_in: 30m
