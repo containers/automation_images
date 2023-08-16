@@ -11,7 +11,7 @@ set -eo pipefail
 # shellcheck source=imgts/lib_entrypoint.sh
 source /usr/local/bin/lib_entrypoint.sh
 
-req_env_vars GCPJSON GCPNAME GCPPROJECT AWSINI
+req_env_vars GCPJSON GCPNAME GCPPROJECT AWSINI IMG_SFX IMPORT_IMG_SFX
 
 gcloud_init
 
@@ -51,6 +51,14 @@ $GCLOUD compute images list --format="$FORMAT" --filter="$FILTER" | \
         # required (may be multiple repos.) - for any future auditing purposes.
         if [[ -n "$permanent" ]]; then
             msg "Retaining forever $name | $labels"
+            continue
+        fi
+
+        # Any image matching the currently in-use IMG_SFX must always be preserved
+        # Value is defined in cirrus.yml
+        # shellcheck disable=SC2154
+        if [[ "$name" =~ $IMG_SFX ]]; then
+            msg "Retaining current (latest) image $name | $labels"
             continue
         fi
 
@@ -148,6 +156,14 @@ for (( i=nr_amis ; i ; i-- )); do
         msg "Retaining forever $name | $tags"
         # Permanent AMIs should never ever have a deprecation date set
         $AWS ec2 disable-image-deprecation --image-id "$ami_id" > /dev/null
+        continue
+    fi
+
+    # Any image matching the currently in-use IMG_SFX or IMPORT_IMG_SFX
+    # must always be preserved.  Values are defined in cirrus.yml
+    # shellcheck disable=SC2154
+    if [[ "$name" =~ $IMG_SFX ]] || [[ "$name" =~ $IMPORT_IMG_SFX ]]; then
+        msg "Retaining current (latest) image $name | $tags"
         continue
     fi
 

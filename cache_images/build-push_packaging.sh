@@ -27,6 +27,7 @@ INSTALL_PACKAGES=(\
     git
     jq
     podman
+    python3-pip
     qemu-user-static
     skopeo
 )
@@ -45,3 +46,6 @@ cd $REPO_DIRPATH/build-push
 set -x
 # Do not auto-update to allow testing inside a PR
 $SUDO env BUILDPUSHAUTOUPDATED=1 bash ./.install.sh
+
+# Install wait-for-copr
+$SUDO pip3 install git+https://github.com/packit/wait-for-copr.git@main

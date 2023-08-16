@@ -11,7 +11,7 @@ set -e
 # shellcheck source=imgts/lib_entrypoint.sh
 source /usr/local/bin/lib_entrypoint.sh
 
-req_env_vars GCPJSON GCPNAME GCPPROJECT AWSINI
+req_env_vars GCPJSON GCPNAME GCPPROJECT AWSINI IMG_SFX IMPORT_IMG_SFX
 
 gcloud_init
 
@@ -44,6 +44,15 @@ $GCLOUD compute images list --show-deprecated \
             die 1 "Refusing to delete a deprecated image labeled permanent=true.  Please use gcloud utility to set image active, then research the cause of deprecation."
         [[ "$dep_state" == "OBSOLETE" ]] || \
             die 1 "Unexpected depreciation-state encountered for $name: $dep_state; labels: $labels"
+
+        # Any image matching the currently in-use IMG_SFX must always be preserved.
+        # Values are defined in cirrus.yml
+        # shellcheck disable=SC2154
+        if [[ "$name" =~ $IMG_SFX ]] || [[ "$name" =~ $IMPORT_IMG_SFX ]]; then
+            msg "    Skipping current (latest) image $name"
+            continue
+        fi
+
         reason="Obsolete as of $del_date; labels: $labels"
         echo "GCP $name $reason" >> $TODELETE
     done
@@ -73,6 +82,19 @@ for (( i=nr_amis ; i ; i-- )); do
        [[ "$permanent" == "true" ]]
     then
         warn 0 "Found permanent image '$ami_id' with deprecation '$dep_ymd'.  Clearing deprecation date."
+        $AWS ec2 disable-image-deprecation --image-id "$ami_id" > /dev/null
+        continue
+    fi
+
+    unset name
+    if ! name=$(get_tag_value "Name" "$ami"); then
+        warn 0 "    EC2 AMI ID '$ami_id' is missing a 'Name' tag"
+    fi
+
+    # Any image matching the currently in-use IMG_SFX or IMPORT_IMG_SFX
+    # must always be preserved.
+    if [[ "$name" =~ $IMG_SFX ]] || [[ "$name" =~ $IMPORT_IMG_SFX ]]; then
+        warn 0 "    Retaining current (latest) image $name id $ami_id"
         $AWS ec2 disable-image-deprecation --image-id "$ami_id" > /dev/null
         continue
     fi
