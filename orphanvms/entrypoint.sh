@@ -18,7 +18,9 @@ req_env_vars GCPJSON GCPNAME GCPPROJECT GCPPROJECTS AWSINI
 NOW=$(date +%s)
 TOO_OLD='3 days ago'  # Detect Friday Orphans on Monday
 EVERYTHING=${EVERYTHING:-0}  # set to '1' for testing
+DRY_RUN=${DRY_RUN:-0}
 if ((EVERYTHING)); then
+    DRY_RUN=1
     TOO_OLD="3 seconds ago"
 fi
 # Anything older than this is "too old"
