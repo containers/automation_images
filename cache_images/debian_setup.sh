@@ -18,8 +18,8 @@ fi
 source "$REPO_DIRPATH/lib.sh"
 
 # Generate en_US.UTF-8 locale as this is required for a podman test (https://github.com/containers/podman/pull/19635).
-sed -i '/en_US.UTF-8/s/^#//g' /etc/locale.gen
-locale-gen
+$SUDO sed -i '/en_US.UTF-8/s/^#//g' /etc/locale.gen
+$SUDO locale-gen
 
 req_env_vars PACKER_BUILD_NAME
 
