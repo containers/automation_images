@@ -68,6 +68,7 @@ INSTALL_PACKAGES=(\
     git-daemon
     glib2-devel
     glibc-devel
+    glibc-langpack-en
     glibc-static
     gnupg
     go-md2man
