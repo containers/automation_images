@@ -61,9 +61,13 @@ url = 'https://cirrus-ci.com/task'
 lines = []
 data.sort(key=stage_sort)
 for item in data:
+  image_suffix = item["image_suffix"]
+  # Base-images should never actually be used, but it may be helpful
+  # to have them in the list in case some debugging is needed.
+  if item["stage"] != "cache":
+    image_suffix = "do-not-use"
   lines.append('|*{0}*|[{1}]({2})|`{3}`|\n'.format(item['stage'],
-    item['name'], '{0}/{1}'.format(url, item['task']),
-    item['image_suffix']))
+    item['name'], '{0}/{1}'.format(url, item['task']), image_suffix))
 
 
 # This is the mechanism required to set an multi-line env. var.
