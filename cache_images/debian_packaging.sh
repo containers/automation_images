@@ -39,7 +39,6 @@ INSTALL_PACKAGES=(\
     crun
     dnsmasq
     e2fslibs-dev
-    emacs-nox
     file
     fuse3
     fuse-overlayfs
