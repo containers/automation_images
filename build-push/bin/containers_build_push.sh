@@ -1,18 +1,18 @@
 #!/bin/bash
 
-# This script is not intended for humans.  It should be run by automation
-# at the branch-level in automation for the skopeo, buildah, and podman
-# repositories.  It's purpose is to produce a multi-arch container image
-# based on the contents of context subdirectory.  At runtime, $PWD is assumed
-# to be the root of the cloned git repository.
+# This script is not intended for humans.  It should be run by secure
+# (maintainer-only) cron-like automation to service the skopeo, buildah,
+# and podman repositories.  It's purpose is to produce a multi-arch container
+# image based on the contents of a repository context subdirectory from their
+# respective 'main' branches.
 #
-# The first argument to the script, should be the URL of the git repository
-# in question.  Though at this time, this is only used for labeling the
-# resulting image.
+# The first argument to the script, should be the (clone) URL of the git repository
+# in question.  This is used to both retrieve the build context, as well as label
+# the produced images.
 #
 # The second argument to this script is the relative path to the build context
-# subdirectory.  The basename of this subdirectory may indicates the
-# image flavor (i.e. `upstream`, `testing`, or `stable`). Depending
+# subdirectory.  The basename of this subdirectory may (see next paragraph)
+# indicate the image flavor (i.e. `upstream`, `testing`, or `stable`). Depending
 # on this value, the image may be pushed to multiple container registries
 # under slightly different rules (see the next option).
 #
@@ -27,26 +27,26 @@ if [[ -r "/etc/automation_environment" ]]; then
     source /etc/automation_environment  # defines AUTOMATION_LIB_PATH
     #shellcheck disable=SC1090,SC2154
     source "$AUTOMATION_LIB_PATH/common_lib.sh"
-    #shellcheck source=../lib/autoupdate.sh
-    source "$AUTOMATION_LIB_PATH/autoupdate.sh"
 else
     echo "Expecting to find automation common library installed."
     exit 1
-fi
-
-# Careful: Changing the error message below could break auto-update test.
-if [[ "$#" -lt 2 ]]; then
-    #shellcheck disable=SC2145
-    die "Must be called with at least two arguments, got '$@'"
 fi
 
 if [[ -z $(type -P build-push.sh) ]]; then
     die "It does not appear that build-push.sh is installed properly"
 fi
 
-if ! [[ -d "$PWD/.git" ]]; then
-    die "The current directory ($PWD) does not appear to be the root of a git repo."
+if [[ -z "$1" ]]; then
+    die "Expecting a git repository URI as the first argument."
 fi
+
+# Careful: Changing the error message below could break auto-update test.
+if [[ "$#" -lt 2 ]]; then
+    #shellcheck disable=SC2145
+    die "Must be called with at least two arguments, got '$*'"
+fi
+
+req_env_vars CI
 
 # Assume transitive debugging state for build-push.sh if set
 if [[ "$(automation_version | cut -d '.' -f 1)" -ge 4 ]]; then
@@ -101,30 +101,67 @@ if ((DRYRUN)); then
     warn "Operating in dry-run mode with $_DRNOPUSH"
 fi
 
+# SCRIPT_PATH defined by automation library
+# shellcheck disable=SC2154
+CLONE_TMP=$(mktemp -p "" -d "tmp_${SCRIPT_FILENAME}_XXXX")
+trap "rm -rf '$CLONE_TMP'" EXIT
+
 ### MAIN
 
 declare -a build_args
 if [[ -n "$FLAVOR_NAME" ]]; then
-    build_args=(--build-arg "FLAVOR=$FLAVOR_NAME")
+    build_args=("--build-arg=FLAVOR=$FLAVOR_NAME")
 fi
 
+dbg "Cloning '$REPO_URL' into $CLONE_TMP"
+git clone --depth 1 "$REPO_URL" "$CLONE_TMP"
+cd "$CLONE_TMP"
 head_sha=$(git rev-parse HEAD)
 dbg "HEAD is $head_sha"
-# Labels to add to all images
-# N/B: These won't show up in the manifest-list itself, only it's constituents.
-lblargs="\
-    --label=org.opencontainers.image.source=$REPO_URL \
-    --label=org.opencontainers.image.revision=$head_sha \
-    --label=org.opencontainers.image.created=$(date -u --iso-8601=seconds)"
-dbg "lblargs=$lblargs"
+
+req_env_vars CIRRUS_TASK_ID CIRRUS_CHANGE_IN_REPO CIRRUS_REPO_NAME
+
+# Labels to add to all images as per
+# https://specs.opencontainers.org/image-spec/annotations/?v=v1.0.1
+declare -a label_args
+
+# Use both labels and annotations since some older tools only support labels
+# CIRRUS_TASK_ID provided by CI and verified non-empty
+# shellcheck disable=SC2154
+for arg in "--label" "--annotation"; do
+  label_args+=(\
+    "$arg=org.opencontainers.image.source=$REPO_URL"
+    "$arg=org.opencontainers.image.revision=$head_sha"
+    "$arg=org.opencontainers.image.created=$(date -u --iso-8601=seconds)"
+    "$arg=org.opencontainers.image.documentation=${REPO_URL%.git}/tree/$CTX_SUB/README.md"
+    "$arg=org.opencontainers.image.authors=podman@lists.podman.io"
+  )
+
+  # Perhaps slightly outside the intended purpose, but it kind of fits, and may help
+  # somebody ascertain provenance a little better.  Note: Even if the console logs
+  # are blank, the Cirrus-CI GraphQL API keeps build and task metadata for years.
+  label_args+=(\
+    "$arg=org.opencontainers.image.url=https://cirrus-ci.com/task/$CIRRUS_TASK_ID"
+  )
+
+  # Definitely not any official spec., but offers a quick reference to exactly what produced
+  # the images and it's current signature.
+  label_args+=(\
+    "$arg=built.by.repo=${CIRRUS_REPO_NAME}"
+    "$arg=built.by.commit=${CIRRUS_CHANGE_IN_REPO}"
+    "$arg=built.by.exec=$(basename ${BASH_SOURCE[0]})"
+    "$arg=built.by.digest=sha256:$(sha256sum<${BASH_SOURCE[0]} | awk '{print $1}')"
+  )
+done
 
 modcmdarg="tag_version.sh $FLAVOR_NAME"
 
-# For stable images, the version number of the command is needed for tagging.
+# For stable images, the version number of the command is needed for tagging and labeling.
 if [[ "$FLAVOR_NAME" == "stable" ]]; then
     # only native arch is needed to extract the version
-    dbg "Building local-arch image to extract stable version number"
-    podman build -t $REPO_FQIN "${build_args[@]}" ./$CTX_SUB
+    dbg "Building temporary local-arch image to extract stable version number"
+    FQIN_TMP="$REPO_NAME:temp"
+    showrun podman build -t $FQIN_TMP "${build_args[@]}" ./$CTX_SUB
 
     case "$REPO_NAME" in
         skopeo) version_cmd="--version" ;;
@@ -134,42 +171,42 @@ if [[ "$FLAVOR_NAME" == "stable" ]]; then
         *) die "Unknown/unsupported repo '$REPO_NAME'" ;;
     esac
 
-    pvcmd="podman run -i --rm $REPO_FQIN $version_cmd"
+    pvcmd="podman run -i --rm $FQIN_TMP $version_cmd"
     dbg "Extracting version with command: $pvcmd"
     version_output=$($pvcmd)
-    dbg "version output:
-    $version_output
-    "
+    dbg "version output: '$version_output'"
     img_cmd_version=$(awk -r -e '/^.+ version /{print $3}' <<<"$version_output")
     dbg "parsed version: $img_cmd_version"
     test -n "$img_cmd_version"
-    lblargs="$lblargs --label=org.opencontainers.image.version=$img_cmd_version"
-    # Prevent temporary build colliding with multi-arch manifest list (built next)
-    # but preserve image (by ID) for use as cache.
-    dbg "Un-tagging $REPO_FQIN"
-    podman untag $REPO_FQIN
+
+    label_args+=("--label=org.opencontainers.image.version=$img_cmd_version"
+                 "--annotation=org.opencontainers.image.version=$img_cmd_version")
 
     # tag-version.sh expects this arg. when FLAVOR_NAME=stable
     modcmdarg+=" $img_cmd_version"
 
+    dbg "Building stable-flavor manifest-list '$_REG/containers/$REPO_NAME'"
+
     # Stable images get pushed to 'containers' namespace as latest & version-tagged
-    build-push.sh \
+    showrun build-push.sh \
         $_DRNOPUSH \
-        --arches=$ARCHES \
+        --arches="$ARCHES" \
         --modcmd="$modcmdarg" \
-        $_REG/containers/$REPO_NAME \
-        ./$CTX_SUB \
-        $lblargs \
-        "${build_args[@]}"
+        "$_REG/containers/$REPO_NAME" \
+        "./$CTX_SUB" \
+        "${build_args[@]}" \
+        "${label_args[@]}"
 fi
+
+dbg "Building manifest-list '$REPO_FQIN'"
 
 # All images are pushed to quay.io/<reponame>, both
 # latest and version-tagged (if available).
-build-push.sh \
+showrun build-push.sh \
     $_DRNOPUSH \
-    --arches=$ARCHES \
+    --arches="$ARCHES" \
     --modcmd="$modcmdarg" \
-    $REPO_FQIN \
-    ./$CTX_SUB \
-    $lblargs \
-    "${build_args[@]}"
+    "$REPO_FQIN" \
+    "./$CTX_SUB" \
+    "${build_args[@]}" \
+    "${label_args[@]}"

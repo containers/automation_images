@@ -477,7 +477,9 @@ test_build-push_task:
         disk: 200
         # More muscle to emulate multi-arch
         type: "n2-standard-4"
-    script: bash ./build-push/test.sh
+    script: |
+      bash ./build-push/.install.sh
+      bash ./build-push/test.sh
 
 
 # N/B: "latest" image produced after PR-merge (branch-push)
