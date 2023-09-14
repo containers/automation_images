@@ -128,6 +128,11 @@ verify_built_images() {
         _fltr='.[].Config.Labels."org.opencontainers.image.source"'
         img_src=$(podman inspect $_fqin:$test_tag | jq -r -e "$_fltr")
         showrun test "$img_src" == "git://testing"
+
+        msg "Testing image $_fqin:$test_tag revision label"
+        _fltr='.[].Config.Labels."org.opencontainers.image.revision"'
+        img_rev=$(podman inspect $_fqin:$test_tag | jq -r -e "$_fltr")
+        showrun test "$img_rev" == "$TEST_REVISION"
     done
 }
 
