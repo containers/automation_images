@@ -97,9 +97,9 @@ container_images_task: &container_images
         #     TARGET_NAME: 'debian'
         #     DEST_FQIN: *fqin
     env: &image_env
-        # For quay.io/libpod namespace
-        REG_USERNAME: ENCRYPTED[de755aef351c501ee480231c24eae25b15e2b2a2b7c629f477c1d427fc5269e360bb358a53bd8914605bae588e99b52a]
-        REG_PASSWORD: ENCRYPTED[52268944bb0d6642c33efb1c5d7fb82d0c40f9e6988448de35827f9be2cc547c1383db13e8b21516dbd7a0a69a7ae536]
+        # For quay.io/libpod namespace, select FQINs only.
+        REG_USERNAME: ENCRYPTED[df4efe530b9a6a731cfea19233e395a5206d24dfac25e84329de035393d191e94ead8c39b373a0391fa025cab15470f8]
+        REG_PASSWORD: ENCRYPTED[255ec05057707c20237a6c7d15b213422779c534f74fe019b8ca565f635dba0e11035a034e533a6f39e146e7435d87b5]
     script: ci/make_container_images.sh;
     package_cache: &package_cache
         folder: "/tmp/automation_images_tmp/.cache/**"
@@ -477,7 +477,9 @@ test_build-push_task:
         disk: 200
         # More muscle to emulate multi-arch
         type: "n2-standard-4"
-    script: bash ./build-push/test.sh
+    script: |
+      bash ./build-push/.install.sh
+      bash ./build-push/test.sh
 
 
 # N/B: "latest" image produced after PR-merge (branch-push)

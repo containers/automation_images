@@ -3,7 +3,11 @@
 # This script is not intended for humans.  It should only be referenced
 # as an argument to the build-push.sh `--modcmd` option.  It's purpose
 # is to ensure stable images are re-tagged with a verison-number
-# cooresponding to the included tool's version.
+# using a specific scheme, cooresponding to the included tool's version.
+# It expects two arguments, the first is the "flavor" of the image.
+# Typically 'upstream', 'testing', or 'stable'.  The second argument
+# is optional, when provided it should be the container-image's tool
+# version number (e.g. podman version).
 
 set -eo pipefail
 
@@ -20,33 +24,36 @@ fi
 req_env_vars SCRIPT_FILENAME SCRIPT_FILEPATH RUNTIME PLATFORMOS FQIN CONTEXT \
              PUSH ARCHES REGSERVER NAMESPACE IMGNAME MODCMD
 
-if [[ "$#" -ge 1 ]]; then
-    FLAVOR_NAME="$1"  # upstream, testing, or stable
+if [[ "$#" -lt 1 ]]; then
+    # Defined by common automation library
+    # shellcheck disable=SC2154
+    die "$SCRIPT_FILENAME expects at least one argument"
 fi
 
 if [[ "$#" -ge 2 ]]; then
-    # Enforce all version-tags start with a 'v'
-    VERSION="v${2#v}"  # output of $version_cmd
+    FLAVOR_NAME="$1"
+    # Version is optional
+    unset VERSION
+    [[ -z "$2" ]] || \
+        VERSION="v${2#v}"
 fi
 
 if [[ -z "$FLAVOR_NAME" ]]; then
     # Defined by common_lib.sh
     # shellcheck disable=SC2154
-    warn "$SCRIPT_FILENAME passed empty flavor-name argument (optional)."
+    warn "$SCRIPT_FILENAME passed empty flavor-name argument."
 elif [[ -z "$VERSION" ]]; then
-    warn "$SCRIPT_FILENAME received empty version argument (req. for FLAVOR_NAME=stable)."
+    warn "$SCRIPT_FILENAME received empty version argument."
 fi
 
 # shellcheck disable=SC2154
-dbg "Mod-command operating on $FQIN in '$FLAVOR_NAME' flavor"
+dbg "$SCRIPT_FILENAME operating on '$FLAVOR_NAME' flavor of '$FQIN' with tool version '$VERSION' (optional)"
 
 if [[ "$FLAVOR_NAME" == "stable" ]]; then
     # Stable images must all be tagged with a version number.
     # Confirm this value is passed in by caller.
-    req_env_vars VERSION
-    VERSION=v${VERSION#v}
     if grep -E -q '^v[0-9]+\.[0-9]+\.[0-9]+'<<<"$VERSION"; then
-        msg "Found image command version '$VERSION'"
+        msg "Using provided image command version '$VERSION'"
     else
         die "Encountered unexpected/non-conforming version '$VERSION'"
     fi
@@ -65,5 +72,5 @@ if [[ "$FLAVOR_NAME" == "stable" ]]; then
     $RUNTIME tag $FQIN:latest $FQIN:$x_ver
     msg "Successfully tagged $FQIN:$x_ver"
 else
-    warn "$SCRIPT_FILENAME not version-tagging for '$FLAVOR_NAME' stage of '$FQIN'"
+    warn "$SCRIPT_FILENAME not version-tagging for '$FLAVOR_NAME' flavor'$FQIN'"
 fi
