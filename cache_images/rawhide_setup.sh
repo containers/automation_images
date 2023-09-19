@@ -17,7 +17,7 @@ source "$REPO_DIRPATH/lib.sh"
 req_env_vars PACKER_BUILD_NAME
 
 # Going from F38 -> rawhide requires some special handling WRT DNF upgrade to DNF5
-if [[ "$OS_RELEASE_VER" -eq 38 ]]; then
+if [[ "$OS_RELEASE_VER" -ge 38 ]]; then
     warn "Upgrading dnf -> dnf5"
     showrun $SUDO dnf update -y dnf
     showrun $SUDO dnf install -y dnf5

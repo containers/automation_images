@@ -30,7 +30,7 @@ if ! ((CONTAINER)); then
         if ((OS_RELEASE_VER<35)); then
             PKGS+=(google-compute-engine-tools)
         else
-            PKGS+=(google-compute-engine-guest-configs)
+            PKGS+=(google-compute-engine-guest-configs google-guest-agent)
         fi
     fi
 fi
