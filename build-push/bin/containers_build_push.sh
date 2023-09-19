@@ -113,8 +113,7 @@ if [[ -n "$FLAVOR_NAME" ]]; then
     build_args=("--build-arg=FLAVOR=$FLAVOR_NAME")
 fi
 
-dbg "Cloning '$REPO_URL' into $CLONE_TMP"
-git clone --depth 1 "$REPO_URL" "$CLONE_TMP"
+showrun git clone --depth 1 "$REPO_URL" "$CLONE_TMP"
 cd "$CLONE_TMP"
 head_sha=$(git rev-parse HEAD)
 dbg "HEAD is $head_sha"
