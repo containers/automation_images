@@ -37,6 +37,12 @@ PKGS=( \
 
 echo "Updating package source lists"
 ( set -x; $SUDO apt-get -qq -y update; )
+
+# TODO: Workaround forward-incompatible change in grub scripts.
+# Without this, updating to the SID kernel may fail.
+echo "Upgrading to SID's grub-common"
+( set -x; $SUDO apt-get -qq -y upgrade grub-common; )
+
 echo "Upgrading to SID"
 ( set -x; $SUDO apt-get -qq -y full-upgrade; )
 echo "Installing basic, necessary packages."
