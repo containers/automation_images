@@ -65,6 +65,8 @@ EOF
 # the 'stable' flavor name as a command-line arg instead
 # of using the subdirectory dirname (old method).
 cd $SRC_TMP/testing/contrib/testimage
+# This file is looked up by the build script.
+echo "Test Docs" > README.md
 cp stable/* ./
 cd $SRC_TMP/testing
 # The images will have the repo & commit ID set as labels
