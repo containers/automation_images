@@ -120,15 +120,6 @@ INSTALL_PACKAGES=(\
 msg "Installing general build/testing dependencies"
 bigto $SUDO apt-get -q -y install "${INSTALL_PACKAGES[@]}"
 
-msg "Enabling contrib source & installing ZFS support (for containers/storage CI)"
-ZFS_PACKAGES=(\
-    linux-headers-cloud-amd64
-    zfsutils
-)
-$SUDO sed -i -r 's/^(deb.*)/\1 contrib/g' /etc/apt/sources.list
-lilto ooe.sh $SUDO apt-get -qq -y update
-bigto $SUDO apt-get -q -y install "${ZFS_PACKAGES[@]}"
-
 # The nc installed by default is missing many required options
 $SUDO update-alternatives --set nc /usr/bin/ncat
 
