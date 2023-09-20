@@ -63,8 +63,8 @@ ARCHES="${ARCHES:-amd64,ppc64le,s390x,arm64}"
 REPO_URL="$1"
 REPO_NAME=$(basename "${REPO_URL%.git}")
 
-if [[ ! "$REPO_NAME" =~ github\.com ]] && [[ ! "$REPO_NAME" =~ testing ]]; then
-  die "Script requires a repo hosted on github, received '$REPO_NAME'."
+if [[ ! "$REPO_URL" =~ github\.com ]] && [[ ! "$REPO_URL" =~ testing ]]; then
+  die "Script requires a repo hosted on github, received '$REPO_URL'."
 fi
 
 # Second arg (CTX_SUB) is the context subdirectory relative to the clone path
