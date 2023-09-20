@@ -82,7 +82,7 @@ TEST_REPO_URL="file://$SRC_TMP/testing"
 # on the `latest` tagged FQINs.
 verify_built_images() {
     local _fqin _arch xy_ver x_ver img_ver img_src img_rev _fltr
-    local _test_tag expected_flavor _test_fqins
+    local _test_tag expected_flavor _test_fqins img_docs
     expected_flavor="$1"
     msg "
 ##### Testing execution of '$expected_flavor' images for arches $TESTARCHES #####"
@@ -148,6 +148,11 @@ verify_built_images() {
         # Checked at beginning of script
         # shellcheck disable=SC2154
         showrun test "$img_bbc" == "$CIRRUS_CHANGE_IN_REPO"
+
+        msg "Testing image $_fqin:$test_tag docs label"
+        _fltr='.[].Config.Labels."org.opencontainers.image.documentation"'
+        img_docs=$(podman inspect $_fqin:$test_tag | jq -r -e "$_fltr")
+        showrun grep -F -q "README.md" <<<"$img_docs"
     done
 }
 

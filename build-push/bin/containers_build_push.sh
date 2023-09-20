@@ -27,6 +27,7 @@ if [[ -r "/etc/automation_environment" ]]; then
     source /etc/automation_environment  # defines AUTOMATION_LIB_PATH
     #shellcheck disable=SC1090,SC2154
     source "$AUTOMATION_LIB_PATH/common_lib.sh"
+    dbg "Using automation common library version $(<$AUTOMATION_LIB_PATH/../AUTOMATION_VERSION)"
 else
     echo "Expecting to find automation common library installed."
     exit 1

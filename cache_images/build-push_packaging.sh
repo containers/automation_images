@@ -38,8 +38,10 @@ bigto $SUDO dnf install -y "${INSTALL_PACKAGES[@]}"
 # It was observed in F33, dnf install doesn't always get you the latest/greatest
 lilto $SUDO dnf update -y
 
-# Re-install with the 'build-push' component
-install_automation_tooling build-push
+# Re-install would append to this, making a mess.
+$SUDO rm -f /etc/automation_environment
+# Re-install the latest version with the 'build-push' component
+install_automation_tooling latest build-push
 
 # Install scripts into automation directory on $PATH
 cd $REPO_DIRPATH/build-push

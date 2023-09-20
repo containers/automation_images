@@ -19,6 +19,7 @@ OS_REL_VER="$OS_RELEASE_ID-$OS_RELEASE_VER"
 # This location is checked by automation in other repos, please do not change.
 PACKAGE_DOWNLOAD_DIR=/var/cache/download
 
+# N/B: This is managed by renovate
 INSTALL_AUTOMATION_VERSION="4.3.1"
 
 PUSH_LATEST="${PUSH_LATEST:-0}"
@@ -49,12 +50,20 @@ if [[ "$UID" -ne 0 ]]; then
 fi
 
 install_automation_tooling() {
+    local version_arg
+    version_arg="$INSTALL_AUTOMATION_VERSION"
+
+    if [[ "$1" == "latest" ]]; then
+      version_arg="latest"
+      shift
+    fi
+
     # This script supports installing all current and previous versions
     local installer_url="https://raw.githubusercontent.com/containers/automation/master/bin/install_automation.sh"
     curl --silent --show-error --location \
          --url "$installer_url" | \
          $SUDO env INSTALL_PREFIX=/usr/share /bin/bash -s - \
-        "$INSTALL_AUTOMATION_VERSION" "$@"
+        "$version_arg" "$@"
     # This defines AUTOMATION_LIB_PATH
     source /usr/share/automation/environment
     #shellcheck disable=SC1090
