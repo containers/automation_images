@@ -470,8 +470,11 @@ test_build-push_task:
     skip: *ci_docs_tooling
     depends_on:
         - cache_images
-    gce_instance:
+    gce_instance: &build_push_vm
         image_project: "libpod-218412"
+        # Hack: Use the 'latest' CI VM image instead of a specific 'image_name'.
+        # Not all PRs produce VM images but may change build-push scripts and
+        # alter IMG_SFX.  This accounts for both situations in a mostly-okay way.
         image_family: 'build-push-cache'
         zone: "us-central1-a"
         disk: 200
@@ -486,7 +489,7 @@ test_build-push_task:
 cron_imgobsolete_task: &lifecycle_cron
     name: "Periodicly mark old images obsolete"
     alias: cron_imgobsolete
-    only_if: $CIRRUS_PR == '' && $CIRRUS_CRON != ''
+    only_if: $CIRRUS_CRON == 'lifecycle'
     container:
         image: 'quay.io/libpod/imgobsolete:latest'
         cpu: 2
@@ -505,6 +508,52 @@ cron_imgprune_task:
         - cron_imgobsolete
     container:
         image: 'quay.io/libpod/imgprune:latest'
+
+
+# Build and push podman/buildah/skopeo container images daily
+quay_io_images_task:
+    name: "Periodicly build and push $FLAVOR_NAME quay.io $REPO_NAME container images"
+    alias: quay_io_images
+    only_if: $CIRRUS_CRON == 'quay_images'
+    # Multi-arch builds w/ emulation are especially 'slow'
+    timeout_in: 120m
+    gce_instance: *build_push_vm
+    env:
+        REPO_PFX: https://github.com/containers
+        CONTAINERS_USERNAME: ENCRYPTED[c1ffcce3982029bc26daf266fda73f80f49485974b5f1d94d86d5b10e3e6ca55f4089d4559833391651cfff3edfa0897]
+        CONTAINERS_PASSWORD: ENCRYPTED[4b1ce64d16782ebaafe845376fdc7af64ee4afed6fe64750c8bc77c795d01cd0339ada2520f1a1cd43b11ad6677663f3]
+    matrix:
+        - env:
+            FLAVOR_NAME: upstream
+          matrix: &build_push_repo
+                - env:
+                      REPO_NAME: podman
+                      CTX_SUB: contrib/${REPO_NAME}image/${FLAVOR_NAME}
+                      PODMAN_USERNAME: ENCRYPTED[a5ae35b741c63971b99bc23793119cd95fd3c18b097cdf2659ce83919dcde98d33ffa664f30bde45638243f5f676eedb]
+                      PODMAN_PASSWORD: ENCRYPTED[1c09e9110f7799b5e6fa99c7afb512ce858d74badfbff10b3212f9e1198f7495c4f8f43ecfac95bd935a5705ce903617]
+                - env:
+                      REPO_NAME: buildah
+                      CTX_SUB: contrib/${REPO_NAME}image
+                      BUILDAH_USERNAME: ENCRYPTED[92b5976239bc4cd86736238bdd612848d7d5a4e1cc8ff8176de03f123fad23074401290fa0004b627ff7b15eeaff50dd]
+                      BUILDAH_PASSWORD: ENCRYPTED[d12317ca179ee6cd49bba2d015fe5765ba9aa8b7251680017ed15d300125d9195922d6b8728b9b0b9c6e157b97d3510f]
+                - env:
+                      REPO_NAME: skopeo
+                      CTX_SUB: contrib/${REPO_NAME}image/${FLAVOR_NAME}
+                      SKOPEO_USERNAME: ENCRYPTED[8ef796801eef6fd4f38ee5d4693353e3e1b471c251cef77d4f0547e726af3550812f314f0376220177f49f08a1e5a695]
+                      SKOPEO_PASSWORD: ENCRYPTED[0a08c914b434693fe0c6afb4cf3f1c905aea04846eb860041c7660fd891cf097b05eac87002f75ad23af9a775e8b0d47]
+        - env:
+            FLAVOR_NAME: testing
+          matrix: *build_push_repo
+        - env:
+            FLAVOR_NAME: stable
+          matrix: *build_push_repo
+
+    # Always use the latest/greatest scripts from main to allow quick adjustments
+    # when needed - i.e. not requiring completely fresh VM images to be built.
+    script: |
+        bash ./build-push/.install.sh
+        source /etc/automation_environment
+        containers_build_push.sh ${REPO_PFX}/${REPO_NAME}.git $CTX_SUB $FLAVOR_NAME
 
 
 success_task:

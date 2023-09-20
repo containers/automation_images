@@ -62,6 +62,11 @@ ARCHES="${ARCHES:-amd64,ppc64le,s390x,arm64}"
 # First arg (REPO_URL) is the clone URL for repository for informational purposes
 REPO_URL="$1"
 REPO_NAME=$(basename "${REPO_URL%.git}")
+
+if [[ ! "$REPO_NAME" =~ github\.com ]] && [[ ! "$REPO_NAME" =~ testing ]]; then
+  die "Script requires a repo hosted on github, received '$REPO_NAME'."
+fi
+
 # Second arg (CTX_SUB) is the context subdirectory relative to the clone path
 CTX_SUB="$2"
 # Historically, the basename of second arg set the image flavor(i.e. `upstream`,
@@ -113,8 +118,7 @@ if [[ -n "$FLAVOR_NAME" ]]; then
     build_args=("--build-arg=FLAVOR=$FLAVOR_NAME")
 fi
 
-dbg "Cloning '$REPO_URL' into $CLONE_TMP"
-git clone --depth 1 "$REPO_URL" "$CLONE_TMP"
+showrun git clone --depth 1 "$REPO_URL" "$CLONE_TMP"
 cd "$CLONE_TMP"
 head_sha=$(git rev-parse HEAD)
 dbg "HEAD is $head_sha"
@@ -130,7 +134,9 @@ declare -a label_args
 # shellcheck disable=SC2154
 for arg in "--label" "--annotation"; do
   label_args+=(\
-    "$arg=org.opencontainers.image.source=$REPO_URL"
+    # Avoid any ambiguity as to the source that produced the image.
+    # This requires REPO_URL is hosted on github (validated above)
+    "$arg=org.opencontainers.image.source=${REPO_URL%.git}/blob/${head_sha}/${CTX_SUB}/"
     "$arg=org.opencontainers.image.revision=$head_sha"
     "$arg=org.opencontainers.image.created=$(date -u --iso-8601=seconds)"
     "$arg=org.opencontainers.image.documentation=${REPO_URL%.git}/tree/$CTX_SUB/README.md"
@@ -196,6 +202,12 @@ if [[ "$FLAVOR_NAME" == "stable" ]]; then
         "./$CTX_SUB" \
         "${build_args[@]}" \
         "${label_args[@]}"
+elif [[ "$FLAVOR_NAME" == "testing" ]]; then
+    label_args+=("--label=quay.expires-after=30d"
+                 "--annotation=quay.expires-after=30d")
+elif [[ "$FLAVOR_NAME" == "upstream" ]]; then
+    label_args+=("--label=quay.expires-after=15d"
+                 "--annotation=quay.expires-after=15d")
 fi
 
 dbg "Building manifest-list '$REPO_FQIN'"

@@ -13,13 +13,23 @@ REPO_DIRPATH=$(realpath "$SCRIPT_DIRPATH/../")
 # shellcheck source=./lib.sh
 source "$REPO_DIRPATH/lib.sh"
 
-req_env_vars CIRRUS_PR CIRRUS_BASE_SHA CIRRUS_PR_TITLE
+req_env_vars CIRRUS_PR CIRRUS_BASE_SHA CIRRUS_PR_TITLE CIRRUS_USER_PERMISSION
 
 show_env_vars
 
 # die() will add a reference to this file and line number.
 [[ "$CIRRUS_CI" == "true" ]] || \
   die "This script is only/ever intended to be run by Cirrus-CI."
+
+# This is imperfect security-wise, but attempt to catch an accidental
+# change in Cirrus-CI Repository settings.  Namely the hard-to-read
+# "slider" that enables non-contributors to run jobs.  We don't want
+# that on this repo, ever. because there are sensitive secrets in use.
+# This variable is set by CI and validated non-empty above
+# shellcheck disable=SC2154
+if [[ "$CIRRUS_USER_PERMISSION" != "write" ]] && [[ "$CIRRUS_USER_PERMISSION" != "admin" ]]; then
+  die "CI Execution not supported with permission level '$CIRRUS_USER_PERMISSION'"
+fi
 
 for target in image_builder/gce.json base_images/cloud.json \
               cache_images/cloud.json win_images/win-server-wsl.json; do
