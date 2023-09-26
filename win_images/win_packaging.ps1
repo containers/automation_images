@@ -30,6 +30,9 @@ iex ((New-Object System.Net.WebClient).DownloadString('https://community.chocola
 choco install -y git mingw archiver psexec; CheckExit
 choco install golang --version 1.19.2 -y; CheckExit
 
+# Install Hyper-V
+Enable-WindowsOptionalFeature -Online -FeatureName Microsoft-Hyper-V -All -NoRestart
+
 # Install WSL, and capture text output which is not normally visible
 $x = wsl --install; CheckExit 0 1 # wsl returns 1 on reboot required
 Write-Output $x
