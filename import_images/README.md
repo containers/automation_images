@@ -23,8 +23,18 @@ human:
   [EC2 snapshot import process](https://docs.aws.amazon.com/vm-import/latest/userguide/vmimport-import-snapshot.html).
 * You are in possession of an AWS EC2 account, with the [IAM policy
   `vmimport`](https://docs.aws.amazon.com/vm-import/latest/userguide/required-permissions.html#vmimport-role) attached.
-* Both "Access Key" and "Secret Access Key" values set in [a credentials
+* You have "Access Key" and "Secret Access Key" values set in [a credentials
   file](https://docs.aws.amazon.com/cli/latest/userguide/cli-configure-files.html).
+  These are only shown once, if lost a new "Access Key" needs to be created.
+  The format for `~/.aws/credentials` is very simple:
+
+  ```
+  [default]
+  output = json
+  aws_access_key_id = <Unquoted value>
+  aws_secret_access_key = <Unquoted value>
+  ```
+
 * Podman is installed and functional
 * At least 10gig free space under `/tmp`, more if there are failures / multiple runs.
 * *Network bandwidth sufficient for downloading and uploading many GBs of
