@@ -44,7 +44,7 @@ jobs:
                 GCPPROJECT: 'libpod-218412'
               run: |
                 export GCPNAME GCPJSON AWSINI GCPPROJECT
-                export GCPPROJECTS=$(egrep -vx '^#+.*$' $GITHUB_WORKSPACE/gcpprojects.txt | tr -s '[:space:]' ' ')
+                export GCPPROJECTS=$(grep -E -vx '^#+.*$' $GITHUB_WORKSPACE/gcpprojects.txt | tr -s '[:space:]' ' ')
                 podman run --rm \
                     -e GCPNAME -e GCPJSON -e AWSINI -e GCPPROJECT -e GCPPROJECTS \
                     quay.io/libpod/orphanvms:latest \
@@ -59,7 +59,7 @@ jobs:
             - name: Count number of orphaned VMs
               id: orphans
               run: |
-                count=$(egrep -x '\* VM .+' /tmp/orphanvms_output.txt | wc -l)
+                count=$(grep -E -x '\* VM .+' /tmp/orphanvms_output.txt | wc -l)
                 # Assist with debugging job (step-outputs are otherwise hidden)
                 printf "Orphan VMs count:%d\n" $count
                 if [[ "$count" =~ ^[0-9]+$ ]]; then

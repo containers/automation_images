@@ -66,9 +66,9 @@ delvm() {
 }
 
 image_hints() {
-    _BIS=$(egrep -m 1 '_BUILT_IMAGE_SUFFIX:[[:space:]+"[[:print:]]+"' \
+    _BIS=$(grep -E -m 1 '_BUILT_IMAGE_SUFFIX:[[:space:]+"[[:print:]]+"' \
         "$SECCOMPHOOKROOT/.cirrus.yml" | cut -d: -f 2 | tr -d '"[:blank:]')
-    egrep '[[:space:]]+[[:alnum:]].+_CACHE_IMAGE_NAME:[[:space:]+"[[:print:]]+"' \
+    grep -E '[[:space:]]+[[:alnum:]].+_CACHE_IMAGE_NAME:[[:space:]+"[[:print:]]+"' \
         "$SECCOMPHOOKROOT/.cirrus.yml" | cut -d: -f 2 | tr -d '"[:blank:]' | \
         sed -r -e "s/\\\$[{]_BUILT_IMAGE_SUFFIX[}]/$_BIS/" | sort -u
 }
@@ -141,7 +141,7 @@ cd $SECCOMPHOOKROOT
 
 # Attempt to determine if named 'oci-seccomp-bpf-hook' gcloud configuration exists
 showrun $PGCLOUD info > $TMPDIR/gcloud-info
-if egrep -q "Account:.*None" $TMPDIR/gcloud-info
+if grep -E -q "Account:.*None" $TMPDIR/gcloud-info
 then
     echo -e "\n${YEL}WARNING: Can't find gcloud configuration for 'oci-seccomp-bpf-hook', running init.${NOR}"
     echo -e "         ${RED}Please choose '#1: Re-initialize' and 'login' if asked.${NOR}"
@@ -151,7 +151,7 @@ then
 
     # Verify it worked (account name == someone@example.com)
     $PGCLOUD info > $TMPDIR/gcloud-info-after-init
-    if egrep -q "Account:.*None" $TMPDIR/gcloud-info-after-init
+    if grep -E -q "Account:.*None" $TMPDIR/gcloud-info-after-init
     then
         echo -e "${RED}ERROR: Could not initialize 'oci-seccomp-bpf-hook' configuration in gcloud.${NOR}"
         exit 5
