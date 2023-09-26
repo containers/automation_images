@@ -27,6 +27,7 @@ if [[ -r "/etc/automation_environment" ]]; then
     source /etc/automation_environment  # defines AUTOMATION_LIB_PATH
     #shellcheck disable=SC1090,SC2154
     source "$AUTOMATION_LIB_PATH/common_lib.sh"
+    dbg "Using automation common library version $(<$AUTOMATION_LIB_PATH/../AUTOMATION_VERSION)"
 else
     echo "Expecting to find automation common library installed."
     exit 1
@@ -123,6 +124,15 @@ cd "$CLONE_TMP"
 head_sha=$(git rev-parse HEAD)
 dbg "HEAD is $head_sha"
 
+# Docs should always be in one of two places, otherwise don't list any.
+DOCS_URL=""
+for _docs_subdir in "$CTX_SUB/README.md" "$(dirname $CTX_SUB)/README.md"; do
+    if [[ -r "./$_docs_subdir" ]]; then
+        dbg "Found README.md under '$CLONE_TMP/$_docs_subdir'"
+        DOCS_URL="${REPO_URL%.git}/blob/${head_sha}/$_docs_subdir"
+    fi
+done
+
 req_env_vars CIRRUS_TASK_ID CIRRUS_CHANGE_IN_REPO CIRRUS_REPO_NAME
 
 # Labels to add to all images as per
@@ -139,9 +149,14 @@ for arg in "--label" "--annotation"; do
     "$arg=org.opencontainers.image.source=${REPO_URL%.git}/blob/${head_sha}/${CTX_SUB}/"
     "$arg=org.opencontainers.image.revision=$head_sha"
     "$arg=org.opencontainers.image.created=$(date -u --iso-8601=seconds)"
-    "$arg=org.opencontainers.image.documentation=${REPO_URL%.git}/tree/$CTX_SUB/README.md"
     "$arg=org.opencontainers.image.authors=podman@lists.podman.io"
   )
+
+  if [[ -n "$DOCS_URL" ]]; then
+    label_args+=(\
+      "$arg=org.opencontainers.image.documentation=${DOCS_URL}"
+    )
+  fi
 
   # Perhaps slightly outside the intended purpose, but it kind of fits, and may help
   # somebody ascertain provenance a little better.  Note: Even if the console logs
