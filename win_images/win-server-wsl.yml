@@ -17,19 +17,19 @@ builders:
       most_recent: true
       owners:
         - amazon
-    # While this image should run on metal, we can build it on smaller/cheaper systems 
+    # While this image should run on metal, we can build it on smaller/cheaper systems
     instance_type: t3.large
     force_deregister: true  # Remove AMI with same name if exists
     force_delete_snapshot: true  # Also remove snapshots of force-removed AMI
     # Note that we do not set shutdown_behavior to terminate, as a clean shutdown is required
     # for windows provisioning to complete successfully.
     communicator: winrm
-    winrm_username: Administrator # AWS provisions Administrator, unlike GCE 
+    winrm_username: Administrator # AWS provisions Administrator, unlike GCE
     winrm_insecure: true
     winrm_use_ssl: true
     winrm_timeout: 25m
     # Script that runs on server start, needed to prep and enable winrm
-    user_data_file: '{{template_dir}}/bootstrap.ps1' 
+    user_data_file: '{{template_dir}}/bootstrap.ps1'
     # Required for network access, must be the 'default' group used by Cirrus-CI
     security_group_id: "sg-042c75677872ef81c"
     ami_name: &ami_name '{{build_name}}-c{{user `IMG_SFX`}}'
@@ -53,18 +53,22 @@ builders:
 
 provisioners:
   - type: powershell
-    script: '{{template_dir}}/win_packaging.ps1'
+    inline:
+      - '$ErrorActionPreference = "stop"'
+      - 'New-Item -Path "c:\" -Name "temp" -ItemType "directory" -Force'
+      - 'New-Item -Path "c:\temp" -Name "automation_images" -ItemType "directory" -Force'
+  - type: 'file'
+    source: '{{ pwd }}/'
+    destination: "c:\\temp\\automation_images\\"
+  - type: powershell
+    inline:
+      - 'c:\temp\automation_images\win_images\win_packaging.ps1'
+  # Several installed items require a reboot, do that now in case it would
+  # cause a problem with final image preperations.
   - type: windows-restart
   - type: powershell
     inline:
-      # Disable WinRM as a security precuation (cirrus launches an agent from user-data, so we don't need it)
-      - Set-Service winrm -StartupType Disabled
-      # Also disable RDP (can be enabled via user-data manually)
-      - Set-ItemProperty -Path "HKLM:\System\CurrentControlSet\Control\Terminal Server" -Name "fDenyTSConnections" -Value 1
-      - Disable-NetFirewallRule -DisplayGroup "Remote Desktop"
-  # Setup Autologon and reset, must be last, due to pw change
-  - type: powershell
-    script: '{{template_dir}}/auto_logon.ps1'
+      - 'c:\temp\automation_images\win_images\win_finalization.ps1'
 
 
 post-processors:
@@ -75,4 +79,3 @@ post-processors:
       IMG_SFX: '{{ user `IMG_SFX` }}'
       STAGE: cache
       TASK: '{{user `CIRRUS_TASK_ID`}}'
-

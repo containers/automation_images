@@ -272,7 +272,6 @@ win_images_task:
     # Packer needs time to clean up partially created VM images
     auto_cancellation: $CI != "true"
     stateful: true
-    timeout_in: 45m
     # Packer WinRM communicator is not reliable on container tasks
     gce_instance:
         <<: *ibi_vm
