@@ -235,7 +235,7 @@ has_valid_aws_credentials() {
     _awsoutput=$($AWSCLI configure list 2>&1 || true)
     dbg "$AWSCLI configure list"
     dbg "$_awsoutput"
-    if egrep -qx 'The config profile.+could not be found'<<<"$_awsoutput"; then
+    if grep -E -qx 'The config profile.+could not be found'<<<"$_awsoutput"; then
         dbg "AWS config/credentials are missing"
         return 1
     elif [[ ! -r "$EC2_SSH_KEY" ]] || [[ ! -r "${EC2_SSH_KEY}.pub" ]]; then

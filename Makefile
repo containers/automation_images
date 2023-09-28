@@ -17,11 +17,11 @@ if_ci_else = $(if $(findstring true,$(CI)),$(1),$(2))
 
 export CENTOS_STREAM_RELEASE = 8
 
-export FEDORA_RELEASE = 38
-export PRIOR_FEDORA_RELEASE = 37
+export FEDORA_RELEASE = 39
+export PRIOR_FEDORA_RELEASE = 38
 
 # This should always be one-greater than $FEDORA_RELEASE (assuming it's actually the latest)
-export RAWHIDE_RELEASE = 39
+export RAWHIDE_RELEASE = 40
 
 # See import_images/README.md
 export FEDORA_IMPORT_IMG_SFX = $(_IMPORT_IMG_SFX)

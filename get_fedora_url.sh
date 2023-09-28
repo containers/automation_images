@@ -67,7 +67,7 @@ else
 fi
 
 # Support both '.CHECKSUM' and '-CHECKSUM' at the end
-filename=$(egrep -i -m 1 -- "$extension$" <<<"$by_arch" || true)
+filename=$(grep -E -i -m 1 -- "$extension$" <<<"$by_arch" || true)
 [[ -n "$filename" ]] || \
     die "No '$extension' targets among $by_arch"
 

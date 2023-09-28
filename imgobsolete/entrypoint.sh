@@ -40,8 +40,8 @@ $GCLOUD compute images list --format="$FORMAT" --filter="$FILTER" | \
         count_image
         reason=""
         created_ymd=$(date --date=$creationTimestamp --iso-8601=date)
-        permanent=$(egrep --only-matching --max-count=1 --ignore-case 'permanent=true' <<< $labels || true)
-        last_used=$(egrep --only-matching --max-count=1 'last-used=[[:digit:]]+' <<< $labels || true)
+        permanent=$(grep -E --only-matching --max-count=1 --ignore-case 'permanent=true' <<< $labels || true)
+        last_used=$(grep -E --only-matching --max-count=1 'last-used=[[:digit:]]+' <<< $labels || true)
 
         LABELSFX="labels: '$labels'"
 
@@ -147,9 +147,9 @@ for (( i=nr_amis ; i ; i-- )); do
     done
 
     unset automation permanent reason
-    automation=$(egrep --only-matching --max-count=1 \
+    automation=$(grep -E --only-matching --max-count=1 \
                  --ignore-case 'automation=true' <<< $tags || true)
-    permanent=$(egrep --only-matching --max-count=1 \
+    permanent=$(grep -E --only-matching --max-count=1 \
                 --ignore-case 'permanent=true' <<< $tags || true)
 
     if [[ -n "$permanent" ]]; then
