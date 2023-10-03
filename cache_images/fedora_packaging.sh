@@ -206,29 +206,6 @@ DOWNLOAD_PACKAGES=(\
 msg "Installing general build/test dependencies"
 bigto $SUDO dnf install -y $EXARG "${INSTALL_PACKAGES[@]}"
 
-# FIXME: 2023-09-26: emergency upgrade to fix chmod-symlink bug
-if [[ $(date +%Y%m) -gt 202309 ]]; then
-    echo ""
-    echo "FATAL FATAL FATAL: REMOVE THIS TEMPORARY WORKAROUND"
-    echo
-    exit 1
-fi
-source /etc/os-release
-# shellcheck disable=SC2154
-if [[ $VERSION_ID -ge 38 ]]; then
-    arch=$(uname -m)
-    crunrpm=https://kojipkgs.fedoraproject.org//packages/crun/1.9.2/1.fc${VERSION_ID}/${arch}/crun-1.9.2-1.fc${VERSION_ID}.${arch}.rpm
-    msg "FIXME-2023-09-26: installing $crunrpm"
-    bigto $SUDO dnf -y install $crunrpm ${crunrpm/crun-/crun-wasm-}
-fi
-# FIXME FIXME FIXME: https://bugzilla.redhat.com/show_bug.cgi?id=2238149
-# shellcheck disable=SC2154
-if [[ $VERSION_ID -eq 39 ]] && [[ $(uname -m) == "x86_64" ]]; then
-    msg "FIXME-2023-09-27: installing pandoc-3.1.3-25"
-    bigto $SUDO dnf -y install https://kojipkgs.fedoraproject.org//work/tasks/7301/106797301/pandoc-3.1.3-25.fc40.x86_64.rpm \
-                               https://kojipkgs.fedoraproject.org//work/tasks/7301/106797301/pandoc-common-3.1.3-25.fc40.noarch.rpm
-fi
-
 msg "Downloading packages for optional installation at runtime, as needed."
 $SUDO mkdir -p "$PACKAGE_DOWNLOAD_DIR"
 cd "$PACKAGE_DOWNLOAD_DIR"
