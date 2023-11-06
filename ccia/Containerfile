@@ -1,5 +1,10 @@
 ARG BASE_NAME=registry.fedoraproject.org/fedora-minimal
-ARG BASE_TAG=latest
+# FIXME FIXME FIXME! 2023-11-09: revert "38" to "latest"
+# ...38 is because as of this moment, latest is 39, which
+# has python-3.12, which causes something to barf:
+#         aiohttp/_websocket.c:3744:45: error: ‘PyLongObject’ {aka ‘struct _longobject’} has no member named ‘ob_digit’
+# Possible cause: https://github.com/cython/cython/issues/5238
+ARG BASE_TAG=38
 FROM ${BASE_NAME}:${BASE_TAG} as updated_base
 
 RUN microdnf upgrade -y && \

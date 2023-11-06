@@ -206,6 +206,10 @@ DOWNLOAD_PACKAGES=(\
 msg "Installing general build/test dependencies"
 bigto $SUDO dnf install -y $EXARG "${INSTALL_PACKAGES[@]}"
 
+# FIXME! 2023-11-09 emergency workaround for zstd:chunked crisis
+# Override until such time as podman tests actually *WORK* with zstd
+sed -i -e '/^compression_format/d' /usr/share/containers/containers.conf
+
 msg "Downloading packages for optional installation at runtime, as needed."
 $SUDO mkdir -p "$PACKAGE_DOWNLOAD_DIR"
 cd "$PACKAGE_DOWNLOAD_DIR"
