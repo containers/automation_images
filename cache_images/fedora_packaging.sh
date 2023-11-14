@@ -220,3 +220,7 @@ cd -
 
 # It was observed in F33, dnf install doesn't always get you the latest/greatest
 lilto $SUDO dnf update -y
+
+# FIXME FIXME FIXME 2023-11-16 TEMPORARY to get crun-1.11.2
+timebomb 20231120 "force-update crun >= 1.11.1 on f38"
+lilto $SUDO dnf --enablerepo=updates-testing -y upgrade crun

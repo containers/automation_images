@@ -36,15 +36,105 @@ PKGS=( \
 )
 
 echo "Updating package source lists"
-( set -x; $SUDO apt-get -qq -y update; )
+( set -x; $SUDO apt-get -q -y update; )
 
 # TODO: Workaround forward-incompatible change in grub scripts.
-# Without this, updating to the SID kernel may fail.
-echo "Upgrading to SID's grub-common"
-( set -x; $SUDO apt-get -qq -y upgrade grub-common; )
+# Without this, updating to the SID kernel will fail with
+# "version_find_latest" in error logs. Something to do with
+# gcloud assuming a wrong version of grub.
+#
+# 2023-11-16 before today, solution was to upgrade grub-common; as of
+# today this is failing with a dependency error. Current solution today
+# is now to create a version_find_latest script; grub will find and use this.
+#
+# This will probably be necessary until debian 13 becomes stable.
+# At which time some new kludge will be necessary.
+timebomb 20231231 "workaround for updating debian 12 to 13"
+$SUDO tee /usr/bin/version_find_latest <<"EOF"
+#!/bin/bash
+#
+# Grabbed from /usr/share/grub/grub-mkconfig_lib on f38
+#
+version_sort ()
+{
+  case $version_sort_sort_has_v in
+    yes)
+      LC_ALL=C sort -V;;
+    no)
+      LC_ALL=C sort -n;;
+    *)
+      if sort -V </dev/null > /dev/null 2>&1; then
+        version_sort_sort_has_v=yes
+    LC_ALL=C sort -V
+      else
+        version_sort_sort_has_v=no
+        LC_ALL=C sort -n
+      fi;;
+   esac
+}
+
+version_test_numeric ()
+{
+  version_test_numeric_a="$1"
+  version_test_numeric_cmp="$2"
+  version_test_numeric_b="$3"
+  if [ "$version_test_numeric_a" = "$version_test_numeric_b" ] ; then
+    case "$version_test_numeric_cmp" in
+      ge|eq|le) return 0 ;;
+      gt|lt) return 1 ;;
+    esac
+  fi
+  if [ "$version_test_numeric_cmp" = "lt" ] ; then
+    version_test_numeric_c="$version_test_numeric_a"
+    version_test_numeric_a="$version_test_numeric_b"
+    version_test_numeric_b="$version_test_numeric_c"
+  fi
+  if (echo "$version_test_numeric_a" ; echo "$version_test_numeric_b") | version_sort | head -n 1 | grep -qx "$version_test_numeric_b" ; then
+    return 0
+  else
+    return 1
+  fi
+}
+
+version_test_gt ()
+{
+  version_test_gt_a="`echo "$1" | sed -e "s/[^-]*-//"`"
+  version_test_gt_b="`echo "$2" | sed -e "s/[^-]*-//"`"
+  version_test_gt_cmp=gt
+  if [ "x$version_test_gt_b" = "x" ] ; then
+    return 0
+  fi
+  case "$version_test_gt_a:$version_test_gt_b" in
+    *.old:*.old) ;;
+    *.old:*) version_test_gt_a="`echo "$version_test_gt_a" | sed -e 's/\.old$//'`" ; version_test_gt_cmp=gt ;;
+    *:*.old) version_test_gt_b="`echo "$version_test_gt_b" | sed -e 's/\.old$//'`" ; version_test_gt_cmp=ge ;;
+    *-rescue*:*-rescue*) ;;
+    *?debug:*?debug) ;;
+    *-rescue*:*?debug) return 1 ;;
+    *?debug:*-rescue*) return 0 ;;
+    *-rescue*:*) return 1 ;;
+    *:*-rescue*) return 0 ;;
+    *?debug:*) return 1 ;;
+    *:*?debug) return 0 ;;
+  esac
+  version_test_numeric "$version_test_gt_a" "$version_test_gt_cmp" "$version_test_gt_b"
+  return "$?"
+}
+
+
+version_find_latest_a=""
+for i in "$@" ; do
+  if version_test_gt "$i" "$version_find_latest_a" ; then
+    version_find_latest_a="$i"
+  fi
+done
+
+echo "$version_find_latest_a"
+EOF
+$SUDO chmod 755 /usr/bin/version_find_latest
 
 echo "Upgrading to SID"
-( set -x; $SUDO apt-get -qq -y full-upgrade; )
+( set -x; $SUDO apt-get -q -y full-upgrade; )
 echo "Installing basic, necessary packages."
 ( set -x; $SUDO apt-get -q -y install "${PKGS[@]}"; )
 

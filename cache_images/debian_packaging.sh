@@ -15,8 +15,8 @@ REPO_DIRPATH=$(realpath "$SCRIPT_DIRPATH/../")
 source "$REPO_DIRPATH/lib.sh"
 
 msg "Updating/Installing repos and packages for $OS_REL_VER"
-lilto ooe.sh $SUDO apt-get -qq -y update
-bigto ooe.sh $SUDO apt-get -qq -y upgrade
+lilto ooe.sh $SUDO apt-get -q -y update
+bigto ooe.sh $SUDO apt-get -q -y upgrade
 
 INSTALL_PACKAGES=(\
     apache2-utils
@@ -152,7 +152,7 @@ echo "deb https://download.docker.com/linux/debian $docker_debian_release stable
 if ((CONTAINER==0)) && [[ ${#DOWNLOAD_PACKAGES[@]} -gt 0 ]]; then
     $SUDO apt-get clean  # no reason to keep previous downloads around
     # Needed to install .deb files + resolve dependencies
-    lilto $SUDO apt-get -qq -y update
+    lilto $SUDO apt-get -q -y update
     echo "Downloading packages for optional installation at runtime."
     $SUDO ln -s /var/cache/apt/archives "$PACKAGE_DOWNLOAD_DIR"
     bigto $SUDO apt-get -q -y install --download-only "${DOWNLOAD_PACKAGES[@]}"

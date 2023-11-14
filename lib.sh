@@ -133,6 +133,37 @@ set_aws_filepath() {
     unset AWS_INI;
 }
 
+# Usage: timebomb YYYYMMDD "force-update to crun X.Y"
+timebomb() {
+    local expire="$1"
+
+    expr "$expire" : '[0-9]\{8\}$' >/dev/null \
+        || die "timebomb: '$expire' must be of the form YYYYMMDD"
+
+    if [[ $(date +%Y%m%d) -lt "$expire" ]]; then
+        return
+    fi
+
+    declare -a frame
+    read -a frame < <(caller)
+
+    cat >&2 <<EOF
+***********************************************************
+* TIME BOMB EXPIRED!
+*
+*   >> ${frame[1]}:${frame[0]}: ${2:-No reason given, tsk tsk}
+*
+* Temporary workaround expired on $expire.
+*
+* Please review the above source file and either remove the
+* workaround or, if absolutely necessary, extend it.
+*
+* Please also check for other timebombs while you're at it.
+***********************************************************
+EOF
+    exit 1
+}
+
 # Almost every CI-driven image build includes a `$PACKER_BUILDS`
 # or `$TARTGET_NAME` specifier.  Leverage appearance of a `no_*`
 # PR-label prefix to bypass certain builds when running under CI.
