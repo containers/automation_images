@@ -196,6 +196,8 @@ base_images_task:
     env:
       GAC_JSON: &gac_json ENCRYPTED[7fba7fb26ab568ae39f799ab58a476123206576b0135b3d1019117c6d682391370c801e149f29324ff4b50133012aed9]
       AWS_INI: &aws_ini ENCRYPTED[4cd69097cd29a9899e51acf3bbacceeb83cb5c907d272ca1e2a8ccd515b03f2368a0680870c0d120fc32bc578bb0a930]
+      AWS_MAX_ATTEMPTS: 300
+      AWS_TIMEOUT_SECONDS: 3000
     script: "ci/make.sh base_images"
     manifest_artifacts:
         path: base_images/manifest.json
@@ -254,6 +256,8 @@ cache_images_task:
     env:
       GAC_JSON: *gac_json
       AWS_INI: *aws_ini
+      AWS_MAX_ATTEMPTS: 300
+      AWS_TIMEOUT_SECONDS: 3000
     script: "ci/make.sh cache_images"
     manifest_artifacts:
         path: cache_images/manifest.json
