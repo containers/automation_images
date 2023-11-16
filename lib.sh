@@ -353,7 +353,8 @@ rh_finalize() {
     # Packaging cache is preserved across builds of container images
     $SUDO rm -f /etc/udev/rules.d/*-persistent-*.rules
     $SUDO touch /.unconfigured  # force firstboot to run
-    common_finalize
+
+    rpm -qa | sort > package-versions.txt
 }
 
 # Called during VM Image setup, not intended for general use.
@@ -369,7 +370,8 @@ debian_finalize() {
     fi
     set -x
     # Packaging cache is preserved across builds of container images
-    common_finalize
+
+    dpkg -l | sort > package-versions.txt
 }
 
 finalize() {
@@ -382,4 +384,6 @@ finalize() {
     else
         die "Unknown/Unsupported Distro '$OS_RELEASE_ID'"
     fi
+
+    common_finalize
 }

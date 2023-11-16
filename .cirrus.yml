@@ -262,6 +262,9 @@ cache_images_task:
     manifest_artifacts:
         path: cache_images/manifest.json
         type: application/json
+    version_artifacts:
+        path: ./package-versions.txt
+        type: text/plain
 
 
 # Builds Windows server VMs for CI
