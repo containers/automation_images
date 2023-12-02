@@ -20,6 +20,7 @@ $password = ($rnd | % { $syms[$_ % $syms.length] }) -join ''
 
 $encPass = ConvertTo-SecureString $password -AsPlainText -Force
 Set-LocalUser -Name $username -Password $encPass
+Add-LocalGroupMember -Group "Hyper-V Administrators" -Member $username
 
 $winLogon= "HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Winlogon"
 Set-ItemProperty $winLogon "AutoAdminLogon" -Value "1" -type String
