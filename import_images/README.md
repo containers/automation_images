@@ -30,9 +30,16 @@ human:
 
   ```
   [default]
-  output = json
   aws_access_key_id = <Unquoted value>
   aws_secret_access_key = <Unquoted value>
+  ```
+
+  The format for `~/.aws/config` is similarly simple:
+
+  ```
+  [defaults]
+  output = json
+  region = us-east-1
   ```
 
 * Podman is installed and functional
