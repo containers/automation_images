@@ -222,5 +222,5 @@ cd -
 lilto $SUDO dnf update -y
 
 # FIXME FIXME FIXME 2023-11-16 TEMPORARY to get crun-1.11.2
-timebomb 20231120 "force-update crun >= 1.11.1 on f38"
+timebomb 20231220 "force-update crun >= 1.11.1 on f38"
 lilto $SUDO dnf --enablerepo=updates-testing -y upgrade crun

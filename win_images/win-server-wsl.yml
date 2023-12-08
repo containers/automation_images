@@ -34,7 +34,11 @@ builders:
     security_group_id: "sg-042c75677872ef81c"
     ami_name: &ami_name '{{build_name}}-c{{user `IMG_SFX`}}'
     ami_description: 'Built in https://cirrus-ci.com/task/{{user `CIRRUS_TASK_ID`}}'
-
+    launch_block_device_mappings:
+      - device_name: '/dev/sda1'
+        volume_size: 200
+        volume_type: 'gp2'
+        delete_on_termination: true
     # These are critical and used by security-polciy to enforce instance launch limits.
     tags: &awstags
         # EC2 expects "Name" to be capitalized
