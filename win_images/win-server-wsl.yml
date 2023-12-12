@@ -37,7 +37,8 @@ builders:
     launch_block_device_mappings:
       - device_name: '/dev/sda1'
         volume_size: 200
-        volume_type: 'gp2'
+        volume_type: 'gp3'
+        iops: 6000
         delete_on_termination: true
     # These are critical and used by security-polciy to enforce instance launch limits.
     tags: &awstags
