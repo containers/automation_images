@@ -6,7 +6,7 @@ findutils
 gawk
 genisoimage
 git
-google-cloud-sdk
+google-cloud-cli
 jq
 libvirt
 libvirt-admin
