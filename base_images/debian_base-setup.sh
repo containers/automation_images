@@ -49,7 +49,10 @@ echo "Updating package source lists"
 #
 # This will probably be necessary until debian 13 becomes stable.
 # At which time some new kludge will be necessary.
-timebomb 20231231 "workaround for updating debian 12 to 13"
+#
+# FIXME: 2024-01-02: Bumped the timebomb expiration date because it's
+#        too hard to find out if it's fixed or not
+timebomb 20240110 "workaround for updating debian 12 to 13"
 $SUDO tee /usr/bin/version_find_latest <<"EOF"
 #!/bin/bash
 #
@@ -132,6 +135,13 @@ done
 echo "$version_find_latest_a"
 EOF
 $SUDO chmod 755 /usr/bin/version_find_latest
+
+# 2024-01-02 between 2023-12 and now, debian got tar-1.35+dfsg-2
+# which has the horrible duplicate-path bug:
+#     https://github.com/containers/podman/issues/19407
+#     https://bugzilla.redhat.com/show_bug.cgi?id=2230127
+timebomb 20240110 "prevent us from getting broken tar-1.35+dfsg-2"
+( set -x; $SUDO apt-mark hold tar; )
 
 echo "Upgrading to SID"
 ( set -x; $SUDO apt-get -q -y full-upgrade; )
