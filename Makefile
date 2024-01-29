@@ -1,4 +1,7 @@
 
+# Default is sh, which has scripting limitations
+SHELL := $(shell command -v bash;)
+
 ##### Functions #####
 
 # Evaluates to $(1) if $(1) non-empty, otherwise evaluates to $(2)
@@ -124,9 +127,27 @@ help: ## Default target, parses special in-line comments as documentation.
 # There are length/character limitations (a-z, 0-9, -) in GCE for image
 # names and a max-length of 63.
 .PHONY: IMG_SFX
-IMG_SFX:  ## Generate a new date-based image suffix, store in the file IMG_SFX
+IMG_SFX:  timebomb-check ## Generate a new date-based image suffix, store in the file IMG_SFX
 	$(file >$@,$(shell date --utc +%Y%m%dt%H%M%Sz)-f$(FEDORA_RELEASE)f$(PRIOR_FEDORA_RELEASE)d$(subst .,,$(DEBIAN_RELEASE)))
 	@echo "$(file <IMG_SFX)"
+
+# Prevent us from wasting CI time when we have expired timebombs
+.PHONY: timebomb-check
+timebomb-check:
+	@now=$$(date +%Y%m%d); \
+	    found=; \
+	    while read -r bomb; do \
+	        when=$$(echo "$$bomb" | awk '{print $$2}'); \
+	        if [ $$when -lt $$now ]; then \
+	            echo "$$bomb"; \
+	            found=found; \
+	        fi; \
+	    done < <(git grep --line-number '^[ ]*timebomb '); \
+	    if [[ -n "$$found" ]]; then \
+	        echo ""; \
+	        echo "****** FATAL: Please check/fix expired timebomb(s) ^^^^^^"; \
+	        false; \
+	    fi
 
 .PHONY: IMPORT_IMG_SFX
 IMPORT_IMG_SFX:  ## Generate a new date-based import-image suffix, store in the file IMPORT_IMG_SFX
