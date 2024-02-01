@@ -140,13 +140,7 @@ INSTALL_PACKAGES=(\
     zstd
 )
 
-# Test with CNI in Fedora N-1
-EXARG=""
-if [[ "$PACKER_BUILD_NAME" =~ prior ]]; then
-    EXARG="--exclude=netavark --exclude=aardvark-dns"
-fi
-
-# Rawhide images don't need these pacakges
+# Rawhide images don't need these packages
 if [[ "$PACKER_BUILD_NAME" =~ fedora ]]; then
     INSTALL_PACKAGES+=( \
         docker-compose
@@ -173,13 +167,6 @@ if [[ "$PACKER_BUILD_NAME" =~ fedora ]]; then
     )
 fi
 
-# Workarond: Around the time of this commit, the `criu` package
-# was found to be missing a recommends-dependency on criu-libs.
-# Until a fixed rpm lands in the Fedora repositories, manually
-# include it here.  This workaround should be removed once the
-# package is corrected (likely > 3.17.1-3).
-INSTALL_PACKAGES+=(criu-libs)
-
 # When installing during a container-build, having this present
 # will seriously screw up future dnf operations in very non-obvious ways.
 if ! ((CONTAINER)); then
@@ -205,7 +192,7 @@ DOWNLOAD_PACKAGES=(\
 )
 
 msg "Installing general build/test dependencies"
-bigto $SUDO dnf install -y $EXARG "${INSTALL_PACKAGES[@]}"
+bigto $SUDO dnf install -y "${INSTALL_PACKAGES[@]}"
 
 msg "Downloading packages for optional installation at runtime, as needed."
 $SUDO mkdir -p "$PACKAGE_DOWNLOAD_DIR"
