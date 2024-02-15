@@ -353,7 +353,10 @@ rh_finalize() {
     # Packaging cache is preserved across builds of container images
     $SUDO rm -f /etc/udev/rules.d/*-persistent-*.rules
     $SUDO touch /.unconfigured  # force firstboot to run
-    common_finalize
+
+    echo
+    echo "# PACKAGE LIST"
+    rpm -qa | sort
 }
 
 # Called during VM Image setup, not intended for general use.
@@ -369,7 +372,9 @@ debian_finalize() {
     fi
     set -x
     # Packaging cache is preserved across builds of container images
-    common_finalize
+    # pipe-cat is not a NOP! It prevents using $PAGER and then hanging
+    echo "# PACKAGE LIST"
+    dpkg -l | cat
 }
 
 finalize() {
@@ -382,4 +387,6 @@ finalize() {
     else
         die "Unknown/Unsupported Distro '$OS_RELEASE_ID'"
     fi
+
+    common_finalize
 }
