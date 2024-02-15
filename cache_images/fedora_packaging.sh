@@ -194,11 +194,15 @@ DOWNLOAD_PACKAGES=(\
 msg "Installing general build/test dependencies"
 bigto $SUDO dnf install -y "${INSTALL_PACKAGES[@]}"
 
-timebomb 20240214 "Gaaaaaaaaah! Kludge to emergency-get netavark 1.10.3"
+timebomb 20240217 "Gaaaaaaaaah! Kludge to emergency-get netavark 1.10.3"
 arch=$(uname -m)
-fedoraversion=$(awk -F= '$1 == "VERSION_ID" { print $2 }' </etc/os-release)
+# 2024-02-15 rawhide was 40 a few days ago, is now 41
+fedoraversion=$OS_RELEASE_VER
+if [[ $fedoraversion -eq 41 ]]; then
+    fedoraversion=40
+fi
 bigto $SUDO dnf install -y https://kojipkgs.fedoraproject.org//packages/netavark/1.10.3/1.fc${fedoraversion}/${arch}/netavark-1.10.3-1.fc${fedoraversion}.${arch}.rpm
-timebomb 20240214 "^^^^^^^^ delete everything above here"
+timebomb 20240217 "^^^^^^^^ delete everything above here"
 
 msg "Downloading packages for optional installation at runtime, as needed."
 $SUDO mkdir -p "$PACKAGE_DOWNLOAD_DIR"
