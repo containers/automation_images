@@ -194,12 +194,6 @@ DOWNLOAD_PACKAGES=(\
 msg "Installing general build/test dependencies"
 bigto $SUDO dnf install -y "${INSTALL_PACKAGES[@]}"
 
-timebomb 20240214 "Gaaaaaaaaah! Kludge to emergency-get netavark 1.10.3"
-arch=$(uname -m)
-fedoraversion=$(awk -F= '$1 == "VERSION_ID" { print $2 }' </etc/os-release)
-bigto $SUDO dnf install -y https://kojipkgs.fedoraproject.org//packages/netavark/1.10.3/1.fc${fedoraversion}/${arch}/netavark-1.10.3-1.fc${fedoraversion}.${arch}.rpm
-timebomb 20240214 "^^^^^^^^ delete everything above here"
-
 msg "Downloading packages for optional installation at runtime, as needed."
 $SUDO mkdir -p "$PACKAGE_DOWNLOAD_DIR"
 cd "$PACKAGE_DOWNLOAD_DIR"

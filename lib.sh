@@ -20,7 +20,7 @@ OS_REL_VER="$OS_RELEASE_ID-$OS_RELEASE_VER"
 PACKAGE_DOWNLOAD_DIR=/var/cache/download
 
 # N/B: This is managed by renovate
-INSTALL_AUTOMATION_VERSION="4.3.1"
+INSTALL_AUTOMATION_VERSION="5.0.0"
 
 PUSH_LATEST="${PUSH_LATEST:-0}"
 
@@ -131,37 +131,6 @@ set_aws_filepath() {
     trap clear_cred_files EXIT
     echo "$AWS_INI" > "$AWS_SHARED_CREDENTIALS_FILE"
     unset AWS_INI;
-}
-
-# Usage: timebomb YYYYMMDD "force-update to crun X.Y"
-timebomb() {
-    local expire="$1"
-
-    expr "$expire" : '[0-9]\{8\}$' >/dev/null \
-        || die "timebomb: '$expire' must be of the form YYYYMMDD"
-
-    if [[ $(date +%Y%m%d) -lt "$expire" ]]; then
-        return
-    fi
-
-    declare -a frame
-    read -a frame < <(caller)
-
-    cat >&2 <<EOF
-***********************************************************
-* TIME BOMB EXPIRED!
-*
-*   >> ${frame[1]}:${frame[0]}: ${2:-No reason given, tsk tsk}
-*
-* Temporary workaround expired on $expire.
-*
-* Please review the above source file and either remove the
-* workaround or, if absolutely necessary, extend it.
-*
-* Please also check for other timebombs while you're at it.
-***********************************************************
-EOF
-    exit 1
 }
 
 # Almost every CI-driven image build includes a `$PACKER_BUILDS`

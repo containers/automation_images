@@ -28,7 +28,6 @@ PKGS=( \
     curl
     cloud-init
     gawk
-    git
     openssh-client
     openssh-server
     rng-tools5
@@ -37,6 +36,12 @@ PKGS=( \
 
 echo "Updating package source lists"
 ( set -x; $SUDO apt-get -q -y update; )
+
+# Only deps for automation tooling
+( set -x; $SUDO apt-get -q -y install git )
+install_automation_tooling
+# Ensure automation library is loaded
+source "$REPO_DIRPATH/lib.sh"
 
 # TODO: Workaround forward-incompatible change in grub scripts.
 # Without this, updating to the SID kernel will fail with
@@ -167,8 +172,6 @@ sortable_version=$(printf "%02d.%02d" $base_major $base_minor)
 echo "WARN: This is NOT an official version number.  It's for CI-automation purposes only."
 ( set -x; echo "VERSION_ID=\"$sortable_version\"" | \
     $SUDO tee -a /etc/os-release; )
-
-install_automation_tooling
 
 if ! ((CONTAINER)); then
     custom_cloud_init
