@@ -184,7 +184,6 @@ fi
 DOWNLOAD_PACKAGES=(\
     parallel
     podman-docker
-    podman-plugins
     python3-devel
     python3-pip
     python3-pytest
@@ -193,6 +192,13 @@ DOWNLOAD_PACKAGES=(\
 
 msg "Installing general build/test dependencies"
 bigto $SUDO dnf install -y "${INSTALL_PACKAGES[@]}"
+
+# 2024-02-20 package needed for podman #21563
+timebomb 20240226 "package not yet in stable"
+arch=$(uname -m)
+bigto $SUDO dnf install -y  \
+      https://kojipkgs.fedoraproject.org/packages/passt/0%5E20240220.g1e6f92b/1.fc$OS_RELEASE_VER/$arch/passt-0%5E20240220.g1e6f92b-1.fc$OS_RELEASE_VER.$arch.rpm \
+      https://kojipkgs.fedoraproject.org/packages/passt/0%5E20240220.g1e6f92b/1.fc$OS_RELEASE_VER/noarch/passt-selinux-0%5E20240220.g1e6f92b-1.fc$OS_RELEASE_VER.noarch.rpm
 
 msg "Downloading packages for optional installation at runtime, as needed."
 $SUDO mkdir -p "$PACKAGE_DOWNLOAD_DIR"
