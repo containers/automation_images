@@ -24,7 +24,7 @@ export FEDORA_RELEASE = 39
 export PRIOR_FEDORA_RELEASE = 38
 
 # This should always be one-greater than $FEDORA_RELEASE (assuming it's actually the latest)
-export RAWHIDE_RELEASE = 40
+export RAWHIDE_RELEASE = 41
 
 # See import_images/README.md
 export FEDORA_IMPORT_IMG_SFX = $(_IMPORT_IMG_SFX)
@@ -134,11 +134,11 @@ IMG_SFX:  timebomb-check ## Generate a new date-based image suffix, store in the
 # Prevent us from wasting CI time when we have expired timebombs
 .PHONY: timebomb-check
 timebomb-check:
-	@now=$$(date +%Y%m%d); \
+	@now=$$(date --utc +%Y%m%d); \
 	    found=; \
 	    while read -r bomb; do \
 	        when=$$(echo "$$bomb" | awk '{print $$2}'); \
-	        if [ $$when -lt $$now ]; then \
+	        if [ $$when -le $$now ]; then \
 	            echo "$$bomb"; \
 	            found=found; \
 	        fi; \

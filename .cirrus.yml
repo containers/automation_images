@@ -45,7 +45,7 @@ image_builder_task:
     # Packer needs time to clean up partially created VM images
     auto_cancellation: $CI != "true"
     stateful: true
-    timeout_in: 40m
+    timeout_in: 50m
     container:
         dockerfile: "image_builder/Containerfile"
         cpu: 2
@@ -69,7 +69,7 @@ container_images_task: &container_images
     skip: *ci_docs_tooling
     depends_on:
         - image_builder
-    timeout_in: 30m
+    timeout_in: 40m
     gce_instance: &ibi_vm
         image_project: "libpod-218412"
         # Trust whatever was built most recently is functional
@@ -115,7 +115,7 @@ imgts_build_task:
     skip: &ci_docs $CIRRUS_CHANGE_TITLE =~ '.*CI:DOCS.*'
     depends_on:
         - image_builder
-    timeout_in: 20m
+    timeout_in: 30m
     gce_instance: *ibi_vm
     env:
         <<: *image_env
@@ -168,7 +168,7 @@ base_images_task:
     # Packer needs time to clean up partially created VM images
     auto_cancellation: $CI != "true"
     stateful: true
-    timeout_in: 45m
+    timeout_in: 50m
     # Cannot use a container for this task, virt required for fedora image conversion
     gce_instance:
         <<: *ibi_vm
