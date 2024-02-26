@@ -194,11 +194,20 @@ msg "Installing general build/test dependencies"
 bigto $SUDO dnf install -y "${INSTALL_PACKAGES[@]}"
 
 # 2024-02-20 package needed for podman #21563
-timebomb 20240226 "package not yet in stable"
-arch=$(uname -m)
-bigto $SUDO dnf install -y  \
-      https://kojipkgs.fedoraproject.org/packages/passt/0%5E20240220.g1e6f92b/1.fc$OS_RELEASE_VER/$arch/passt-0%5E20240220.g1e6f92b-1.fc$OS_RELEASE_VER.$arch.rpm \
-      https://kojipkgs.fedoraproject.org/packages/passt/0%5E20240220.g1e6f92b/1.fc$OS_RELEASE_VER/noarch/passt-selinux-0%5E20240220.g1e6f92b-1.fc$OS_RELEASE_VER.noarch.rpm
+# 2024-02-26 stable everywhere except fc38
+timebomb 20240310 "package not yet in stable for fc38"
+if [[ "$OS_RELEASE_VER" -eq 38 ]]; then
+    arch=$(uname -m)
+    bigto $SUDO dnf install -y  \
+          https://kojipkgs.fedoraproject.org/packages/passt/0%5E20240220.g1e6f92b/1.fc$OS_RELEASE_VER/$arch/passt-0%5E20240220.g1e6f92b-1.fc$OS_RELEASE_VER.$arch.rpm \
+          https://kojipkgs.fedoraproject.org/packages/passt/0%5E20240220.g1e6f92b/1.fc$OS_RELEASE_VER/noarch/passt-selinux-0%5E20240220.g1e6f92b-1.fc$OS_RELEASE_VER.noarch.rpm
+fi
+
+timebomb 20240301 "ARGH! Stupid rc6 kernel still not stable, force it"
+if [[ "$OS_RELEASE_VER" -eq 41 ]]; then
+    bigto $SUDO dnf install -y \
+          https://kojipkgs.fedoraproject.org//packages/kernel/6.8.0/0.rc6.49.fc41/x86_64/kernel{,-core,-modules,-modules-core}-6.8.0-0.rc6.49.fc41.x86_64.rpm
+fi
 
 msg "Downloading packages for optional installation at runtime, as needed."
 $SUDO mkdir -p "$PACKAGE_DOWNLOAD_DIR"

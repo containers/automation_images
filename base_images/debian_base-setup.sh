@@ -57,8 +57,8 @@ source "$REPO_DIRPATH/lib.sh"
 #
 # FIXME: 2024-01-02: Bumped the timebomb expiration date because it's
 #        too hard to find out if it's fixed or not
-#        2024-01-25: again
-timebomb 20240226 "workaround for updating debian 12 to 13"
+#        2024-01-25: again, and 02-26 again
+timebomb 20240320 "workaround for updating debian 12 to 13"
 $SUDO tee /usr/bin/version_find_latest <<"EOF"
 #!/bin/bash
 #
@@ -147,7 +147,7 @@ $SUDO chmod 755 /usr/bin/version_find_latest
 #     https://github.com/containers/podman/issues/19407
 #     https://bugzilla.redhat.com/show_bug.cgi?id=2230127
 # 2024-01-25 dfsg-3 also has the bug
-timebomb 20240226 "prevent us from getting broken tar-1.35+dfsg-3"
+timebomb 20240320 "prevent us from getting broken tar-1.35+dfsg-3"
 ( set -x; $SUDO apt-mark hold tar; )
 
 echo "Upgrading to SID"
@@ -172,10 +172,6 @@ sortable_version=$(printf "%02d.%02d" $base_major $base_minor)
 echo "WARN: This is NOT an official version number.  It's for CI-automation purposes only."
 ( set -x; echo "VERSION_ID=\"$sortable_version\"" | \
     $SUDO tee -a /etc/os-release; )
-
-timebomb 20240226 "pasta 02-20 still not in debian repos"
-$SUDO wget https://passt.top/builds/passt_0.0~git20240220.1e6f92b/passt_0.0~git20240220.1e6f92b-1_amd64.deb
-$SUDO dpkg -i passt_0.0~git20240220.1e6f92b-1_amd64.deb
 
 if ! ((CONTAINER)); then
     custom_cloud_init
