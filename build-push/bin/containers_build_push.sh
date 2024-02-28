@@ -6,9 +6,10 @@
 # image based on the contents of a repository context subdirectory from their
 # respective 'main' branches.
 #
-# The first argument to the script, should be the (clone) URL of the git repository
-# in question.  This is used to both retrieve the build context, as well as label
-# the produced images.
+# The first argument to the script, should be the git URL of the repository
+# containing the build context.  If prefixed by a '.' character, the repository
+# will not be cloned, and instead $CWD will be used.  In all cases this URL will
+# be used to add several labels the produced images.
 #
 # The second argument to this script is the relative path to the build context
 # subdirectory.  The basename of this subdirectory may (see next paragraph)
@@ -62,6 +63,9 @@ ARCHES="${ARCHES:-amd64,ppc64le,s390x,arm64}"
 
 # First arg (REPO_URL) is the clone URL for repository for informational purposes
 REPO_URL="$1"
+[[ "${REPO_URL:0:1}" != "." ]] || \
+    REPO_URL="${1:1}"
+
 REPO_NAME=$(basename "${REPO_URL%.git}")
 
 if [[ ! "$REPO_URL" =~ github\.com ]] && [[ ! "$REPO_URL" =~ testing ]]; then
@@ -107,10 +111,14 @@ if ((DRYRUN)); then
     warn "Operating in dry-run mode with $_DRNOPUSH"
 fi
 
-# SCRIPT_PATH defined by automation library
-# shellcheck disable=SC2154
-CLONE_TMP=$(mktemp -p "" -d "tmp_${SCRIPT_FILENAME}_XXXX")
-trap "rm -rf '$CLONE_TMP'" EXIT
+if [[ "${1:0}" != "." ]]; then
+    # SCRIPT_PATH defined by automation library
+    # shellcheck disable=SC2154
+    CLONE_TMP=$(mktemp -p "" -d "tmp_${SCRIPT_FILENAME}_XXXX")
+    trap "rm -rf '$CLONE_TMP'" EXIT
+    showrun git clone --depth 1 "$REPO_URL" "$CLONE_TMP"
+    cd "$CLONE_TMP"
+fi
 
 ### MAIN
 
@@ -119,8 +127,6 @@ if [[ -n "$FLAVOR_NAME" ]]; then
     build_args=("--build-arg=FLAVOR=$FLAVOR_NAME")
 fi
 
-showrun git clone --depth 1 "$REPO_URL" "$CLONE_TMP"
-cd "$CLONE_TMP"
 head_sha=$(git rev-parse HEAD)
 dbg "HEAD is $head_sha"
 

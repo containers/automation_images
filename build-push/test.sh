@@ -181,3 +181,8 @@ msg "
 remove_built_images
 env A_DEBUG=1 containers_build_push.sh $TEST_REPO_URL contrib/testimage foobarbaz
 verify_built_images foobarbaz
+
+msg "
+##### Testing build-push local repo run for '$TEST_FQIN'"
+env A_DEBUG=1 containers_build_push.sh .$TEST_REPO_URL contrib/testimage foobarbaz
+verify_built_images foobarbaz
