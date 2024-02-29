@@ -111,7 +111,7 @@ if ((DRYRUN)); then
     warn "Operating in dry-run mode with $_DRNOPUSH"
 fi
 
-if [[ "${1:0}" != "." ]]; then
+if [[ "${1:0:1}" != "." ]]; then
     # SCRIPT_PATH defined by automation library
     # shellcheck disable=SC2154
     CLONE_TMP=$(mktemp -p "" -d "tmp_${SCRIPT_FILENAME}_XXXX")
