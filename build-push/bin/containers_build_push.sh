@@ -87,6 +87,7 @@ else
 fi
 _REG="quay.io"
 if [[ "$REPO_NAME" =~ testing ]]; then
+    dbg "Unittests are running, using example/test registry name."
     _REG="example.com"
 fi
 REPO_FQIN="$_REG/$REPO_NAME/$FLAVOR_NAME"
@@ -111,13 +112,16 @@ if ((DRYRUN)); then
     warn "Operating in dry-run mode with $_DRNOPUSH"
 fi
 
-if [[ "${1:0}" != "." ]]; then
+if [[ "${1:0:1}" != "." ]]; then
+    dbg "Cloning $REPO_URL and using its $CTX_SUB as build context"
     # SCRIPT_PATH defined by automation library
     # shellcheck disable=SC2154
     CLONE_TMP=$(mktemp -p "" -d "tmp_${SCRIPT_FILENAME}_XXXX")
     trap "rm -rf '$CLONE_TMP'" EXIT
     showrun git clone --depth 1 "$REPO_URL" "$CLONE_TMP"
     cd "$CLONE_TMP"
+else
+    dbg "Not cloning, using $PWD/$CTX_SUB as build context"
 fi
 
 ### MAIN
