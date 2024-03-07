@@ -42,8 +42,3 @@ lilto $SUDO dnf update -y
 $SUDO rm -f /etc/automation_environment
 # Re-install the latest version with the 'build-push' component
 install_automation_tooling latest build-push
-
-# Install scripts into automation directory on $PATH
-cd $REPO_DIRPATH/build-push
-set -x
-$SUDO bash ./.install.sh
