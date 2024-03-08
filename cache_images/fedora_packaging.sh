@@ -203,7 +203,7 @@ if [[ "$OS_RELEASE_VER" -eq 38 ]]; then
           https://kojipkgs.fedoraproject.org/packages/passt/0%5E20240220.g1e6f92b/1.fc$OS_RELEASE_VER/noarch/passt-selinux-0%5E20240220.g1e6f92b-1.fc$OS_RELEASE_VER.noarch.rpm
 fi
 
-timebomb 20240301 "ARGH! Stupid rc6 kernel still not stable, force it"
+timebomb 20240310 "ARGH! Stupid rc6 kernel still not stable, force it"
 if [[ "$OS_RELEASE_VER" -eq 41 ]]; then
     bigto $SUDO dnf install -y \
           https://kojipkgs.fedoraproject.org//packages/kernel/6.8.0/0.rc6.49.fc41/x86_64/kernel{,-core,-modules,-modules-core}-6.8.0-0.rc6.49.fc41.x86_64.rpm

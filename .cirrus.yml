@@ -472,19 +472,17 @@ test_build-push_task:
     skip: *ci_docs_tooling
     depends_on:
         - cache_images
-    gce_instance: &build_push_vm
+    gce_instance:
         image_project: "libpod-218412"
-        # Hack: Use the 'latest' CI VM image instead of a specific 'image_name'.
-        # Not all PRs produce VM images but may change build-push scripts and
-        # alter IMG_SFX.  This accounts for both situations in a mostly-okay way.
-        image_family: 'build-push-cache'
+        image_name: build-push-c${IMG_SFX}
         zone: "us-central1-a"
         disk: 200
         # More muscle to emulate multi-arch
         type: "n2-standard-4"
     script: |
-      bash ./build-push/.install.sh
-      bash ./build-push/test.sh
+      git clone --depth=1 https://github.com/containers/image_build.git ../ib
+      bash ../ib/build-push/.install.sh
+      bash ../ib/build-push/test.sh
 
 
 # N/B: "latest" image produced after PR-merge (branch-push)
