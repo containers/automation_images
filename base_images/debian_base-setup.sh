@@ -57,8 +57,8 @@ source "$REPO_DIRPATH/lib.sh"
 #
 # FIXME: 2024-01-02: Bumped the timebomb expiration date because it's
 #        too hard to find out if it's fixed or not
-#        2024-01-25: again, and 02-26 again
-timebomb 20240320 "workaround for updating debian 12 to 13"
+#        2024-01-25: again, and 02-26 again and 03-20 again
+timebomb 20240330 "workaround for updating debian 12 to 13"
 $SUDO tee /usr/bin/version_find_latest <<"EOF"
 #!/bin/bash
 #
@@ -147,7 +147,7 @@ $SUDO chmod 755 /usr/bin/version_find_latest
 #     https://github.com/containers/podman/issues/19407
 #     https://bugzilla.redhat.com/show_bug.cgi?id=2230127
 # 2024-01-25 dfsg-3 also has the bug
-timebomb 20240320 "prevent us from getting broken tar-1.35+dfsg-3"
+timebomb 20240330 "prevent us from getting broken tar-1.35+dfsg-3"
 ( set -x; $SUDO apt-mark hold tar; )
 
 echo "Upgrading to SID"

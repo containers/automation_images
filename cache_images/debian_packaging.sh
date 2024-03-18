@@ -59,7 +59,6 @@ INSTALL_PACKAGES=(\
     libdevmapper-dev
     libdevmapper1.02.1
     libfuse-dev
-    libfuse2
     libfuse3-dev
     libglib2.0-dev
     libgpgme11-dev
