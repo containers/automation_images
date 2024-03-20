@@ -9,7 +9,7 @@ iex ((New-Object System.Net.WebClient).DownloadString('https://community.chocola
 
 # Install basic required tooling.
 #   psexec needed to workaround session 0 WSL bug
-retryInstall git archiver psexec golang mingw; Check-Exit
+retryInstall git archiver psexec golang mingw StrawberryPerl; Check-Exit
 
 # Update service is required for dotnet
 Set-Service -Name wuauserv -StartupType "Manual"; Check-Exit
