@@ -298,7 +298,7 @@ common_finalize() {
     $SUDO rm -rf /var/lib/cloud/instanc*
     $SUDO rm -rf /root/.ssh/*
     $SUDO rm -rf /etc/ssh/*key*
-    $SUDO rm -rf /tmp/*
+    $SUDO rm -rf /tmp/* /var/tmp/automation_images
     $SUDO rm -rf /tmp/.??*
     echo -n "" | $SUDO tee /etc/machine-id
     $SUDO sync
