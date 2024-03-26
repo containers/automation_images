@@ -183,30 +183,30 @@ provisioners:
     - type: 'shell'
       inline:
         - 'set -e'
-        - 'mkdir -p /tmp/automation_images'
+        - 'mkdir -p /var/tmp/automation_images'
 
     - type: 'file'
       source: '{{ pwd }}/'
-      destination: "/tmp/automation_images"
+      destination: "/var/tmp/automation_images"
 
     - only: ['rawhide']
       type: 'shell'
       expect_disconnect: true  # VM will be rebooted at end of script
       inline:
         - 'set -e'
-        - '/bin/bash /tmp/automation_images/cache_images/rawhide_setup.sh'
+        - '/bin/bash /var/tmp/automation_images/cache_images/rawhide_setup.sh'
 
     - except: ['debian']
       type: 'shell'
       inline:
         - 'set -e'
-        - '/bin/bash /tmp/automation_images/cache_images/fedora_setup.sh'
+        - '/bin/bash /var/tmp/automation_images/cache_images/fedora_setup.sh'
 
     - only: ['debian']
       type: 'shell'
       inline:
         - 'set -e'
-        - 'env DEBIAN_FRONTEND=noninteractive /bin/bash /tmp/automation_images/cache_images/debian_setup.sh'
+        - 'env DEBIAN_FRONTEND=noninteractive /bin/bash /var/tmp/automation_images/cache_images/debian_setup.sh'
 
 post-processors:
     # This is critical for human-interaction.  Copntents will be used
