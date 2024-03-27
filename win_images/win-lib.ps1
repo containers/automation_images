@@ -35,7 +35,7 @@ function retryInstall {
                 $pkg = @("--version", $Matches.2, $Matches.1)
             }
 
-            choco install -y --allow-downgrade --execution-timeout=300 $pkg
+            choco upgrade $pkg -y --allow-downgrade --execution-timeout=300 --source="'https://community.chocolatey.org/api/v2'"
             if ($LASTEXITCODE -eq 0) {
                 break
             }
