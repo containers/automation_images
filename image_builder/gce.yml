@@ -45,16 +45,16 @@ provisioners:
     - type: 'shell'
       inline:
         - 'set -e'
-        - 'mkdir -p /tmp/automation_images'
+        - 'mkdir -p /var/tmp/automation_images'
 
     - type: 'file'
       source: '{{ pwd }}/'
-      destination: '/tmp/automation_images/'
+      destination: '/var/tmp/automation_images/'
 
     - type: 'shell'
       inline:
         - 'set -e'
-        - '/bin/bash /tmp/automation_images/image_builder/setup.sh'
+        - '/bin/bash /var/tmp/automation_images/image_builder/setup.sh'
 
 post-processors:
     # Must be double-nested to guarantee execution order

@@ -8,7 +8,7 @@ FROM registry.fedoraproject.org/fedora:${FEDORA_RELEASE}
 ARG PACKER_VERSION
 MAINTAINER https://github.com/containers/automation_images/ci
 
-ENV CIRRUS_WORKING_DIR=/tmp/automation_images \
+ENV CIRRUS_WORKING_DIR=/var/tmp/automation_images \
     PACKER_INSTALL_DIR=/usr/local/bin \
     PACKER_VERSION=$PACKER_VERSION \
     CONTAINER=1
