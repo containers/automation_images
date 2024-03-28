@@ -193,12 +193,12 @@ DOWNLOAD_PACKAGES=(\
 msg "Installing general build/test dependencies"
 bigto $SUDO dnf install -y "${INSTALL_PACKAGES[@]}"
 
-# 2024-03-18 new pasta, built today, not yet stable anywhere
-timebomb 20240325 "package not yet in stable for fc38"
+# 2024-03-28 pasta 03-26 stable on some, but we want it in all
+timebomb 20240330 "pasta not yet in stable for all arches"
 if [[ "$OS_RELEASE_VER" -le 41 ]]; then
     arch=$(uname -m)
     n=passt
-    v=0%5E20240320.g71dd405
+    v=0%5E20240326.g4988e2b
     r=1.fc$OS_RELEASE_VER
     bigto $SUDO dnf install -y  \
           https://kojipkgs.fedoraproject.org/packages/$n/$v/$r/$arch/$n-$v-$r.$arch.rpm \
