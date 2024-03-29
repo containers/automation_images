@@ -148,7 +148,22 @@ $SUDO chmod 755 /usr/bin/version_find_latest
 #     https://bugzilla.redhat.com/show_bug.cgi?id=2230127
 # 2024-01-25 dfsg-3 also has the bug
 timebomb 20240330 "prevent us from getting broken tar-1.35+dfsg-3"
-( set -x; $SUDO apt-mark hold tar; )
+$SUDO tee /etc/apt/preferences.d/$(date +%Y%m%d)-tar <<EOF
+Package: tar
+Pin: version 1.35+dfsg-[23]
+Pin-Priority: -1
+EOF
+
+# 2024-03-27 grub 2.12-1+b1 causes VM boot failures:
+#    error: file `/boot/grub/x86_64-efi/bli.mod' not found.
+#    BBS Table full.
+# Block it. Previous grub works fine.
+timebomb 20240330 "prevent us from getting broken grub"
+$SUDO tee /etc/apt/preferences.d/$(date +%Y%m%d)-grub <<EOF
+Package: grub*
+Pin: version 2.12-1+b1
+Pin-Priority: -1
+EOF
 
 echo "Upgrading to SID"
 ( set -x; $SUDO apt-get -q -y full-upgrade; )
