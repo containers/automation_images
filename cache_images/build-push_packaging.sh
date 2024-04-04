@@ -30,6 +30,7 @@ INSTALL_PACKAGES=(\
     python3-pip
     qemu-user-static
     skopeo
+    unzip
 )
 
 echo "Installing general build/test dependencies"

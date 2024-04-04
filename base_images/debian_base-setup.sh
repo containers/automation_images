@@ -57,8 +57,8 @@ source "$REPO_DIRPATH/lib.sh"
 #
 # FIXME: 2024-01-02: Bumped the timebomb expiration date because it's
 #        too hard to find out if it's fixed or not
-#        2024-01-25: again, and 02-26 again and 03-20 again
-timebomb 20240330 "workaround for updating debian 12 to 13"
+#        2024-01-25: again, and 02-26 again and 03-20 again and 04-30
+timebomb 20240430 "workaround for updating debian 12 to 13"
 $SUDO tee /usr/bin/version_find_latest <<"EOF"
 #!/bin/bash
 #
@@ -142,26 +142,16 @@ echo "$version_find_latest_a"
 EOF
 $SUDO chmod 755 /usr/bin/version_find_latest
 
-# 2024-01-02 between 2023-12 and now, debian got tar-1.35+dfsg-2
+# 2024-01-02 found debian 13 tar 1.35+dfsg-2
 # which has the horrible duplicate-path bug:
 #     https://github.com/containers/podman/issues/19407
 #     https://bugzilla.redhat.com/show_bug.cgi?id=2230127
 # 2024-01-25 dfsg-3 also has the bug
-timebomb 20240330 "prevent us from getting broken tar-1.35+dfsg-3"
+# 2024-04-04 trixy still has 1.35+dfsg-3
+timebomb 20240430 "prevent us from getting broken tar-1.35+dfsg-3"
 $SUDO tee /etc/apt/preferences.d/$(date +%Y%m%d)-tar <<EOF
 Package: tar
 Pin: version 1.35+dfsg-[23]
-Pin-Priority: -1
-EOF
-
-# 2024-03-27 grub 2.12-1+b1 causes VM boot failures:
-#    error: file `/boot/grub/x86_64-efi/bli.mod' not found.
-#    BBS Table full.
-# Block it. Previous grub works fine.
-timebomb 20240330 "prevent us from getting broken grub"
-$SUDO tee /etc/apt/preferences.d/$(date +%Y%m%d)-grub <<EOF
-Package: grub*
-Pin: version 2.12-1+b1
 Pin-Priority: -1
 EOF
 
