@@ -30,11 +30,6 @@ elif [[ "$PACKER_BUILD_NAME" =~ "build-push" ]]; then
     bash $SCRIPT_DIRPATH/build-push_packaging.sh
     # Registers qemu emulation for non-native execution
     $SUDO systemctl enable systemd-binfmt
-    for arch in amd64 s390x ppc64le arm64; do
-        msg "Caching latest $arch fedora image..."
-        $SUDO podman pull --quiet --arch=$arch \
-            registry.fedoraproject.org/fedora:$OS_RELEASE_VER
-    done
 else
     bash $SCRIPT_DIRPATH/fedora_packaging.sh
 fi

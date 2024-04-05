@@ -194,7 +194,8 @@ msg "Installing general build/test dependencies"
 bigto $SUDO dnf install -y "${INSTALL_PACKAGES[@]}"
 
 # 2024-03-28 pasta 03-26 stable on some, but we want it in all
-timebomb 20240330 "pasta not yet in stable for all arches"
+# 2024-04-04 still not everywhere
+timebomb 20240430 "pasta not yet in stable for all arches"
 if [[ "$OS_RELEASE_VER" -le 41 ]]; then
     arch=$(uname -m)
     n=passt
