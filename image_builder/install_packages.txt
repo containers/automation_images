@@ -24,6 +24,7 @@ rng-tools
 rootfiles
 rsync
 sed
+skopeo
 tar
 unzip
 util-linux

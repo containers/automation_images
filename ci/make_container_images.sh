@@ -44,13 +44,6 @@ SRC_FQIN="$TARGET_NAME:$IMG_SFX"
 
 make "$TARGET_NAME" IMG_SFX=$IMG_SFX
 
-# Prevent pushing 'latest' images from PRs, only branches and tags
-# shellcheck disable=SC2154
-if [[ $PUSH_LATEST -eq 1 ]] && [[ -n "$CIRRUS_PR" ]]; then
-    echo -e "\nWarning: Refusing to push 'latest' images when testing from a PR.\n"
-    PUSH_LATEST=0
-fi
-
 # Don't leave credential file sticking around anywhere
 trap "podman logout --all" EXIT INT CONT
 set +x  # protect username/password values
@@ -64,9 +57,3 @@ set -x  # Easier than echo'ing out status for everything
 # shellcheck disable=SC2154
 podman tag "$SRC_FQIN" "$DEST_FQIN"
 podman push "$DEST_FQIN"
-
-if ((PUSH_LATEST)); then
-    LATEST_FQIN="${DEST_FQIN%:*}:latest"
-    podman tag "$SRC_FQIN" "$LATEST_FQIN"
-    podman push "$LATEST_FQIN"
-fi
