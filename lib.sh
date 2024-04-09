@@ -22,8 +22,6 @@ PACKAGE_DOWNLOAD_DIR=/var/cache/download
 # N/B: This is managed by renovate
 INSTALL_AUTOMATION_VERSION="5.0.0"
 
-PUSH_LATEST="${PUSH_LATEST:-0}"
-
 # Mask secrets in show_env_vars() from automation library
 SECRET_ENV_RE='(^PATH$)|(^BASH_FUNC)|(^_.*)|(.*PASSWORD.*)|(.*TOKEN.*)|(.*SECRET.*)|(.*ACCOUNT.*)|(.+_JSON)|(AWS.+)|(.*SSH.*)|(.*GCP.*)'
 

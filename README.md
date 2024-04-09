@@ -292,8 +292,7 @@ the following are built:
 
 In all cases, when automation runs on a branch (i.e. after a PR is merged)
 the actual image tagged `latest` will be pushed.  When running in a PR,
-only validation and test images are produced.  This behavior is controled
-by a combination of the `$PUSH_LATEST` and `$CIRRUS_PR` variables.
+only validation and test images are produced.
 
 
 ## The Base Images (overview step 3)
