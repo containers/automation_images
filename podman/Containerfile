@@ -15,6 +15,16 @@ ARG PACKER_BUILD_NAME=
 ENV AI_PATH=/usr/src/automation_images \
     CONTAINER=1
 
+ARG IMG_SFX=
+ARG CIRRUS_TASK_ID=
+ARG GIT_HEAD=
+# Ref: https://github.com/opencontainers/image-spec/blob/main/annotations.md
+LABEL org.opencontainers.image.url="https://cirrus-ci.com/task/${CIRRUS_TASK_ID}"
+LABEL org.opencontainers.image.documentation="https://github.com/containers/automation_images/blob/${GIT_HEAD}/README.md#container-images-overview-step-2"
+LABEL org.opencontainers.image.source="https://github.com/containers/automation_images/blob/${GIT_HEAD}/podman/Containerfile"
+LABEL org.opencontainers.image.version="${IMG_SFX}"
+LABEL org.opencontainers.image.revision="${GIT_HEAD}"
+
 # Only add needed files to avoid invalidating build cache
 ADD /lib.sh "$AI_PATH/"
 ADD /podman/* "$AI_PATH/podman/"

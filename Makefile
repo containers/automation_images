@@ -113,6 +113,9 @@ export PACKER_CACHE_DIR = $(call err_if_empty,_TEMPDIR)
 # AWS CLI default, in case caller needs to override
 export AWS := aws --output json --region us-east-1
 
+# Needed for container-image builds
+GIT_HEAD = $(shell git rev-parse HEAD)
+
 ##### Targets #####
 
 # N/B: The double-# after targets is gawk'd out as the target description
@@ -404,6 +407,9 @@ $(_TEMPDIR)/%_podman.tar: podman/Containerfile podman/setup.sh $(wildcard base_i
 		--build-arg=BASE_NAME=$(subst prior-,,$*) \
 		--build-arg=BASE_TAG=$(call err_if_empty,BASE_TAG) \
 		--build-arg=PACKER_BUILD_NAME=$(subst _podman,,$*) \
+		--build-arg=IMG_SFX=$(_IMG_SFX) \
+		--build-arg=CIRRUS_TASK_ID=$(CIRRUS_TASK_ID) \
+		--build-arg=GIT_HEAD=$(call err_if_empty,GIT_HEAD) \
 		-f podman/Containerfile .
 	rm -f $@
 	podman save --quiet -o $@ $*_podman:$(_IMG_SFX)
