@@ -35,7 +35,11 @@ function retryInstall {
                 $pkg = @("--version", $Matches.2, $Matches.1)
             }
 
-            choco install -y --allow-downgrade --execution-timeout=300 $pkg
+            # Chocolatey best practices as of 2024-04:
+            #   https://docs.chocolatey.org/en-us/choco/commands/#scripting-integration-best-practices-style-guide
+            # Some of those are suboptimal, e.g., using "upgrade" to mean "install",
+            # hardcoding a specific API URL. We choose to reject those.
+            choco install $pkg -y --allow-downgrade --execution-timeout=300
             if ($LASTEXITCODE -eq 0) {
                 break
             }
