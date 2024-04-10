@@ -100,6 +100,7 @@ INSTALL_PACKAGES=(\
     libxslt-devel
     lsof
     make
+    man-db
     mlocate
     msitools
     nfs-utils
@@ -114,6 +115,7 @@ INSTALL_PACKAGES=(\
     perl-FindBin
     pkgconfig
     podman
+    pre-commit
     procps-ng
     protobuf
     protobuf-c
