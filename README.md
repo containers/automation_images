@@ -264,13 +264,11 @@ then automatically pushed to:
 
 * https://quay.io/repository/libpod/fedora_podman
 * https://quay.io/repository/libpod/prior-fedora_podman
-* https://quay.io/repository/libpod/debian_podman
 
 The meaning of *prior* and *current*, is defined by the contents of
-the `*_release` files within the `podman` subdirectory.  This is
-necessary to support the Makefile target being used manually
-(e.g. debugging).  These files must be updated manually when introducing
-a new VM image version.
+the `*_RELEASE` values in the `Makefile`.  The images will be tagged
+with the value within the `IMG_SFX` file.  Additionally, the most
+recently merged PR on this repo will tag its images `latest`.
 
 
 ### Tooling
