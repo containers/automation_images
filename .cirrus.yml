@@ -474,9 +474,10 @@ test_build-push_task:
         # More muscle to emulate multi-arch
         type: "n2-standard-4"
     script: |
-      git clone --depth=1 https://github.com/containers/image_build.git ../ib
-      bash ../ib/build-push/.install.sh
-      bash ../ib/build-push/test.sh
+        mkdir /tmp/context
+        echo -e "FROM scratch\nENV foo=bar\n" > /tmp/context/Containerfile
+        source /etc/automation_environment
+        A_DEBUG=1 build-push.sh --nopush --arches=amd64,arm64,s390x,ppc64le example.com/foo/bar /tmp/context
 
 
 tag_latest_images_task:
