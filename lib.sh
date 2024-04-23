@@ -20,7 +20,7 @@ OS_REL_VER="$OS_RELEASE_ID-$OS_RELEASE_VER"
 PACKAGE_DOWNLOAD_DIR=/var/cache/download
 
 # N/B: This is managed by renovate
-INSTALL_AUTOMATION_VERSION="5.0.0"
+INSTALL_AUTOMATION_VERSION="5.0.1"
 
 # Mask secrets in show_env_vars() from automation library
 SECRET_ENV_RE='(^PATH$)|(^BASH_FUNC)|(^_.*)|(.*PASSWORD.*)|(.*TOKEN.*)|(.*SECRET.*)|(.*ACCOUNT.*)|(.+_JSON)|(AWS.+)|(.*SSH.*)|(.*GCP.*)'
