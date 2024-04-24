@@ -1,4 +1,3 @@
-awscli
 buildah
 bash-completion
 curl
@@ -12,6 +11,7 @@ libvirt
 libvirt-admin
 libvirt-client
 libvirt-daemon
+libxcrypt-compat
 make
 openssh
 openssl

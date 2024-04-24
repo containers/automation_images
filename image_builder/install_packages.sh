@@ -23,6 +23,18 @@ source "$REPO_DIRPATH/lib.sh"
 
 dnf update -y
 dnf -y install epel-release
-dnf install -y $(<"$INST_PKGS_FP")
+# Allow erasing pre-installed curl-minimal package
+dnf install -y --allowerasing $(<"$INST_PKGS_FP")
+
+# As of 2024-04-24 installing the EPEL `awscli` package results in error:
+# nothing provides python3.9dist(docutils) >= 0.10
+# Grab the binary directly from amazon instead
+# https://docs.aws.amazon.com/cli/latest/userguide/getting-started-install.html
+AWSURL="https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip"
+cd /tmp
+curl --fail --location -O "${AWSURL}"
+unzip awscli*.zip
+./aws/install -i /usr/local/share/aws-cli -b /usr/local/bin
+rm -rf awscli*.zip ./aws
 
 install_automation_tooling

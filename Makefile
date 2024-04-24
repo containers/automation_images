@@ -18,7 +18,7 @@ if_ci_else = $(if $(findstring true,$(CI)),$(1),$(2))
 
 ##### Important image release and source details #####
 
-export CENTOS_STREAM_RELEASE = 8
+export CENTOS_STREAM_RELEASE = 9
 
 export FEDORA_RELEASE = 40
 export PRIOR_FEDORA_RELEASE = 39
