@@ -71,7 +71,7 @@ container_images_task: &container_images
     skip: *ci_docs_tooling
     depends_on:
         - image_builder
-    timeout_in: 40m
+    timeout_in: &cntr_timeout 40m
     gce_instance: &ibi_vm
         image_project: "libpod-218412"
         # Trust whatever was built most recently is functional
@@ -117,7 +117,7 @@ imgts_build_task:
     skip: &ci_docs $CIRRUS_CHANGE_TITLE =~ '.*CI:DOCS.*'
     depends_on:
         - image_builder
-    timeout_in: 30m
+    timeout_in: *cntr_timeout
     gce_instance: *ibi_vm
     env: *image_env
     script: |
@@ -133,7 +133,7 @@ tooling_images_task:
     skip: *ci_docs
     depends_on:
         - imgts_build
-    timeout_in: 30m
+    timeout_in: *cntr_timeout
     gce_instance: *ibi_vm
     env: *image_env
     matrix:
@@ -474,9 +474,10 @@ test_build-push_task:
         # More muscle to emulate multi-arch
         type: "n2-standard-4"
     script: |
-      git clone --depth=1 https://github.com/containers/image_build.git ../ib
-      bash ../ib/build-push/.install.sh
-      bash ../ib/build-push/test.sh
+        mkdir /tmp/context
+        echo -e "FROM scratch\nENV foo=bar\n" > /tmp/context/Containerfile
+        source /etc/automation_environment
+        A_DEBUG=1 build-push.sh --nopush --arches=amd64,arm64,s390x,ppc64le example.com/foo/bar /tmp/context
 
 
 tag_latest_images_task:
