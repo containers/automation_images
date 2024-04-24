@@ -63,6 +63,7 @@ builders:
       type: 'qemu'
       accelerator: "kvm"
       qemu_binary: '/usr/libexec/qemu-kvm'  # Unique to CentOS, not fedora :(
+      memory: 1024
       iso_url: '{{user `FEDORA_IMAGE_URL`}}'
       disk_image: true
       format: "raw"
@@ -75,12 +76,12 @@ builders:
       headless: true
       # qemu_binary: "/usr/libexec/qemu-kvm"
       qemuargs:  # List-of-list format required to override packer-generated args
-        - - "-m"
-          - "1024"
+        - - "-display"
+          - "none"
         - - "-device"
           - "virtio-rng-pci"
         - - "-chardev"
-          - "tty,id=pts,path={{user `TTYDEV`}}"
+          - "file,id=pts,path={{user `TTYDEV`}}"
         - - "-device"
           - "isa-serial,chardev=pts"
         - - "-netdev"

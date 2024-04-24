@@ -1,11 +1,11 @@
-ARG CENTOS_STREAM_RELEASE=8
+ARG CENTOS_STREAM_RELEASE=9
 FROM quay.io/centos/centos:stream${CENTOS_STREAM_RELEASE}
 
 # Only needed for installing build-time dependencies
 COPY /imgts/google-cloud-sdk.repo /etc/yum.repos.d/google-cloud-sdk.repo
 RUN dnf -y update && \
     dnf -y install epel-release && \
-    dnf -y install python3 jq && \
+    dnf -y install python3 jq libxcrypt-compat && \
     dnf -y install google-cloud-sdk && \
     dnf clean all
 
