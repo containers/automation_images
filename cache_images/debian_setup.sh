@@ -21,6 +21,28 @@ source "$REPO_DIRPATH/lib.sh"
 $SUDO sed -i '/en_US.UTF-8/s/^#//g' /etc/locale.gen
 $SUDO locale-gen
 
+# Debian doesn't mount tmpfs on /tmp as default but we want this to speed tests up so
+# they don't have to write to persistent disk.
+# https://github.com/containers/podman/pull/22533
+$SUDO mkdir -p /etc/systemd/system/local-fs.target.wants/
+cat <<EOF | $SUDO tee /etc/systemd/system/tmp.mount
+[Unit]
+Description=Temporary Directory /tmp
+ConditionPathIsSymbolicLink=!/tmp
+DefaultDependencies=no
+Conflicts=umount.target
+Before=local-fs.target umount.target
+After=swap.target
+
+[Mount]
+What=tmpfs
+Where=/tmp
+Type=tmpfs
+Options=size=75%%,mode=1777
+EOF
+# enable the unit by default
+$SUDO ln -s ../tmp.mount /etc/systemd/system/local-fs.target.wants/tmp.mount
+
 req_env_vars PACKER_BUILD_NAME
 
 bash $SCRIPT_DIRPATH/debian_packaging.sh
