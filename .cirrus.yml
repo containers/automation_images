@@ -462,7 +462,9 @@ test_ccia_task:
 test_build-push_task:
     name: "Test build-push VM functions"
     alias: test_build-push
-    only_if: *is_pr
+    only_if: |
+        $CIRRUS_PR != '' &&
+        $CIRRUS_PR_LABELS !=~ ".*no_build-push.*"
     skip: *ci_docs_tooling
     depends_on:
         - cache_images
