@@ -195,20 +195,6 @@ DOWNLOAD_PACKAGES=(\
 msg "Installing general build/test dependencies"
 bigto $SUDO dnf install -y "${INSTALL_PACKAGES[@]}"
 
-# 2024-03-28 pasta 03-26 stable on some, but we want it in all
-# 2024-04-04 still not everywhere
-# 2024-04-09 the 0405 build isn't even in bodhi but needs testing
-timebomb 20240430 "pasta not yet in stable for all arches"
-if [[ "$OS_RELEASE_VER" -le 41 ]]; then
-    arch=$(uname -m)
-    n=passt
-    v=0%5E20240405.g954589b
-    r=1.fc$OS_RELEASE_VER
-    bigto $SUDO dnf install -y  \
-          https://kojipkgs.fedoraproject.org/packages/$n/$v/$r/$arch/$n-$v-$r.$arch.rpm \
-          https://kojipkgs.fedoraproject.org/packages/$n/$v/$r/noarch/$n-selinux-$v-$r.noarch.rpm
-fi
-
 msg "Downloading packages for optional installation at runtime, as needed."
 $SUDO mkdir -p "$PACKAGE_DOWNLOAD_DIR"
 cd "$PACKAGE_DOWNLOAD_DIR"
