@@ -204,7 +204,7 @@ provisioners:  # Debian images come bundled with GCE integrations provisioned
       type: 'shell'
       inline:
         - 'set -e'
-        - 'env DEBIAN_FRONTEND=noninteractive /bin/bash /var/tmp/automation_images/base_images/debian_base-setup.sh'
+        - 'env DEBIAN_FRONTEND=noninteractive DEBIAN_RELEASE={{user `DEBIAN_RELEASE`}} /bin/bash /var/tmp/automation_images/base_images/debian_base-setup.sh'
 
 post-processors:
     # Must be double-nested to guarantee execution order
