@@ -71,17 +71,13 @@ echo "Installing basic, necessary packages."
     dpkg-reconfigure dash; )
 
 # Ref: https://wiki.debian.org/DebianReleases
-# CI automation needs a *sortable* OS version/release number to select/perform/apply
-# runtime configuration and workarounds.  Since switching to Unstable/SID, a
-# numeric release version is not available. While an imperfect solution,
-# base an artificial version off the 'base-files' package version, right-padded with
-# zeros to ensure sortability (i.e. "12.02" < "12.13").
-base_files_version=$(dpkg -s base-files | awk '/Version:/{print $2}')
-base_major=$(cut -d. -f 1 <<<"$base_files_version")
-base_minor=$(cut -d. -f 2 <<<"$base_files_version")
-sortable_version=$(printf "%02d.%02d" $base_major $base_minor)
-echo "WARN: This is NOT an official version number.  It's for CI-automation purposes only."
-( set -x; echo "VERSION_ID=\"$sortable_version\"" | \
+# CI automation needs an OS version/release number for a variety of uses.
+# However, After switching to Unstable/SID, the value from the usual source
+# is not available. Simply use the value passed through packer by the Makefile.
+req_env_vars DEBIAN_RELEASE
+# shellcheck disable=SC2154
+warn "Setting '$DEBIAN_RELEASE' as the release number for CI-automation purposes."
+( set -x; echo "VERSION_ID=\"$DEBIAN_RELEASE\"" | \
     $SUDO tee -a /etc/os-release; )
 
 if ! ((CONTAINER)); then
