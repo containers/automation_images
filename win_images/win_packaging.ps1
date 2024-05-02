@@ -20,8 +20,9 @@ Set-Service -Name wuauserv -StartupType "Manual"; Check-Exit
 # a server-feature first.
 Install-WindowsFeature -Name Net-Framework-Core; Check-Exit
 
-# Install wixtoolset for installer build & test.
-retryInstall wixtoolset; Check-Exit
+# 2024-05-02 Installing wix from chocolaty isn't updating from v3 to v4
+(get-command dotnet).Path tool install --global wix
+Check-Exit
 
 # Install Hyper-V
 Enable-WindowsOptionalFeature -Online -FeatureName Microsoft-Hyper-V -All -NoRestart
