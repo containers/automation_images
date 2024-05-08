@@ -18,10 +18,10 @@ if_ci_else = $(if $(findstring true,$(CI)),$(1),$(2))
 
 ##### Important image release and source details #####
 
-export CENTOS_STREAM_RELEASE = 8
+export CENTOS_STREAM_RELEASE = 9
 
-export FEDORA_RELEASE = 39
-export PRIOR_FEDORA_RELEASE = 38
+export FEDORA_RELEASE = 40
+export PRIOR_FEDORA_RELEASE = 39
 
 # This should always be one-greater than $FEDORA_RELEASE (assuming it's actually the latest)
 export RAWHIDE_RELEASE = 41

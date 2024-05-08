@@ -119,6 +119,22 @@ INSTALL_PACKAGES=(\
 msg "Installing general build/testing dependencies"
 bigto $SUDO apt-get -q -y install "${INSTALL_PACKAGES[@]}"
 
+# 2024-05-01 Debian pasta package has a broken apparmor profile
+# ref: https://github.com/containers/automation_images/pull/349#issuecomment-2090494124
+timebomb 20240630 "Workaround for pasta apparmor blocking use of /var/tmp"
+$SUDO tee /etc/apparmor.d/usr.bin.pasta <<EOF
+abi <abi/3.0>,
+
+include <tunables/global>
+
+profile pasta /usr/bin/pasta{,.avx2} flags=(attach_disconnected) {
+  include <abstractions/pasta>
+  include <abstractions/user-tmp>
+
+  owner @{HOME}/**      w,  # pcap(), write_pidfile()
+}
+EOF
+
 # The nc installed by default is missing many required options
 $SUDO update-alternatives --set nc /usr/bin/ncat
 

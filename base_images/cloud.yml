@@ -63,6 +63,7 @@ builders:
       type: 'qemu'
       accelerator: "kvm"
       qemu_binary: '/usr/libexec/qemu-kvm'  # Unique to CentOS, not fedora :(
+      memory: 1024
       iso_url: '{{user `FEDORA_IMAGE_URL`}}'
       disk_image: true
       format: "raw"
@@ -75,12 +76,12 @@ builders:
       headless: true
       # qemu_binary: "/usr/libexec/qemu-kvm"
       qemuargs:  # List-of-list format required to override packer-generated args
-        - - "-m"
-          - "1024"
+        - - "-display"
+          - "none"
         - - "-device"
           - "virtio-rng-pci"
         - - "-chardev"
-          - "tty,id=pts,path={{user `TTYDEV`}}"
+          - "file,id=pts,path={{user `TTYDEV`}}"
         - - "-device"
           - "isa-serial,chardev=pts"
         - - "-netdev"
@@ -203,7 +204,7 @@ provisioners:  # Debian images come bundled with GCE integrations provisioned
       type: 'shell'
       inline:
         - 'set -e'
-        - 'env DEBIAN_FRONTEND=noninteractive /bin/bash /var/tmp/automation_images/base_images/debian_base-setup.sh'
+        - 'env DEBIAN_FRONTEND=noninteractive DEBIAN_RELEASE={{user `DEBIAN_RELEASE`}} /bin/bash /var/tmp/automation_images/base_images/debian_base-setup.sh'
 
 post-processors:
     # Must be double-nested to guarantee execution order

@@ -4,7 +4,7 @@
 # at the root of this repository.  It should be built with
 # the repository root as the context directory.
 
-ARG CENTOS_STREAM_RELEASE=8
+ARG CENTOS_STREAM_RELEASE=9
 FROM quay.io/centos/centos:stream${CENTOS_STREAM_RELEASE}
 ARG PACKER_VERSION
 MAINTAINER https://github.com/containers/automation_images/image_builder
