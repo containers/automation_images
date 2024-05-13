@@ -17,6 +17,12 @@ fi
 # shellcheck source=./lib.sh
 source "$REPO_DIRPATH/lib.sh"
 
+# Make /tmp tmpfs bigger, by default we only get 50%. Bump it to 75% so the tests have more storage.
+# Do not use 100% so we do not run out of memory for the process itself if tests start leaking big
+# files on /tmp.
+$SUDO mkdir -p /etc/systemd/system/tmp.mount.d
+echo -e "[Mount]\nOptions=size=75%%,mode=1777\n" | $SUDO tee /etc/systemd/system/tmp.mount.d/override.conf
+
 # packer and/or a --build-arg define this envar value uniformly
 # for both VM and container image build workflows.
 req_env_vars PACKER_BUILD_NAME
