@@ -57,6 +57,10 @@ fi
 
 nm_ignore_cni
 
+if ! ((CONTAINER)); then
+    initialize_local_cache_registry
+fi
+
 finalize
 
 echo "SUCCESS!"
