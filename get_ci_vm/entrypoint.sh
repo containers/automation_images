@@ -413,6 +413,9 @@ make_setup_tarball() {
     status "Preparing setup tarball for instance."
     req_env_vars DESTDIR _TMPDIR SRCDIR UPSTREAM_REPO
     mkdir -p "${_TMPDIR}$DESTDIR"
+    # Mark the volume-mounted source repo as safe system-wide (w/in the container)
+    git config --global --add safe.directory "$SRCDIR"
+    git config --global --add safe.directory "$SRCDIR/.git"
     # We have no way of knowing what state or configuration the user's
     # local repository is in.  Work from a local clone, so we can
     # specify our own setup and prevent unexpected script breakage.
