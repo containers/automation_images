@@ -55,7 +55,7 @@ gcloud_init() {
     then
         TMPF="$1"
     else
-        TMPF=$(mktemp -p '' .$(uuidgen)_XXXX.json)
+        TMPF=$(mktemp -p '' .XXXXXXXX)
         trap "rm -f $TMPF &> /dev/null" EXIT
         # Required variable must be set by caller
         # shellcheck disable=SC2154
