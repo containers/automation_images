@@ -56,6 +56,15 @@ Pin: version 1.35+dfsg-[23]
 Pin-Priority: -1
 EOF
 
+# 2024-05-28 Cirrus CI failures with “Agent is not responding!”
+# https://github.com/containers/podman/pull/22820#issuecomment-2135385145
+timebomb 20240615 "don't update systemd to a version which requires CGroups v2"
+$SUDO tee /etc/apt/preferences.d/$(date +%Y%m%d)-systemd <<EOF
+Package: systemd systemd-timesyncd systemd-resolved systemd-sysv libsystemd0 libsystemd-shared
+Pin: version 256~rc3-4
+Pin-Priority: -1
+EOF
+
 # Workaround 12->13 forward-incompatible change in grub scripts.
 # Without this, updating to the SID kernel may fail.
 echo "Upgrading grub-common"
