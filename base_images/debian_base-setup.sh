@@ -60,9 +60,9 @@ EOF
 # https://github.com/containers/podman/pull/22820#issuecomment-2135385145
 timebomb 20240615 "don't update systemd to a version which requires CGroups v2"
 $SUDO tee /etc/apt/preferences.d/$(date +%Y%m%d)-systemd <<EOF
-Package: systemd systemd-timesyncd systemd-resolved systemd-sysv libsystemd0 libsystemd-shared
-Pin: version 256~rc3-4
-Pin-Priority: -1
+Package: systemd systemd-timesyncd systemd-resolved systemd-sysv libsystemd0 libsystemd-shared libudev1
+Pin: version 255.5-1
+Pin-Priority: 900
 EOF
 
 # Workaround 12->13 forward-incompatible change in grub scripts.
