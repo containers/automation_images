@@ -9,8 +9,9 @@ fi
 
 # This envar is set by the CI system
 # shellcheck disable=SC2154
-if [[ "$CIRRUS_CHANGE_TITLE" =~ .*CI:DOCS.* ]]; then
-    echo "This script must never run after a [CI:DOCS] PR merge"
+if [[ "$CIRRUS_CHANGE_MESSAGE" =~ .*CI:DOCS.* ]]; then
+    echo "This script must never tag anything after a [CI:DOCS] PR merge"
+    exit 0
 fi
 
 # Ensure no secrets leak via debugging var expansion
@@ -23,7 +24,7 @@ echo "$REG_PASSWORD" | \
 declare -a imgnames
 imgnames=( imgts imgobsolete imgprune gcsupld get_ci_vm orphanvms ccia )
 # A [CI:TOOLING] build doesn't produce CI VM images
-if [[ ! "$CIRRUS_CHANGE_TITLE" =~ .*CI:TOOLING.* ]]; then
+if [[ ! "$CIRRUS_CHANGE_MESSAGE" =~ .*CI:TOOLING.* ]]; then
     imgnames+=( skopeo_cidev fedora_podman prior-fedora_podman )
 fi
 
