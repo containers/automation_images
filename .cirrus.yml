@@ -485,7 +485,9 @@ test_build-push_task:
 tag_latest_images_task:
     alias: tag_latest_images
     name: "Tag latest built container images."
-    only_if: $CIRRUS_BRANCH == $CIRRUS_DEFAULT_BRANCH
+    only_if: |
+        $CIRRUS_CRON == '' &&
+        $CIRRUS_BRANCH == $CIRRUS_DEFAULT_BRANCH
     skip: *ci_docs
     gce_instance: *ibi_vm
     env: *image_env
