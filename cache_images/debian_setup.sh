@@ -49,8 +49,7 @@ bash $SCRIPT_DIRPATH/debian_packaging.sh
 
 if ! ((CONTAINER)); then
     warn "Making Debian kernel enable cgroup swap accounting"
-    warn "Forcing CgroupsV1"
-    SEDCMD='s/^GRUB_CMDLINE_LINUX="(.*)"/GRUB_CMDLINE_LINUX="\1 cgroup_enable=memory swapaccount=1 systemd.unified_cgroup_hierarchy=0"/'
+    SEDCMD='s/^GRUB_CMDLINE_LINUX="(.*)"/GRUB_CMDLINE_LINUX="\1 cgroup_enable=memory swapaccount=1"/'
     ooe.sh $SUDO sed -re "$SEDCMD" -i /etc/default/grub.d/*
     ooe.sh $SUDO sed -re "$SEDCMD" -i /etc/default/grub
     ooe.sh $SUDO update-grub

@@ -12,7 +12,7 @@ if [[ "$UID" -ne 0 ]]; then
     export SUDO="sudo env DEBIAN_FRONTEND=noninteractive"
 fi
 
-EVIL_UNITS="cron crond atd apt-daily-upgrade apt-daily fstrim motd-news systemd-tmpfiles-clean update-notifier-download mlocate-updatedb"
+EVIL_UNITS="cron crond atd apt-daily-upgrade apt-daily fstrim motd-news systemd-tmpfiles-clean update-notifier-download mlocate-updatedb plocate-updatedb"
 
 if [[ "$1" == "--list" ]]
 then

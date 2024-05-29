@@ -68,6 +68,10 @@ sed -i -e 's/\[\[ "\${go_version\[2]}" < "go1.5" ]]/false/' ./hack/common.sh
 # 8 characters long.  This can happen if/when systemd-resolved adds 'trust-ad'.
 sed -i  '/== "attempts:"/s/ 8 / 9 /' vendor/github.com/miekg/dns/clientconfig.go
 
+# Backport https://github.com/ugorji/go/commit/8286c2dc986535d23e3fad8d3e816b9dd1e5aea6
+# Go ≥ 1.22 panics with a base64 encoding using duplicated characters.
+sed -i -e 's,"encoding/base64","encoding/base32", ; s,base64.NewEncoding("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789__"),base32.NewEncoding("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdef"),' vendor/github.com/ugorji/go/codec/gen.go
+
 make build
 make all WHAT=cmd/dockerregistry
 cp -a ./_output/local/bin/linux/*/* /usr/local/bin/

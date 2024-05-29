@@ -101,7 +101,6 @@ INSTALL_PACKAGES=(\
     lsof
     make
     man-db
-    mlocate
     msitools
     nfs-utils
     nmap-ncat
