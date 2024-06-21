@@ -39,6 +39,10 @@ $SUDO sed -i -r -e 's/^gpgcheck=.+/gpgcheck=0/' /etc/yum.repos.d/*.repo
 $SUDO dnf5 -y distro-sync --releasever=rawhide --allowerasing
 $SUDO dnf5 upgrade -y
 
+# As of May 2024 composefs is heating up
+timebomb 20241231 "At some point, composefs should be available on all fedoras"
+$SUDO dnf5 -y install composefs
+
 # A shared fedora_packaging.sh script is called next that doesn't always support dnf5
 $SUDO ln -s $(type -P dnf5) /usr/local/bin/dnf
 

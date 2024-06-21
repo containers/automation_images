@@ -140,7 +140,7 @@ timebomb-check:
 	@now=$$(date --utc +%Y%m%d); \
 	    found=; \
 	    while read -r bomb; do \
-	        when=$$(echo "$$bomb" | awk '{print $$2}'); \
+	        when=$$(echo "$$bomb" | sed -e 's/^.*timebomb \([0-9]\+\).*/\1/'); \
 	        if [ $$when -le $$now ]; then \
 	            echo "$$bomb"; \
 	            found=found; \

@@ -208,3 +208,11 @@ cd -
 
 # It was observed in F33, dnf install doesn't always get you the latest/greatest
 lilto $SUDO dnf update -y
+
+# Gah. FIXME 2024-06-20: rawhide now includes rpm-plugin-ima,
+# which causes rootless podman pods to fail.
+# https://github.com/containers/podman/issues/18543
+if ! ((CONTAINER)); then
+    timebomb 20240710 "Temporary workaround for signed rpms (ima) in rawhide"
+    $SUDO setfattr -x  security.ima /usr/libexec/catatonit/catatonit || true
+fi
