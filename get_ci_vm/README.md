@@ -5,6 +5,36 @@ This directory contains the source for building [the
 This image image is used by many containers-org repos. `hack/get_ci_vm.sh` script.
 It is not intended to be called via any other mechanism.
 
+In general/high-level terms, the architecture and operation is:
+
+1. [containers/automation hosts cirrus-ci_env](https://github.com/containers/automation/tree/main/cirrus-ci_env),
+   a python mini-implementation of a `.cirrus.yml` parser. It's only job is to extract all required envars,
+   given a task name (including from a matrix element).  It's highly dependent on
+   [certain YAML formatting requirements](README.md#downstream-repository-cirrusyml-requirements).  If the target
+   repo. doesn't follow those standards, nasty/ugly python errors will vomit forth.  Mainly this has to do with
+   Cirrus-CI's use of a non-standard YAML parser, allowing things like certain duplicate dictionary keys.
+1. [containers/automation_images hosts get_ci_vm](https://github.com/containers/automation_images/tree/main/get_ci_vm),
+   a bundling of the `cirrus-ci_env` python script with an `entrypoint.sh` script inside a container image.
+1. When a user runs `hack/get_ci_vm.sh` inside a target repo, the container image is entered, and `.cirrus.yml`
+   is parsed based on the CLI task-name.  A VM is then provisioned based on specific envars (see the "Env. Vars."
+   entries in the sections for [APIv1](README.md#env-vars) and [APIv2](README.md#env-vars-1) sections below).
+   This is the most complex part of the process.
+1. The remote system will not have **any** of the otherwise automatic Cirrus-CI operations performed (like "clone")
+   nor any magic CI variables defined.  Having a VM ready, the container entrypoint script transfers a copy of
+   the local repo (including any uncommited changes).
+1. The container entrypoint script then performs **_remote_** execution of the `hack/get_ci_vm.sh` script
+   including the magic `--setup` parameter.  Though it varies by repo, typically this will establish everything
+   necessary to simulate a CI environment, via a call to the repo's own `setup.sh` or equivalent.  Typically
+   The repo's setup scripts will persist any required envars into a `/etc/ci_environment` or similar.  Though
+   this isn't universal.
+1. Lastly, the user is dropped into a shell on the VM, inside the repo copy, with all envars defined and
+   ready to start running tests.
+
+_Note_:  If there are any envars found to be missing, they must be defined by updating either the repo normal CI
+setup scripts (preferred), or in the `hack/get_ci_vm.sh` `--setup` section.
+
+# Building
+
 Example build (from repository root):
 
 ```bash
