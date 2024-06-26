@@ -52,7 +52,7 @@ However, all steps are listed below for completeness.
 For more information on the overall process of importing custom GCE VM
 Images, please [refer to the documentation](https://cloud.google.com/compute/docs/import/import-existing-image).  For references to the latest pre-build AWS
 EC2 Fedora AMI's see [the
-upstream cloud page](https://alt.fedoraproject.org/cloud/).
+upstream cloud page](https://fedoraproject.org/cloud/download).
 For more information on the primary tool (*packer*) used for this process,
 please [see it's documentation page](https://www.packer.io/docs).
 

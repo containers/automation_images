@@ -11,7 +11,7 @@ set -e
 # shellcheck source=imgts/lib_entrypoint.sh
 source /usr/local/bin/lib_entrypoint.sh
 
-req_env_vars GCPJSON GCPNAME GCPPROJECT AWSINI IMG_SFX IMPORT_IMG_SFX
+req_env_vars GCPJSON GCPNAME GCPPROJECT AWSINI IMG_SFX
 
 gcloud_init
 
@@ -48,7 +48,7 @@ $GCLOUD compute images list --show-deprecated \
         # Any image matching the currently in-use IMG_SFX must always be preserved.
         # Values are defined in cirrus.yml
         # shellcheck disable=SC2154
-        if [[ "$name" =~ $IMG_SFX ]] || [[ "$name" =~ $IMPORT_IMG_SFX ]]; then
+        if [[ "$name" =~ $IMG_SFX ]]; then
             msg "    Skipping current (latest) image $name"
             continue
         fi
@@ -91,9 +91,9 @@ for (( i=nr_amis ; i ; i-- )); do
         warn 0 "    EC2 AMI ID '$ami_id' is missing a 'Name' tag"
     fi
 
-    # Any image matching the currently in-use IMG_SFX or IMPORT_IMG_SFX
+    # Any image matching the currently in-use IMG_SFX
     # must always be preserved.
-    if [[ "$name" =~ $IMG_SFX ]] || [[ "$name" =~ $IMPORT_IMG_SFX ]]; then
+    if [[ "$name" =~ $IMG_SFX ]]; then
         warn 0 "    Retaining current (latest) image $name id $ami_id"
         $AWS ec2 disable-image-deprecation --image-id "$ami_id" > /dev/null
         continue

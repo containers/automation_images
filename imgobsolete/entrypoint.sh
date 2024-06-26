@@ -11,7 +11,7 @@ set -eo pipefail
 # shellcheck source=imgts/lib_entrypoint.sh
 source /usr/local/bin/lib_entrypoint.sh
 
-req_env_vars GCPJSON GCPNAME GCPPROJECT AWSINI IMG_SFX IMPORT_IMG_SFX
+req_env_vars GCPJSON GCPNAME GCPPROJECT AWSINI IMG_SFX
 
 gcloud_init
 
@@ -159,10 +159,10 @@ for (( i=nr_amis ; i ; i-- )); do
         continue
     fi
 
-    # Any image matching the currently in-use IMG_SFX or IMPORT_IMG_SFX
+    # Any image matching the currently in-use IMG_SFX
     # must always be preserved.  Values are defined in cirrus.yml
     # shellcheck disable=SC2154
-    if [[ "$name" =~ $IMG_SFX ]] || [[ "$name" =~ $IMPORT_IMG_SFX ]]; then
+    if [[ "$name" =~ $IMG_SFX ]]; then
         msg "Retaining current (latest) image $name | $tags"
         continue
     fi
