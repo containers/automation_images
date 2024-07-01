@@ -1,0 +1,43 @@
+# See https://pre-commit.com for more information
+# See https://pre-commit.com/hooks.html for more hooks
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.6.0
+    hooks:
+      - id: trailing-whitespace
+      - id: end-of-file-fixer
+      - id: check-yaml
+      - id: check-added-large-files
+      - id: check-symlinks
+      - id: mixed-line-ending
+      - id: no-commit-to-branch
+        args: [--branch, main]
+  - repo: https://github.com/codespell-project/codespell
+    rev: v2.3.0
+    hooks:
+      - id: codespell
+        args: [--config, .codespellrc]
+  - repo: https://github.com/jumanjihouse/pre-commit-hooks
+    rev: 3.0.0
+    hooks:
+      - id: forbid-binary
+        exclude: >
+          (?x)^(
+            get_ci_vm/good_repo_test/dot_git.tar.gz
+          )$
+      - id: script-must-have-extension
+      - id: shellcheck
+        # These come from ci/shellcheck.sh
+        args:
+            - --color=always
+            - --format=tty
+            - --shell=bash
+            - --external-sources
+            - --enable=add-default-case,avoid-nullary-conditions,check-unassigned-uppercase
+            - --exclude=SC2046,SC2034,SC2090,SC2064
+            - --wiki-link-count=0
+            - --severity=warning
+  - repo: https://github.com/containers/automation_images.git
+    rev: 2e5a2acfe21cc4b13511b453733b8875e592ad9c
+    hooks:
+      - id: check-imgsfx

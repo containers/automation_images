@@ -5,7 +5,7 @@ set -e
 RED="\e[1;31m"
 YEL="\e[1;33m"
 NOR="\e[0m"
-SENTINEL="__unknown__"  # default set in dockerfile
+SENTINEL="__unknown__"  # default set in Containerfile
 # Disable all input prompts
 # https://cloud.google.com/sdk/docs/scripting-gcloud
 GCLOUD="gcloud --quiet"
