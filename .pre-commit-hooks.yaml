@@ -1,0 +1,20 @@
+---
+
+# Ref: https://pre-commit.com/#creating-new-hooks
+- id: check-imgsfx
+  name: Check IMG_SFX for accidental reuse.
+  description: |
+    Every PR intended to produce CI VM or container images must update
+    the `IMG_SFX` file via `make IMG_SFX`.  The exact value will be
+    validated against global suffix usage (encoded as tags on the
+    `imgts` container image).  This pre-commit hook verifies on every
+    push, the IMG_SFX file's value has not been pushed previously.
+    It's intended as a simple/imperfect way to save developers time
+    by avoiding force-pushes that will most certainly fail validation.
+  entry: ./check-imgsfx.sh
+  language: system
+  exclude: '.*'  # Not examining any specific file/dir/link
+  always_run: true  # ignore no matching files
+  fail_fast: true
+  pass_filenames: false
+  stages: ["pre-push"]
