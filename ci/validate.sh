@@ -13,7 +13,7 @@ REPO_DIRPATH=$(realpath "$SCRIPT_DIRPATH/../")
 # shellcheck source=./lib.sh
 source "$REPO_DIRPATH/lib.sh"
 
-req_env_vars CIRRUS_PR CIRRUS_BASE_SHA CIRRUS_PR_TITLE CIRRUS_USER_PERMISSION
+req_env_vars CIRRUS_PR CIRRUS_PR_TITLE CIRRUS_USER_PERMISSION CIRRUS_BASE_BRANCH
 
 show_env_vars
 
@@ -52,17 +52,20 @@ if [[ "$CIRRUS_PR_TITLE" =~ CI:DOCS ]]; then
   exit 0
 fi
 
-# Variable is defined by Cirrus-CI at runtime
+# Fix "Not a valid object name main" error from Cirrus's
+# incomplete checkout.
+git remote update origin
+# Determine where PR branched off of $CIRRUS_BASE_BRANCH
 # shellcheck disable=SC2154
-if ! git diff --name-only ${CIRRUS_BASE_SHA}..HEAD | grep -q IMG_SFX; then
+base_sha=$(git merge-base origin/${CIRRUS_BASE_BRANCH:-main} HEAD)
 
+if ! git diff --name-only ${base_sha}..HEAD | grep -q IMG_SFX; then
   die "Every PR that builds images must include an updated IMG_SFX file.
 Simply run 'make IMG_SFX', commit the result, and re-push."
 else
   IMG_SFX="$(<./IMG_SFX)"
   # IMG_SFX was modified vs PR's base-branch, confirm version moved forward
-  # shellcheck disable=SC2154
-  v_prev=$(git show ${CIRRUS_BASE_SHA}:IMG_SFX 2>&1 || true)
+  v_prev=$(git show ${base_sha}:IMG_SFX 2>&1 || true)
   # Verify new IMG_SFX value always version-sorts later than previous value.
   # This prevents screwups due to local timezone, bad, or unset clocks, etc.
   new_img_ver=$(awk -F 't' '{print $1"."$2}'<<<"$IMG_SFX" | cut -dz -f1)
