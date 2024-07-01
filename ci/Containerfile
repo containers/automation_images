@@ -1,4 +1,4 @@
-# This dockerfile defines the environment for Cirrus-CI when
+# This Containerfile defines the environment for Cirrus-CI when
 # running automated checks and tests. It may also be used
 # for development/debugging or manually building most
 # Makefile targets.
@@ -13,7 +13,7 @@ ENV CIRRUS_WORKING_DIR=/var/tmp/automation_images \
     PACKER_VERSION=$PACKER_VERSION \
     CONTAINER=1
 
-# When using the dockerfile-as-ci feature of Cirrus-CI, it's unsafe
+# When using the containerfile-as-ci feature of Cirrus-CI, it's unsafe
 # to rely on COPY or ADD instructions.  See documentation for warning.
 RUN test -n "$PACKER_VERSION"
 RUN dnf update -y && \

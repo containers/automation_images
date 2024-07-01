@@ -1,0 +1,4 @@
+[codespell]
+ignore-words = .codespellignore
+dictionary = .codespelldict
+quiet-level = 3

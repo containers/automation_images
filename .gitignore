@@ -1,2 +1,3 @@
 */*.json
 /.cache
+.pre-commit-config.yaml
