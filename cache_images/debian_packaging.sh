@@ -119,39 +119,6 @@ INSTALL_PACKAGES=(\
 msg "Installing general build/testing dependencies"
 bigto $SUDO apt-get -q -y install "${INSTALL_PACKAGES[@]}"
 
-# 2024-05-01 Debian pasta package has a broken apparmor profile for our test
-# ref: https://github.com/containers/podman/issues/22625
-timebomb 20240630 "Workaround for pasta apparmor blocking use of /tmp"
-$SUDO tee /etc/apparmor.d/usr.bin.pasta <<EOF
-# SPDX-License-Identifier: GPL-2.0-or-later
-#
-# PASST - Plug A Simple Socket Transport
-#  for qemu/UNIX domain socket mode
-#
-# PASTA - Pack A Subtle Tap Abstraction
-#  for network namespace/tap device mode
-#
-# contrib/apparmor/usr.bin.pasta - AppArmor profile for pasta(1)
-#
-# Copyright (c) 2022 Red Hat GmbH
-# Author: Stefano Brivio <sbrivio@redhat.com>
-
-abi <abi/3.0>,
-
-include <tunables/global>
-
-profile pasta /usr/bin/pasta{,.avx2} flags=(attach_disconnected) {
-  include <abstractions/pasta>
-
-  # Alternatively: include <abstractions/user-tmp>
-  /tmp/**                         rw,      # tap_sock_unix_init(), pcap(),
-                                                # write_pidfile(),
-                                                # logfile_init()
-
-  owner @{HOME}/**                      w,      # pcap(), write_pidfile()
-}
-EOF
-
 # The nc installed by default is missing many required options
 $SUDO update-alternatives --set nc /usr/bin/ncat
 

@@ -14,14 +14,16 @@ retryInstall git archiver psexec golang mingw StrawberryPerl; Check-Exit
 # Update service is required for dotnet
 Set-Service -Name wuauserv -StartupType "Manual"; Check-Exit
 
-# dotnet is required for wixtoolset
-# Allowing chocolaty to install dotnet breaks in an entirely
-# non-debuggable way.  Workaround this by installing it as
-# a server-feature first.
-Install-WindowsFeature -Name Net-Framework-Core; Check-Exit
+# Install dotnet as that's the best way to install WiX 4+
+# Choco does not support installing anything over WiX 3.14
+Invoke-WebRequest -Uri https://dotnet.microsoft.com/download/dotnet/scripts/v1/dotnet-install.ps1 -OutFile dotnet-install.ps1
+.\dotnet-install.ps1 -InstallDir 'C:\Program Files\dotnet'
 
-# Install wixtoolset for installer build & test.
-retryInstall wixtoolset; Check-Exit
+# Configure NuGet sources for dotnet to fetch wix (and other packages) from
+& 'C:\Program Files\dotnet\dotnet.exe' nuget add source https://api.nuget.org/v3/index.json -n nuget.org
+
+# Install wix
+& 'C:\Program Files\dotnet\dotnet.exe' tool install --global wix
 
 # Install Hyper-V
 Enable-WindowsOptionalFeature -Online -FeatureName Microsoft-Hyper-V -All -NoRestart
