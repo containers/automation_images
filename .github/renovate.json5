@@ -43,7 +43,7 @@
     {
       "customType": "regex",
       "fileMatch": "^lib.sh$",
-      "matchStrings": ["^INSTALL_AUTOMATION_VERSION=\"(?<currentValue>.+)\""],
+      "matchStrings": ["INSTALL_AUTOMATION_VERSION=\"(?<currentValue>.+)\""],
       "depNameTemplate": "containers/automation",
       "datasourceTemplate": "github-tags",
       "versioningTemplate": "semver-coerced",
@@ -59,7 +59,7 @@
     // (for example) github-action updates.
     {
       "matchManagers": ["custom.regex"],
-      "matchFileNames": ["^lib.sh$"],
+      "matchFileNames": ["lib.sh"],
       "schedule": ["at any time"],
       "commitMessagePrefix": null,
       "draftPR": true,
