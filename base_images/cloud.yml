@@ -26,8 +26,6 @@ variables:  # Empty value means it must be passed in on command-line
     PRIOR_FEDORA_IMAGE_URL: "{{env `PRIOR_FEDORA_IMAGE_URL`}}"
     PRIOR_FEDORA_CSUM_URL: "{{env `PRIOR_FEDORA_CSUM_URL`}}"
 
-    FEDORA_IMPORT_IMG_SFX: "{{env `FEDORA_IMPORT_IMG_SFX`}}"
-
     DEBIAN_RELEASE: "{{env `DEBIAN_RELEASE`}}"
     DEBIAN_BASE_FAMILY: "{{env `DEBIAN_BASE_FAMILY`}}"
 
@@ -109,20 +107,18 @@ builders:
     - &fedora-aws
       name: 'fedora-aws'
       type: 'amazon-ebs'
-      source_ami_filter:  # Will fail if >1 or no AMI found
+      source_ami_filter:
+        # Many of these search filter values (like account ID and name) aren't publicized
+        # anywhere.  They were found by examining AWS EC2 AMIs published/referenced from
+        # the AWS sections on https://fedoraproject.org/cloud/download
         owners:
-            # Docs are wrong, specifying the Account ID required to make AMIs private.
-            # The Account ID is hard-coded here out of expediency, since passing in
-            # more packer args from the command-line (in Makefile) is non-trivial.
-            - &accountid '449134212816'
-        # It's necessary to 'search' for the base-image by these criteria.  If
-        # more than one image is found, Packer will fail the build (and display
-        # the conflicting AMI IDs).
+            - &fedora_accountid 125523088429
+        most_recent: true  # Required b/c >1 search result likely to be returned
         filters: &ami_filters
             architecture: 'x86_64'
             image-type: 'machine'
-            is-public: 'false'
-            name: '{{build_name}}-i{{user `FEDORA_IMPORT_IMG_SFX`}}'
+            is-public: 'true'
+            name: 'Fedora-Cloud-Base*-{{user `FEDORA_RELEASE`}}-*us-east-1*'
             root-device-type: 'ebs'
             state: 'available'
             virtualization-type: 'hvm'
@@ -146,7 +142,6 @@ builders:
           volume_type: 'gp2'
           delete_on_termination: true
       # These are critical and used by security-polciy to enforce instance launch limits.
-
       tags: &awstags
         <<: *imgcpylabels
         # EC2 expects "Name" to be capitalized
@@ -160,7 +155,7 @@ builders:
       # This is necessary for security - The CI service accounts are not permitted
       # to use AMI's from any other account, including public ones.
       ami_users:
-        - *accountid
+        - &accountid '449134212816'
       ssh_username: 'fedora'
       ssh_clear_authorized_keys: true
       # N/B: Required Packer >= 1.8.0
@@ -171,7 +166,8 @@ builders:
       name: 'fedora-aws-arm64'
       source_ami_filter:
         owners:
-            - *accountid
+            - *fedora_accountid
+        most_recent: true  # Required b/c >1 search result likely to be returned
         filters:
             <<: *ami_filters
             architecture: 'arm64'
