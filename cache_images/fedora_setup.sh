@@ -49,6 +49,8 @@ if ! ((CONTAINER)); then
     else
         msg "Enabling cgroup management from containers"
         ooe.sh $SUDO setsebool -P container_manage_cgroup true
+
+        initialize_local_cache_registry
     fi
 fi
 

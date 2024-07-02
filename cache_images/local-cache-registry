@@ -1,0 +1,341 @@
+#! /bin/bash
+#
+# local-cache-registry - set up and manage a local registry with cached images
+#
+# Used in containers CI, to reduce exposure to registry flakes.
+#
+# We start with the docker registry image. Pull it, extract the registry
+# binary and config, tweak the config, and create a systemd unit file that
+# will start the registry at boot.
+#
+# We also populate that registry with a (hardcoded) list of container
+# images used in CI tests. That way a CI VM comes up alreay ready,
+# and CI tests do not need to do remote pulls. The image list is
+# hardcoded right here in this script file, in the automation_images
+# repo. See below for reasons.
+#
+ME=$(basename $0)
+
+###############################################################################
+# BEGIN defaults
+
+# FQIN of registry image. From this image, we extract the registry to run.
+PODMAN_REGISTRY_IMAGE=quay.io/libpod/registry:2.8.2
+
+# Fixed path to registry setup. This is the directory used by the registry.
+PODMAN_REGISTRY_WORKDIR=/var/cache/local-registry
+
+# Fixed port on which registry listens. This is hardcoded and must be
+# shared knowledge among all CI repos that use this registry.
+REGISTRY_PORT=60333
+
+# Podman binary to run
+PODMAN=${PODMAN:-/usr/bin/podman}
+
+# Temporary directories for podman, so we don't clobber any system files.
+# Wipe them upon script exit.
+PODMAN_TMPROOT=$(mktemp -d --tmpdir $ME.XXXXXXX)
+trap 'status=$?; rm -rf $PODMAN_TMPROOT && exit $status' 0
+
+# Images to cache. Default prefix is "quay.io/libpod/"
+#
+# It seems evil to hardcode this list as part of the script itself
+# instead of a separate file or resource but there's a good reason:
+# keeping code and data together in one place makes it possible for
+# a podman (and some day other repo?) developer to run a single
+# command, contrib/cirrus/get-local-registry-script, which will
+# fetch this script and allow the dev to run it to start a local
+# registry on their system.
+#
+# As of 2024-07-02 this list includes podman and buildah images
+#
+# FIXME: periodically run this to look for no-longer-needed images:
+#
+#     for i in $(sed -ne '/IMAGELIST=/,/^[^ ]/p' <cache_images/local-cache-registry | sed -ne 's/^  *//p');do grep -q -R $i ../podman/test ../buildah/tests || echo "unused $i";done
+#
+declare -a IMAGELIST=(
+    alpine:3.10.2
+    alpine:latest
+    alpine_healthcheck:latest
+    alpine_nginx:latest
+    alpine@sha256:634a8f35b5f16dcf4aaa0822adc0b1964bb786fca12f6831de8ddc45e5986a00
+    alpine@sha256:f270dcd11e64b85919c3bab66886e59d677cf657528ac0e4805d3c71e458e525
+    alpine@sha256:fa93b01658e3a5a1686dc3ae55f170d8de487006fb53a28efcd12ab0710a2e5f
+    autoupdatebroken:latest
+    badhealthcheck:latest
+    busybox:1.30.1
+    busybox:glibc
+    busybox:latest
+    busybox:musl
+    cirros:latest
+    fedora/python-311:latest
+    healthcheck:config-only
+    k8s-pause:3.5
+    podman_python:latest
+    redis:alpine
+    registry:2.8.2
+    registry:volume_omitted
+    systemd-image:20240124
+    testdigest_v2s2
+    testdigest_v2s2:20200210
+    testimage:00000000
+    testimage:00000004
+    testimage:20221018
+    testimage:20240123
+    testimage:multiimage
+    testimage@sha256:1385ce282f3a959d0d6baf45636efe686c1e14c3e7240eb31907436f7bc531fa
+    testdigest_v2s2:20200210
+    testdigest_v2s2@sha256:755f4d90b3716e2bf57060d249e2cd61c9ac089b1233465c5c2cb2d7ee550fdb
+    volume-plugin-test-img:20220623
+    podman/stable:v4.3.1
+    podman/stable:v4.8.0
+    skopeo/stable:latest
+    ubuntu:latest
+)
+
+# END   defaults
+###############################################################################
+# BEGIN help messages
+
+missing=" argument is missing; see $ME -h for details"
+usage="Usage: $ME [options] [initialize | cache IMAGE...]
+
+$ME manages a local instance of a container registry.
+
+When called to initialize a registry, $ME will pull
+this image into a local temporary directory:
+
+   $PODMAN_REGISTRY_IMAGE
+
+...then extract the registry binary and config, tweak the config,
+start the registry, and populate it with a list of images needed by tests:
+
+    \$ $ME initialize
+
+To fetch individual images into the cache:
+
+    \$ $ME cache libpod/testimage:21120101
+
+Override the default image and/or port with:
+
+  -i IMAGE      registry image to pull (default: $PODMAN_REGISTRY_IMAGE)
+  -P PORT       port to bind to (on 127.0.0.1) (default: $REGISTRY_PORT)
+
+Other options:
+
+  -h            display usage message
+"
+
+die () {
+    echo "$ME: $*" >&2
+    exit 1
+}
+
+# END   help messages
+###############################################################################
+# BEGIN option processing
+
+while getopts "i:P:hv" opt; do
+    case "$opt" in
+        i)         PODMAN_REGISTRY_IMAGE=$OPTARG ;;
+        P)         REGISTRY_PORT=$OPTARG  ;;
+        h)         echo "$usage"; exit 0;;
+        v)         verbose=1 ;;
+        \?)        echo "Run '$ME -h' for help" >&2; exit 1;;
+    esac
+done
+shift $((OPTIND-1))
+
+# END   option processing
+###############################################################################
+# BEGIN helper functions
+
+function podman() {
+    ${PODMAN} --root    ${PODMAN_TMPROOT}/root        \
+              --runroot ${PODMAN_TMPROOT}/runroot     \
+              --tmpdir  ${PODMAN_TMPROOT}/tmp         \
+              "$@"
+}
+
+###############
+#  must_pass  #  Run a command quietly; abort with error on failure
+###############
+function must_pass() {
+    local log=${PODMAN_TMPROOT}/log
+
+    "$@" &> $log
+    if [ $? -ne 0 ]; then
+        echo "$ME: Command failed: $*" >&2
+        cat $log                       >&2
+
+        # If we ever get here, it's a given that the registry is not running.
+        exit 1
+    fi
+}
+
+###################
+#  wait_for_port  #  Returns once port is available on localhost
+###################
+function wait_for_port() {
+    local port=$1                      # Numeric port
+
+    local host=127.0.0.1
+    local _timeout=5
+
+    # Wait
+    while [ $_timeout -gt 0 ]; do
+        { exec {unused_fd}<> /dev/tcp/$host/$port; } &>/dev/null && return
+        sleep 1
+        _timeout=$(( $_timeout - 1 ))
+    done
+
+    die "Timed out waiting for port $port"
+}
+
+#################
+#  cache_image  #  (singular) fetch one remote image
+#################
+function cache_image() {
+    local img=$1
+
+    # Almost all our images are under libpod; no need to repeat that part
+    if ! expr "$img" : "^\(.*\)/" >/dev/null; then
+        img="libpod/$img"
+    fi
+
+    # Almost all our images are from quay.io, but "domain.tld" prefix overrides
+    registry=$(expr "$img" : "^\([^/.]\+\.[^/]\+\)/" || true)
+    if [[ -n "$registry" ]]; then
+        img=$(expr "$img" : "[^/]\+/\(.*\)")
+    else
+        registry=quay.io
+    fi
+
+    echo
+    echo "...caching: $registry / $img"
+
+    # FIXME: inspect, and only pull if missing?
+
+    for retry in 1 2 3 0;do
+        skopeo --registries-conf /dev/null \
+               copy --all --dest-tls-verify=false \
+               docker://$registry/$img \
+               docker://127.0.0.1:${REGISTRY_PORT}/$img \
+            && return
+
+        sleep $((retry * 30))
+    done
+
+    die "Too many retries; unable to cache $registry/$img"
+}
+
+##################
+#  cache_images  #  (plural) fetch all remote images
+##################
+function cache_images() {
+    for img in "${IMAGELIST[@]}"; do
+        cache_image "$img"
+    done
+}
+
+# END   helper functions
+###############################################################################
+# BEGIN action processing
+
+###################
+#  do_initialize  #  Start, then cache images
+###################
+#
+# Intended to be run only from automation_images repo, or by developer
+# on local workstation. This should never be run from podman/buildah/etc
+# because it defeats the entire purpose of the cache -- a dead registry
+# will cause this to fail.
+#
+function do_initialize() {
+    # This action can only be run as root
+    if [[ "$(id -u)" != "0" ]]; then
+        die "this script must be run as root"
+    fi
+
+    # For the next few commands, die on any error
+    set -e
+
+    mkdir -p ${PODMAN_REGISTRY_WORKDIR}
+
+    # Copy of this script
+    if ! [[ $0 =~ ${PODMAN_REGISTRY_WORKDIR} ]]; then
+        rm -f ${PODMAN_REGISTRY_WORKDIR}/$ME
+        cp $0 ${PODMAN_REGISTRY_WORKDIR}/$ME
+    fi
+
+    # Give it three tries, to compensate for flakes
+    podman pull ${PODMAN_REGISTRY_IMAGE}      &>/dev/null ||
+        podman pull ${PODMAN_REGISTRY_IMAGE}  &>/dev/null ||
+        must_pass podman pull ${PODMAN_REGISTRY_IMAGE}
+
+    # Mount the registry image...
+    registry_root=$(podman image mount ${PODMAN_REGISTRY_IMAGE})
+
+    # ...copy the registry binary into our own bin...
+    cp ${registry_root}/bin/registry /usr/bin/docker-registry
+
+    # ...and copy the config, making a few adjustments to it.
+    sed -e "s;/var/lib/registry;${PODMAN_REGISTRY_WORKDIR};" \
+        -e "s;:5000;127.0.0.1:${REGISTRY_PORT};" \
+        < ${registry_root}/etc/docker/registry/config.yml \
+        > /etc/local-registry.yml
+    podman image umount -a
+
+    # Create a systemd unit file. Enable it (so it starts at boot)
+    # and also start it --now.
+    cat > /etc/systemd/system/$ME.service <<EOF
+[Unit]
+Description=Local Cache Registry for CI tests
+
+[Service]
+ExecStart=/usr/bin/docker-registry serve /etc/local-registry.yml
+Type=exec
+
+[Install]
+WantedBy=multi-user.target
+EOF
+
+    systemctl daemon-reload
+    systemctl enable --now $ME.service
+
+    wait_for_port ${REGISTRY_PORT}
+
+    cache_images
+}
+
+##############
+#  do_cache  #  Cache one or more images
+##############
+function do_cache() {
+    if [[ -z "$*" ]]; then
+        die "missing args to 'cache'"
+    fi
+
+    for img in "$@"; do
+        cache_image "$img"
+    done
+}
+
+# END   action processing
+###############################################################################
+# BEGIN command-line processing
+
+# First command-line arg must be an action
+action=${1?ACTION$missing}
+shift
+
+case "$action" in
+    init|initialize)  do_initialize ;;
+    cache)            do_cache "$@" ;;
+    *)      die "Unknown action '$action'; must be init | cache IMAGE" ;;
+esac
+
+# END   command-line processing
+###############################################################################
+
+exit 0
