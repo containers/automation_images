@@ -377,7 +377,8 @@ infinite-growth of the VM image count.
 Because the entire automated build process is containerized, it may easily be
 performed locally on your laptop/workstation.  However, this process will
 still involve interfacing with GCE and AWS.  Therefore, you must be in possession
-of a *Google Application Credentials* (GAC) JSON and AWS credentials INI file.
+of a *Google Application Credentials* (GAC) JSON and
+[AWS credentials INI file](https://docs.aws.amazon.com/sdkref/latest/guide/file-format.html#file-format-creds).
 
 The GAC JSON file should represent a service account (contrasted to a user account,
 which always uses OAuth2).  The name of the service account doesn't matter,
