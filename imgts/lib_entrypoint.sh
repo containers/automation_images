@@ -77,7 +77,7 @@ aws_init() {
     then
         TMPF="$1"
     else
-        TMPF=$(mktemp -p '' .$(uuidgen)_XXXX.ini)
+        TMPF=$(mktemp -p '' .XXXXXXXX)
     fi
     # shellcheck disable=SC2154
     echo "$AWSINI" > $TMPF
