@@ -18,7 +18,7 @@ gcloud_init
 # Set this to 1 for testing
 DRY_RUN="${DRY_RUN:-0}"
 # For safety's sake limit nr deletions
-DELETE_LIMIT=10
+DELETE_LIMIT=50
 ABOUTNOW=$(date --iso-8601=date)  # precision is not needed for this use
 # Format Ref: https://cloud.google.com/sdk/gcloud/reference/topic/formats
 # Field list from `gcloud compute images list --limit=1 --format=text`
@@ -106,13 +106,14 @@ for (( i=nr_amis ; i ; i-- )); do
 done
 
 COUNT=$(<"$IMGCOUNT")
+CANDIDATES=$(wc -l <$TODELETE)
 msg "########################################################################"
-msg "Deleting up to $DELETE_LIMIT random images of $COUNT examined:"
+msg "Deleting up to $DELETE_LIMIT random image candidates ($CANDIDATES/$COUNT total)::"
 
 # Require a minimum number of images to exist
-if [[ "$COUNT" -lt $DELETE_LIMIT ]]
+if [[ "$CANDIDATES" -lt $DELETE_LIMIT ]]
 then
-    die 0 "Safety-net Insufficient images ($COUNT) to process deletions ($DELETE_LIMIT required)"
+    die 0 "Safety-net Insufficient images ($CANDIDATES) to process deletions ($DELETE_LIMIT required)"
 fi
 
 sort --random-sort $TODELETE | tail -$DELETE_LIMIT | \

@@ -17,7 +17,7 @@ gcloud_init
 
 # Set this to 1 for testing
 DRY_RUN="${DRY_RUN:-0}"
-OBSOLETE_LIMIT=10
+OBSOLETE_LIMIT=50
 THEFUTURE=$(date --date='+1 hour' +%s)
 TOO_OLD_DAYS='30'
 TOO_OLD_DESC="$TOO_OLD_DAYS days ago"
@@ -201,14 +201,15 @@ for (( i=nr_amis ; i ; i-- )); do
 done
 
 COUNT=$(<"$IMGCOUNT")
+CANDIDATES=$(wc -l <$TOOBSOLETE)
 msg "########################################################################"
-msg "Obsoleting $OBSOLETE_LIMIT random images of $COUNT examined:"
+msg "Obsoleting $OBSOLETE_LIMIT random image candidates ($CANDIDATES/$COUNT total):"
 
 # Require a minimum number of images to exist.  Also if there is some
 # horrible scripting accident, this limits the blast-radius.
-if [[ "$COUNT" -lt $OBSOLETE_LIMIT ]]
+if [[ "$CANDIDATES" -lt $OBSOLETE_LIMIT ]]
 then
-    die 0 "Safety-net Insufficient images ($COUNT) to process ($OBSOLETE_LIMIT required)"
+    die 0 "Safety-net Insufficient images ($CANDIDATES) to process ($OBSOLETE_LIMIT required)"
 fi
 
 # Don't let one bad apple ruin the whole bunch
