@@ -286,6 +286,16 @@ unmanaged-devices=interface-name:*podman*;interface-name:veth*
 EOF
 }
 
+# Create a local registry, seed it with remote images
+initialize_local_cache_registry() {
+    msg "Initializing local cache registry"
+    #shellcheck disable=SC2154
+    $SUDO ${SCRIPT_DIRPATH}/local-cache-registry initialize
+
+    msg "du -sh /var/cache/local-registry"
+    du -sh /var/cache/local-registry
+}
+
 common_finalize() {
     set -x  # extra detail is no-longer necessary
     cd /
