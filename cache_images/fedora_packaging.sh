@@ -170,8 +170,12 @@ fi
 
 # When installing during a container-build, having this present
 # will seriously screw up future dnf operations in very non-obvious ways.
+# bpftrace is only needed on the host as containers cannot run ebpf
+# programs anyway and it is very big so we should not bloat the container
+# images unnecessarily.
 if ! ((CONTAINER)); then
     INSTALL_PACKAGES+=( \
+        bpftrace
         container-selinux
         libguestfs-tools
         selinux-policy-devel

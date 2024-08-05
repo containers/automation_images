@@ -116,6 +116,15 @@ INSTALL_PACKAGES=(\
     zstd
 )
 
+# bpftrace is only needed on the host as containers cannot run ebpf
+# programs anyway and it is very big so we should not bloat the container
+# images unnecessarily.
+if ! ((CONTAINER)); then
+    INSTALL_PACKAGES+=( \
+        bpftrace
+    )
+fi
+
 msg "Installing general build/testing dependencies"
 bigto $SUDO apt-get -q -y install "${INSTALL_PACKAGES[@]}"
 
