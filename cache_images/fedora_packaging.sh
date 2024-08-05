@@ -217,6 +217,6 @@ lilto $SUDO dnf update -y
 # which causes rootless podman pods to fail.
 # https://github.com/containers/podman/issues/18543
 if ! ((CONTAINER)); then
-    timebomb 20240710 "Temporary workaround for signed rpms (ima) in rawhide"
+    timebomb 20240901 "Temporary workaround for signed rpms (ima) in rawhide"
     $SUDO setfattr -x  security.ima /usr/libexec/catatonit/catatonit || true
 fi
