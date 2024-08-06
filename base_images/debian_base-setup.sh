@@ -49,7 +49,7 @@ source "$REPO_DIRPATH/lib.sh"
 #     https://bugzilla.redhat.com/show_bug.cgi?id=2230127
 # 2024-01-25 dfsg-3 also has the bug
 # 2024-05-01 trixy still has 1.35+dfsg-3
-timebomb 20240801 "prevent us from getting broken tar-1.35+dfsg-3"
+timebomb 20240901 "prevent us from getting broken tar-1.35+dfsg-3"
 $SUDO tee /etc/apt/preferences.d/$(date +%Y%m%d)-tar <<EOF
 Package: tar
 Pin: version 1.35+dfsg-[23]
