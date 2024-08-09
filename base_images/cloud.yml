@@ -61,7 +61,7 @@ builders:
       type: 'qemu'
       accelerator: "kvm"
       qemu_binary: '/usr/libexec/qemu-kvm'  # Unique to CentOS, not fedora :(
-      memory: 1024
+      memory: 12288
       iso_url: '{{user `FEDORA_IMAGE_URL`}}'
       disk_image: true
       format: "raw"
