@@ -18,7 +18,6 @@ source "$REPO_DIRPATH/lib.sh"
 
 declare -a PKGS
 PKGS=(rng-tools git coreutils cloud-init)
-XARGS=--disablerepo=updates
 if ! ((CONTAINER)); then
     # Packer defines this automatically for us
     # shellcheck disable=SC2154
@@ -46,15 +45,12 @@ minrate=100
 timeout=60
 EOF
 
-# Due to https://bugzilla.redhat.com/show_bug.cgi?id=1907030
-# updates cannot be installed or even looked at during this stage.
-# Pawn the problem off to the cache-image stage where more memory
-# is available and debugging is also easier.  Try to save some more
-# memory by pre-populating repo metadata prior to any transactions.
-$SUDO dnf makecache $XARGS
-# Updates disable, see comment above
-# $SUDO dnf -y update $XARGS
-$SUDO dnf -y install $XARGS "${PKGS[@]}"
+$SUDO dnf makecache
+$SUDO dnf -y update
+$SUDO dnf -y install "${PKGS[@]}"
+# Occasionally following an install, there are more updates available.
+# This may be due to activation of suggested/recommended dependency resolution.
+$SUDO dnf -y update
 
 if ! ((CONTAINER)); then
     $SUDO systemctl enable rngd
