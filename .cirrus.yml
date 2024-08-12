@@ -165,19 +165,20 @@ base_images_task:
     auto_cancellation: $CI != "true"
     stateful: true
     timeout_in: 70m
-    # Cannot use a container for this task, virt required for fedora image conversion
-    gce_instance:
-        <<: *ibi_vm
-        # Nested-virt is required, need Intel Haswell or better CPU
-        enable_nested_virtualization: true
-        type: "n2-standard-2"
-        scopes: ["cloud-platform"]
+    gce_instance: *ibi_vm
     matrix:
         - &base_image
           name: "${PACKER_BUILDS} Base Image"
+          gce_instance: &nested_virt_vm
+              <<: *ibi_vm
+              # Nested-virt is required, need Intel Haswell or better CPU
+              enable_nested_virtualization: true
+              type: "n2-standard-16"
+              scopes: ["cloud-platform"]
           env:
             PACKER_BUILDS: "fedora"
         - <<: *base_image
+          gce_instance: *nested_virt_vm
           env:
             PACKER_BUILDS: "prior-fedora"
         - <<: *base_image

@@ -210,7 +210,8 @@ $SUDO curl --fail --silent --location -O \
     https://storage.googleapis.com/minikube/releases/latest/minikube-latest.x86_64.rpm
 cd -
 
-# It was observed in F33, dnf install doesn't always get you the latest/greatest
+# Occasionally following an install, there are more updates available.
+# This may be due to activation of suggested/recommended dependency resolution.
 lilto $SUDO dnf update -y
 
 # Gah. FIXME 2024-06-20: rawhide now includes rpm-plugin-ima,
