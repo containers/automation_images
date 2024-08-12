@@ -35,6 +35,17 @@ if ! ((CONTAINER)); then
     fi
 fi
 
+# The Fedora CI VM base images are built using nested-virt with
+# limited resources available.  Further, cloud-networking in
+# general can sometimes be flaky.  Increase DNF's tolerance
+# levels.
+cat << EOF | $SUDO tee -a /etc/dnf/dnf.conf
+
+# Added during CI VM image build
+minrate=100
+timeout=60
+EOF
+
 # Due to https://bugzilla.redhat.com/show_bug.cgi?id=1907030
 # updates cannot be installed or even looked at during this stage.
 # Pawn the problem off to the cache-image stage where more memory

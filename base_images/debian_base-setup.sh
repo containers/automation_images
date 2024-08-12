@@ -16,6 +16,15 @@ REPO_DIRPATH=$(realpath "$SCRIPT_DIRPATH/../")
 # shellcheck source=./lib.sh
 source "$REPO_DIRPATH/lib.sh"
 
+# Cloud-networking in general can sometimes be flaky.
+# Increase Apt's tolerance levels.
+cat << EOF | $SUDO tee -a /etc/apt/apt.conf.d/99timeouts
+// Added during CI VM image build
+Acquire::Retries "3";
+Acquire::http::timeout "300";
+Acquire::https::timeout "300";
+EOF
+
 echo "Switch sources to Debian Unstable (SID)"
 cat << EOF | $SUDO tee /etc/apt/sources.list
 deb http://deb.debian.org/debian/ unstable main
