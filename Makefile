@@ -117,6 +117,9 @@ GIT_HEAD = $(shell git rev-parse HEAD)
 # Save some typing
 _IMGTS_FQIN := quay.io/libpod/imgts:c$(_IMG_SFX)
 
+# Necessary for embedding a ',' in an $(if ...) conditional
+COMMA = ,
+
 ##### Targets #####
 
 # N/B: The double-# after targets is gawk'd out as the target description
@@ -308,9 +311,16 @@ fedora_podman:  ## Build Fedora podman development container
 prior-fedora_podman:  ## Build Prior-Fedora podman development container
 	$(call build_podman_container,$@,$(PRIOR_FEDORA_RELEASE))
 
+# Build multi-arch manifest list for the fedora_podman target only (not prior-fedora_podman).
+# N/B: This assumes that qemu_user_static is present and installed into the kernel or (as root)
+# podman run --rm --privileged mirror.gcr.io/multiarch/qemu-user-static:latest --reset -p yes
+# must been executed (e.g. on CentOS).
 $(_TEMPDIR)/%_podman.iid: podman/Containerfile podman/setup.sh $(wildcard base_images/*.sh) $(_TEMPDIR) $(wildcard cache_images/*.sh)
-	podman build -t $*_podman:$(call err_if_empty,_IMG_SFX) \
+	podman build --manifest=$*_podman:$(call err_if_empty,_IMG_SFX) \
+		--security-opt label=disable \
 		--security-opt seccomp=unconfined \
+		--platform=linux/amd64$(if $(subst prior-fedora,,$*),$(COMMA)linux/arm64) \
+		--jobs=2 \
 		--iidfile=$@ \
 		--build-arg=BASE_NAME=$(subst prior-,,$*) \
 		--build-arg=BASE_TAG=$(call err_if_empty,BASE_TAG) \
