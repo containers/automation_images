@@ -1,6 +1,7 @@
-# This is a listing of GCP Project IDs which use images produced by
-# this repo.  It's used by the "Orphan VMs" github action to monitor
-# for any leftover/lost VMs.
+# This is a listing of Google Cloud Platform Project IDs for
+# orphan VM monitoring and possibly other automation tasks.
+# Note: CI VM images produced by this repo are all stored within
+# the libpod-218412 project (in addition to some AWS EC2)
 buildah
 conmon-222014
 containers-build-source-image
