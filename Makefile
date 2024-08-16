@@ -175,7 +175,7 @@ ci_debug: $(_TEMPDIR)/ci_debug.iid ## Build and enter container for local develo
 		-e GAC_FILEPATH=$(GAC_FILEPATH) \
 		-e AWS_SHARED_CREDENTIALS_FILE=$(AWS_SHARED_CREDENTIALS_FILE) \
 		-e TEMPDIR=$(_TEMPDIR) \
-		$(call imageid,$<)
+		$(call imageid,$<) $(if $(DBG_TEST_CMD),$(DBG_TEST_CMD),)
 
 # Takes 3 arguments: IID filepath, FQIN, context dir
 define podman_build
@@ -264,7 +264,10 @@ image_builder/manifest.json: image_builder/gce.json image_builder/setup.sh lib.s
 .PHONY: image_builder_debug
 image_builder_debug: $(_TEMPDIR)/image_builder_debug.iid ## Build and enter container for local development/debugging of targets requiring packer + virtualization
 	/usr/bin/podman run -it --rm \
-		--security-opt label=disable -v $$HOME:$$HOME -w $(_MKFILE_DIR) \
+		--security-opt label=disable \
+		-v $$HOME:$$HOME \
+		-v $(_MKFILE_DIR):$(_MKFILE_DIR) \
+		-w $(_MKFILE_DIR) \
 		-v $(_TEMPDIR):$(_TEMPDIR) \
 		-v $(call err_if_empty,GAC_FILEPATH):$(GAC_FILEPATH) \
 		-v $(call err_if_empty,AWS_SHARED_CREDENTIALS_FILE):$(AWS_SHARED_CREDENTIALS_FILE) \
@@ -274,7 +277,7 @@ image_builder_debug: $(_TEMPDIR)/image_builder_debug.iid ## Build and enter cont
 		-e IMG_SFX=$(call err_if_empty,_IMG_SFX) \
 		-e GAC_FILEPATH=$(GAC_FILEPATH) \
 		-e AWS_SHARED_CREDENTIALS_FILE=$(AWS_SHARED_CREDENTIALS_FILE) \
-		$(call imageid,$<)
+		$(call imageid,$<) $(if $(DBG_TEST_CMD),$(DBG_TEST_CMD))
 
 $(_TEMPDIR)/image_builder_debug.iid: $(_TEMPDIR) $(wildcard image_builder/*)
 	$(call podman_build,$@,image_builder_debug,image_builder)
