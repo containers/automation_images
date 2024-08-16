@@ -114,6 +114,9 @@ export AWS := aws --output json --region us-east-1
 # Needed for container-image builds
 GIT_HEAD = $(shell git rev-parse HEAD)
 
+# Save some typing
+_IMGTS_FQIN := quay.io/libpod/imgts:c$(_IMG_SFX)
+
 ##### Targets #####
 
 # N/B: The double-# after targets is gawk'd out as the target description
@@ -150,8 +153,17 @@ timebomb-check:
 	        false; \
 	    fi
 
+# Given the path to a file containing 'sha256:<image id>' return <image id>
+# or throw error if empty.
+define imageid
+	$(if $(file < $(1)),$(subst sha256:,,$(file < $(1))),$(error Container IID file $(1) doesn't exist or is empty))
+endef
+
+# This is intended for use by humans, to debug the image_builder_task in .cirrus.yml
+# as well as the scripts under the ci subdirectory.  See the 'image_builder_debug`
+# target if debugging of the packer builds is necessary.
 .PHONY: ci_debug
-ci_debug: $(_TEMPDIR)/ci_debug.tar ## Build and enter container for local development/debugging of container-based Cirrus-CI tasks
+ci_debug: $(_TEMPDIR)/ci_debug.iid ## Build and enter container for local development/debugging of container-based Cirrus-CI tasks
 	/usr/bin/podman run -it --rm \
 		--security-opt label=disable \
 		-v $(_MKFILE_DIR):$(_MKFILE_DIR) -w $(_MKFILE_DIR) \
@@ -163,19 +175,18 @@ ci_debug: $(_TEMPDIR)/ci_debug.tar ## Build and enter container for local develo
 		-e GAC_FILEPATH=$(GAC_FILEPATH) \
 		-e AWS_SHARED_CREDENTIALS_FILE=$(AWS_SHARED_CREDENTIALS_FILE) \
 		-e TEMPDIR=$(_TEMPDIR) \
-		docker-archive:$<
+		$(call imageid,$<)
 
-# Takes 3 arguments: export filepath, FQIN, context dir
+# Takes 3 arguments: IID filepath, FQIN, context dir
 define podman_build
 	podman build -t $(2) \
+		--iidfile=$(1) \
 		--build-arg CENTOS_STREAM_RELEASE=$(CENTOS_STREAM_RELEASE) \
 		--build-arg PACKER_VERSION=$(call err_if_empty,PACKER_VERSION) \
 		-f $(3)/Containerfile .
-	rm -f $(1)
-	podman save --quiet -o $(1) $(2)
 endef
 
-$(_TEMPDIR)/ci_debug.tar: $(_TEMPDIR) $(wildcard ci/*)
+$(_TEMPDIR)/ci_debug.iid: $(_TEMPDIR) $(wildcard ci/*)
 	$(call podman_build,$@,ci_debug,ci)
 
 $(_TEMPDIR):
@@ -218,7 +229,7 @@ $(_TEMPDIR)/user-data: $(_TEMPDIR) $(_TEMPDIR)/cidata.ssh.pub $(_TEMPDIR)/cidata
 cidata: $(_TEMPDIR)/user-data $(_TEMPDIR)/meta-data
 
 define build_podman_container
-	$(MAKE) $(_TEMPDIR)/$(1).tar BASE_TAG=$(2)
+	$(MAKE) $(_TEMPDIR)/$(1).iid BASE_TAG=$(2)
 endef
 
 # First argument is the path to the template JSON
@@ -246,12 +257,12 @@ image_builder: image_builder/manifest.json ## Create image-building image and im
 image_builder/manifest.json: image_builder/gce.json image_builder/setup.sh lib.sh systemd_banish.sh $(PACKER_INSTALL_DIR)/packer
 	$(call packer_build,image_builder/gce.json)
 
-# Note: We assume this repo is checked out somewhere under the caller's
-# home-dir for bind-mounting purposes.  Otherwise possibly necessary
-# files/directories like $HOME/.gitconfig or $HOME/.ssh/ won't be available
-# from inside the debugging container.
+# Note: It's assumed there are important files in the callers $HOME
+# needed for debugging (.gitconfig, .ssh keys, etc.).  It's unsafe
+# to assume $(_MKFILE_DIR) is also under $HOME.  Both are mounted
+# for good measure.
 .PHONY: image_builder_debug
-image_builder_debug: $(_TEMPDIR)/image_builder_debug.tar ## Build and enter container for local development/debugging of targets requiring packer + virtualization
+image_builder_debug: $(_TEMPDIR)/image_builder_debug.iid ## Build and enter container for local development/debugging of targets requiring packer + virtualization
 	/usr/bin/podman run -it --rm \
 		--security-opt label=disable -v $$HOME:$$HOME -w $(_MKFILE_DIR) \
 		-v $(_TEMPDIR):$(_TEMPDIR) \
@@ -263,9 +274,9 @@ image_builder_debug: $(_TEMPDIR)/image_builder_debug.tar ## Build and enter cont
 		-e IMG_SFX=$(call err_if_empty,_IMG_SFX) \
 		-e GAC_FILEPATH=$(GAC_FILEPATH) \
 		-e AWS_SHARED_CREDENTIALS_FILE=$(AWS_SHARED_CREDENTIALS_FILE) \
-		docker-archive:$<
+		$(call imageid,$<)
 
-$(_TEMPDIR)/image_builder_debug.tar: $(_TEMPDIR) $(wildcard image_builder/*)
+$(_TEMPDIR)/image_builder_debug.iid: $(_TEMPDIR) $(wildcard image_builder/*)
 	$(call podman_build,$@,image_builder_debug,image_builder)
 
 .PHONY: base_images
@@ -294,9 +305,10 @@ fedora_podman:  ## Build Fedora podman development container
 prior-fedora_podman:  ## Build Prior-Fedora podman development container
 	$(call build_podman_container,$@,$(PRIOR_FEDORA_RELEASE))
 
-$(_TEMPDIR)/%_podman.tar: podman/Containerfile podman/setup.sh $(wildcard base_images/*.sh) $(_TEMPDIR) $(wildcard cache_images/*.sh)
+$(_TEMPDIR)/%_podman.iid: podman/Containerfile podman/setup.sh $(wildcard base_images/*.sh) $(_TEMPDIR) $(wildcard cache_images/*.sh)
 	podman build -t $*_podman:$(call err_if_empty,_IMG_SFX) \
 		--security-opt seccomp=unconfined \
+		--iidfile=$@ \
 		--build-arg=BASE_NAME=$(subst prior-,,$*) \
 		--build-arg=BASE_TAG=$(call err_if_empty,BASE_TAG) \
 		--build-arg=PACKER_BUILD_NAME=$(subst _podman,,$*) \
@@ -304,70 +316,69 @@ $(_TEMPDIR)/%_podman.tar: podman/Containerfile podman/setup.sh $(wildcard base_i
 		--build-arg=CIRRUS_TASK_ID=$(CIRRUS_TASK_ID) \
 		--build-arg=GIT_HEAD=$(call err_if_empty,GIT_HEAD) \
 		-f podman/Containerfile .
-	rm -f $@
-	podman save --quiet -o $@ $*_podman:$(_IMG_SFX)
 
 .PHONY: skopeo_cidev
-skopeo_cidev: $(_TEMPDIR)/skopeo_cidev.tar  ## Build Skopeo development and CI container
-$(_TEMPDIR)/skopeo_cidev.tar: $(_TEMPDIR) $(wildcard skopeo_base/*)
+skopeo_cidev: $(_TEMPDIR)/skopeo_cidev.iid  ## Build Skopeo development and CI container
+$(_TEMPDIR)/skopeo_cidev.iid: $(_TEMPDIR) $(wildcard skopeo_base/*)
 	podman build -t skopeo_cidev:$(call err_if_empty,_IMG_SFX) \
+		--iidfile=$@ \
 		--security-opt seccomp=unconfined \
 		--build-arg=BASE_TAG=$(FEDORA_RELEASE) \
 		skopeo_cidev
-	rm -f $@
-	podman save --quiet -o $@ skopeo_cidev:$(_IMG_SFX)
 
 .PHONY: ccia
-ccia: $(_TEMPDIR)/ccia.tar  ## Build the Cirrus-CI Artifacts container image
-$(_TEMPDIR)/ccia.tar: ccia/Containerfile $(_TEMPDIR)
+ccia: $(_TEMPDIR)/ccia.iid  ## Build the Cirrus-CI Artifacts container image
+$(_TEMPDIR)/ccia.iid: ccia/Containerfile $(_TEMPDIR)
 	$(call podman_build,$@,ccia:$(call err_if_empty,_IMG_SFX),ccia)
 
-.PHONY: bench_stuff
-bench_stuff: $(_TEMPDIR)/bench_stuff.tar  ## Build the Cirrus-CI Artifacts container image
-$(_TEMPDIR)/bench_stuff.tar: bench_stuff/Containerfile $(_TEMPDIR)
-	$(call podman_build,$@,bench_stuff:$(call err_if_empty,_IMG_SFX),bench_stuff)
-
+# Note: This target only builds imgts:c$(_IMG_SFX) it does not push it to
+# any container registry which may be required for targets which
+# depend on it as a base-image.  In CI, pushing is handled automatically
+# by the 'ci/make_container_images.sh' script.
 .PHONY: imgts
-imgts: $(_TEMPDIR)/imgts.tar  ## Build the VM image time-stamping container image
-$(_TEMPDIR)/imgts.tar: imgts/Containerfile imgts/entrypoint.sh imgts/google-cloud-sdk.repo imgts/lib_entrypoint.sh $(_TEMPDIR)
-	$(call podman_build,$@,imgts:$(call err_if_empty,_IMG_SFX),imgts)
+imgts: imgts/Containerfile imgts/entrypoint.sh imgts/google-cloud-sdk.repo imgts/lib_entrypoint.sh $(_TEMPDIR)  ## Build the VM image time-stamping container image
+	$(call podman_build,/dev/null,imgts:$(call err_if_empty,_IMG_SFX),imgts)
+	-rm $(_TEMPDIR)/$@.iid
 
+# Helper function to build images which depend on imgts:latest base image
+# N/B: There is no make dependency resolution on imgts.iid on purpose,
+# imgts:c$(_IMG_SFX) is assumed to have already been pushed to quay.
+# See imgts target above.
 define imgts_base_podman_build
-	podman load -i $(_TEMPDIR)/imgts.tar
-	podman tag imgts:$(call err_if_empty,_IMG_SFX) imgts:latest
+	podman image exists $(_IMGTS_FQIN) || podman pull $(_IMGTS_FQIN)
+	podman image exists imgts:latest || podman tag $(_IMGTS_FQIN) imgts:latest
 	$(call podman_build,$@,$(1):$(call err_if_empty,_IMG_SFX),$(1))
 endef
 
 .PHONY: imgobsolete
-imgobsolete: $(_TEMPDIR)/imgobsolete.tar  ## Build the VM Image obsoleting container image
-$(_TEMPDIR)/imgobsolete.tar: $(_TEMPDIR)/imgts.tar imgts/lib_entrypoint.sh imgobsolete/Containerfile imgobsolete/entrypoint.sh $(_TEMPDIR)
+imgobsolete: $(_TEMPDIR)/imgobsolete.iid  ## Build the VM Image obsoleting container image
+$(_TEMPDIR)/imgobsolete.iid: imgts/lib_entrypoint.sh imgobsolete/Containerfile imgobsolete/entrypoint.sh $(_TEMPDIR)
 	$(call imgts_base_podman_build,imgobsolete)
 
 .PHONY: imgprune
-imgprune: $(_TEMPDIR)/imgprune.tar  ## Build the VM Image pruning container image
-$(_TEMPDIR)/imgprune.tar: $(_TEMPDIR)/imgts.tar imgts/lib_entrypoint.sh imgprune/Containerfile imgprune/entrypoint.sh $(_TEMPDIR)
+imgprune: $(_TEMPDIR)/imgprune.iid  ## Build the VM Image pruning container image
+$(_TEMPDIR)/imgprune.iid: imgts/lib_entrypoint.sh imgprune/Containerfile imgprune/entrypoint.sh $(_TEMPDIR)
 	$(call imgts_base_podman_build,imgprune)
 
 .PHONY: gcsupld
-gcsupld: $(_TEMPDIR)/gcsupld.tar  ## Build the GCS Upload container image
-$(_TEMPDIR)/gcsupld.tar: $(_TEMPDIR)/imgts.tar imgts/lib_entrypoint.sh gcsupld/Containerfile gcsupld/entrypoint.sh $(_TEMPDIR)
+gcsupld: $(_TEMPDIR)/gcsupld.iid  ## Build the GCS Upload container image
+$(_TEMPDIR)/gcsupld.iid: imgts/lib_entrypoint.sh gcsupld/Containerfile gcsupld/entrypoint.sh $(_TEMPDIR)
 	$(call imgts_base_podman_build,gcsupld)
 
 .PHONY: orphanvms
-orphanvms: $(_TEMPDIR)/orphanvms.tar  ## Build the Orphaned VM container image
-$(_TEMPDIR)/orphanvms.tar: $(_TEMPDIR)/imgts.tar imgts/lib_entrypoint.sh orphanvms/Containerfile orphanvms/entrypoint.sh orphanvms/_gce orphanvms/_ec2 $(_TEMPDIR)
+orphanvms: $(_TEMPDIR)/orphanvms.iid  ## Build the Orphaned VM container image
+$(_TEMPDIR)/orphanvms.iid: imgts/lib_entrypoint.sh orphanvms/Containerfile orphanvms/entrypoint.sh orphanvms/_gce orphanvms/_ec2 $(_TEMPDIR)
 	$(call imgts_base_podman_build,orphanvms)
 
 .PHONY: .get_ci_vm
-get_ci_vm: $(_TEMPDIR)/get_ci_vm.tar  ## Build the get_ci_vm container image
-$(_TEMPDIR)/get_ci_vm.tar: lib.sh get_ci_vm/Containerfile get_ci_vm/entrypoint.sh get_ci_vm/setup.sh $(_TEMPDIR)
-	podman build -t get_ci_vm:$(call err_if_empty,_IMG_SFX) -f get_ci_vm/Containerfile .
-	rm -f $@
-	podman save --quiet -o $@ get_ci_vm:$(_IMG_SFX)
+get_ci_vm: $(_TEMPDIR)/get_ci_vm.iid  ## Build the get_ci_vm container image
+$(_TEMPDIR)/get_ci_vm.iid: lib.sh get_ci_vm/Containerfile get_ci_vm/entrypoint.sh get_ci_vm/setup.sh $(_TEMPDIR)
+	podman build --iidfile=$@ -t get_ci_vm:$(call err_if_empty,_IMG_SFX) -f get_ci_vm/Containerfile ./
 
 .PHONY: clean
 clean: ## Remove all generated files referenced in this Makefile
 	-rm -rf $(_TEMPDIR)
 	-rm -f image_builder/*.json
 	-rm -f *_images/{*.json,cidata*,*-data}
-	-rm -f ci_debug.tar
+	-podman rmi imgts:latest
+	-podman rmi $(_IMGTS_FQIN)
