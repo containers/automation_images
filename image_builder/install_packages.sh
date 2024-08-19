@@ -33,7 +33,8 @@ dnf install -y --allowerasing $(<"$INST_PKGS_FP")
 AWSURL="https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip"
 cd /tmp
 curl --fail --location -O "${AWSURL}"
-unzip awscli*.zip
+# There's little reason to see every single file extracted
+unzip -q awscli*.zip
 ./aws/install -i /usr/local/share/aws-cli -b /usr/local/bin
 rm -rf awscli*.zip ./aws
 

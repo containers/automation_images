@@ -286,6 +286,26 @@ win_images_task:
         path: win_images/manifest.json
         type: application/json
 
+# These targets are intended for humans, make sure they builds and function on a basic level
+test_debug_task:
+    name: "Test ${TARGET} make target"
+    alias: test_debug
+    only_if: *is_pr
+    skip: *ci_docs
+    depends_on:
+        - validate
+    gce_instance: *ibi_vm
+    matrix:
+        - env:
+            TARGET: ci_debug
+        - env:
+            TARGET: image_builder_debug
+    env:
+        HOME: "/root"
+        GAC_FILEPATH: "/dev/null"
+        AWS_SHARED_CREDENTIALS_FILE: "/dev/null"
+        DBG_TEST_CMD: "true"
+    script: make ${TARGET}
 
 # Test metadata addition to images (built or not) to ensure container functions
 test_imgts_task: &imgts
@@ -532,6 +552,7 @@ success_task:
         - base_images
         - cache_images
         - win_images
+        - test_debug
         - test_imgts
         - imgts
         - test_imgobsolete

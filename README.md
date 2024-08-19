@@ -374,8 +374,8 @@ infinite-growth of the VM image count.
 
 # Debugging / Locally driving VM Image production
 
-Because the entire automated build process is containerized, it may easily be
-performed locally on your laptop/workstation.  However, this process will
+Much of the CI and image-build process is containerized, so it may be debugged
+locally on your laptop/workstation.  However, this process will
 still involve interfacing with GCE and AWS.  Therefore, you must be in possession
 of a *Google Application Credentials* (GAC) JSON and
 [AWS credentials INI file](https://docs.aws.amazon.com/sdkref/latest/guide/file-format.html#file-format-creds).
@@ -399,44 +399,52 @@ one the following (custom) IAM policies enabled:
 Somebody familiar with Google and AWS IAM will need to provide you with the
 credential files and ensure correct account configuration.  Having these files
 stored *in your home directory* on your laptop/workstation, the process of
-producing images proceeds as follows:
+building and entering the debug containers is as follows:
 
 1. Ensure you have podman installed, and lots of available network and CPU
    resources (i.e. turn off YouTube, shut down background VMs and other hungry
-   tasks).  Build the image-builder container image, by executing
+   tasks).
+
+2. Build and enter either the `ci_debug` or the `image_builder_debug` container
+   image, by executing:
    ```
-   make image_builder_debug GAC_FILEPATH=</home/path/to/gac.json> \
-                            AWS_SHARED_CREDENTIALS_FILE=</path/to/credentials>
+   make <ci_debug|image_builder_debug> \
+        GAC_FILEPATH=</home/path/to/gac.json> \
+        AWS_SHARED_CREDENTIALS_FILE=</path/to/credentials>
    ```
 
-2. You will be dropped into a debugging container, inside a volume-mount of
-   the repository root.  This container is practically identical to the VM
-   produced and used in *overview step 1*.  If changes are made, the container
-   image should be re-built to reflect them.
+   * The `ci_debug` image is significantly smaller, and only intended for rudimentary
+     cases, for example running the scripts under the `ci` subdirectory.
+   * The `image_builder_debug` image is larger, and has KVM virtualization enabled.
+     It's needed for more extensive debugging of the packer-based image builds.
 
-3. If you wish to build only a subset of available images, list the names
-   you want as comma-separated values of the `PACKER_BUILDS` variable.  Be
-   sure you *export* this variable so that `make` has access to it.  For
-   example, `export PACKER_BUILDS=debian,prior-fedora`.
+3. Both containers will place you in the default shell, inside a volume-mount of
+   the repository root.  This environment is practically identical to what is
+   used in Cirrus-CI.
 
-4. Still within the container, again ensure you have plenty of network and CPU
+4. For the `image_builder_debug` container, If you wish to build only a subset
+   of available images, list the names you want as comma-separated values of the
+   `PACKER_BUILDS` variable.  Be sure you *export* this variable so that `make`
+   has access to it.  For example, `export PACKER_BUILDS=debian,prior-fedora`.
+
+5. Still within the container, again ensure you have plenty of network and CPU
    resources available.  Build the VM Base images by executing the command
    ``make base_images``. This is the equivalent operation as documented by
    *overview step 2*.  ***N/B*** The GCS -> GCE image conversion can take
    some time, be patient.  Packer may not produce any output for several minutes
    while the conversion is happening.
 
-5. When successful, the names of the produced images will all be referenced
+6. When successful, the names of the produced images will all be referenced
    in the `base_images/manifest.json` file.  If there are problems, fix them
    and remove the `manifest.json` file.  Then re-run the same *make* command
    as before, packer will force-overwrite any broken/partially created
    images automatically.
 
-6. Produce the VM Cache Images, equivalent to the operations outlined
+7. Produce the VM Cache Images, equivalent to the operations outlined
    in *overview step 3*.  Execute the following command (still within the
    debug image-builder container): ``make cache_images``.
 
-7. Again when successful, you will find the image names are written into
+8. Again when successful, you will find the image names are written into
    the `cache_images/manifest.json` file.  If there is a problem, remove
    this file, fix the problem, and re-run the `make` command.  No cleanup
    is necessary, leftover/disused images will be automatically cleaned up
