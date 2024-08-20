@@ -294,7 +294,7 @@ test_debug_task:
     skip: *ci_docs
     depends_on:
         - validate
-    gce_instance: *ibi_vm
+    gce_instance: *nested_virt_vm
     matrix:
         - env:
             TARGET: ci_debug
