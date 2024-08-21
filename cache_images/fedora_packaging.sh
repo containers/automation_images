@@ -198,6 +198,18 @@ DOWNLOAD_PACKAGES=(\
 msg "Installing general build/test dependencies"
 bigto $SUDO dnf install -y "${INSTALL_PACKAGES[@]}"
 
+# 2024-08-21 fixes CI system test problems
+timebomb 20240901 "pasta not yet in stable for all arches"
+if [[ "$OS_RELEASE_VER" -eq 39 ]]; then
+    arch=$(uname -m)
+    n=passt
+    v=0%5E20240814.g61c0b0d
+    r=1.fc$OS_RELEASE_VER
+    bigto $SUDO dnf install -y  \
+          https://kojipkgs.fedoraproject.org/packages/$n/$v/$r/$arch/$n-$v-$r.$arch.rpm \
+          https://kojipkgs.fedoraproject.org/packages/$n/$v/$r/noarch/$n-selinux-$v-$r.noarch.rpm
+fi
+
 msg "Downloading packages for optional installation at runtime, as needed."
 $SUDO mkdir -p "$PACKAGE_DOWNLOAD_DIR"
 cd "$PACKAGE_DOWNLOAD_DIR"
