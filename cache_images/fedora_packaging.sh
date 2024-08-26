@@ -203,7 +203,7 @@ timebomb 20240901 "pasta not yet in stable for all arches"
 if [[ "$OS_RELEASE_VER" -eq 39 ]]; then
     arch=$(uname -m)
     n=passt
-    v=0%5E20240814.g61c0b0d
+    v=0%5E20240821.g1d6142f
     r=1.fc$OS_RELEASE_VER
     bigto $SUDO dnf install -y  \
           https://kojipkgs.fedoraproject.org/packages/$n/$v/$r/$arch/$n-$v-$r.$arch.rpm \
@@ -225,11 +225,3 @@ cd -
 # Occasionally following an install, there are more updates available.
 # This may be due to activation of suggested/recommended dependency resolution.
 lilto $SUDO dnf update -y
-
-# Gah. FIXME 2024-06-20: rawhide now includes rpm-plugin-ima,
-# which causes rootless podman pods to fail.
-# https://github.com/containers/podman/issues/18543
-if ! ((CONTAINER)); then
-    timebomb 20240901 "Temporary workaround for signed rpms (ima) in rawhide"
-    $SUDO setfattr -x  security.ima /usr/libexec/catatonit/catatonit || true
-fi
