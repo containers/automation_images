@@ -199,6 +199,16 @@ DOWNLOAD_PACKAGES=(\
 msg "Installing general build/test dependencies"
 bigto $SUDO dnf install -y "${INSTALL_PACKAGES[@]}"
 
+# 2024-09-11 early testing of crun 1.17
+timebomb 20240930 "crun 1.17 should be stable by now"
+arch=$(uname -m)
+n=crun
+v=1.17
+r=1.fc$OS_RELEASE_VER
+bigto $SUDO dnf install -y  \
+      https://kojipkgs.fedoraproject.org/packages/$n/$v/$r/$arch/$n-$v-$r.$arch.rpm \
+      https://kojipkgs.fedoraproject.org/packages/$n/$v/$r/$arch/$n-wasm-$v-$r.$arch.rpm
+
 msg "Downloading packages for optional installation at runtime, as needed."
 $SUDO mkdir -p "$PACKAGE_DOWNLOAD_DIR"
 cd "$PACKAGE_DOWNLOAD_DIR"
