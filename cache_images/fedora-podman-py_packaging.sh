@@ -68,13 +68,15 @@ INSTALL_PACKAGES=(\
     python3-psutil
     python3-pylint
     python3-pytest
-    python3-pyxdg
     python3-requests
     python3-requests-mock
     python3-virtualenv
     python3.6
     python3.8
     python3.9
+    python3.10
+    python3.11
+    python3.12
     redhat-rpm-config
     rsync
     sed
