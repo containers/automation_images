@@ -81,7 +81,7 @@ declare -a IMAGELIST=(
     testimage:00000000
     testimage:00000004
     testimage:20221018
-    testimage:20240123
+    testimage:20241011
     testimage:multiimage
     testimage@sha256:1385ce282f3a959d0d6baf45636efe686c1e14c3e7240eb31907436f7bc531fa
     testdigest_v2s2:20200210
