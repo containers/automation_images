@@ -112,6 +112,7 @@ INSTALL_PACKAGES=(\
     passt
     perl-Clone
     perl-FindBin
+    pigz
     pkgconfig
     podman
     pre-commit
@@ -176,7 +177,9 @@ fi
 if ! ((CONTAINER)); then
     INSTALL_PACKAGES+=( \
         bpftrace
+        composefs
         container-selinux
+        fuse-overlayfs
         libguestfs-tools
         selinux-policy-devel
         policycoreutils
@@ -195,8 +198,11 @@ DOWNLOAD_PACKAGES=(\
     python3-virtualenv
 )
 
+# 2024-10-31 docker-compose on f41 requires moby-filesystem which
+# has a weak dep on moby-engine which conflicts with podman-docker (phew).
+# Solution: do not bring in weak deps.
 msg "Installing general build/test dependencies"
-bigto $SUDO dnf install -y "${INSTALL_PACKAGES[@]}"
+bigto $SUDO dnf install -y "${INSTALL_PACKAGES[@]}" --setopt=install_weak_deps=False
 
 msg "Downloading packages for optional installation at runtime, as needed."
 $SUDO mkdir -p "$PACKAGE_DOWNLOAD_DIR"
