@@ -199,6 +199,24 @@ DOWNLOAD_PACKAGES=(\
 msg "Installing general build/test dependencies"
 bigto $SUDO dnf install -y "${INSTALL_PACKAGES[@]}"
 
+# 2024-10-31 fixes CI flake
+timebomb 20241111 "pasta 20241030 still in testing for all arches"
+arch=$(uname -m)
+n=passt
+v=0%5E20241030.gee7d0b6
+r=1.fc$OS_RELEASE_VER
+bigto $SUDO dnf install -y  \
+      https://kojipkgs.fedoraproject.org/packages/$n/$v/$r/$arch/$n-$v-$r.$arch.rpm \
+      https://kojipkgs.fedoraproject.org/packages/$n/$v/$r/noarch/$n-selinux-$v-$r.noarch.rpm
+
+# 2024-10-31 FIXME! 1.18.1 is buggy, but .2 does not yet have koji builds
+timebomb 20241111 "needed to test pod checkpoint/restore"
+n=crun
+v=1.18.1
+bigto $SUDO dnf install -y  \
+      https://kojipkgs.fedoraproject.org/packages/$n/$v/$r/$arch/$n-$v-$r.$arch.rpm
+
+
 msg "Downloading packages for optional installation at runtime, as needed."
 $SUDO mkdir -p "$PACKAGE_DOWNLOAD_DIR"
 cd "$PACKAGE_DOWNLOAD_DIR"
