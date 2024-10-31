@@ -17,7 +17,7 @@ ENV CIRRUS_WORKING_DIR=/var/tmp/automation_images \
 # to rely on COPY or ADD instructions.  See documentation for warning.
 RUN test -n "$PACKER_VERSION"
 RUN dnf update -y && \
-    dnf mark remove $(rpm -qa | grep -Ev '(gpg-pubkey)|(dnf)|(sudo)') && \
+    dnf -y mark dependency $(rpm -qa | grep -Ev '(gpg-pubkey)|(dnf)|(sudo)') && \
     dnf install -y \
         ShellCheck \
         bash-completion \
@@ -38,7 +38,7 @@ RUN dnf update -y && \
         util-linux \
         unzip \
         && \
-    dnf mark install dnf sudo $_ && \
+    dnf -y mark user dnf sudo $_ && \
     dnf autoremove -y && \
     dnf clean all
 
