@@ -146,7 +146,6 @@ INSTALL_PACKAGES=(\
 # Rawhide images don't need these packages
 if [[ "$PACKER_BUILD_NAME" =~ fedora ]]; then
     INSTALL_PACKAGES+=( \
-        docker-compose
         python-pip-wheel
         python-setuptools-wheel
         python-toml
@@ -198,11 +197,8 @@ DOWNLOAD_PACKAGES=(\
     python3-virtualenv
 )
 
-# 2024-10-31 docker-compose on f41 requires moby-filesystem which
-# has a weak dep on moby-engine which conflicts with podman-docker (phew).
-# Solution: do not bring in weak deps.
 msg "Installing general build/test dependencies"
-bigto $SUDO dnf install -y "${INSTALL_PACKAGES[@]}" --setopt=install_weak_deps=False
+bigto $SUDO dnf install -y "${INSTALL_PACKAGES[@]}"
 
 msg "Downloading packages for optional installation at runtime, as needed."
 $SUDO mkdir -p "$PACKAGE_DOWNLOAD_DIR"
