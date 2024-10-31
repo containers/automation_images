@@ -209,12 +209,13 @@ bigto $SUDO dnf install -y  \
       https://kojipkgs.fedoraproject.org/packages/$n/$v/$r/$arch/$n-$v-$r.$arch.rpm \
       https://kojipkgs.fedoraproject.org/packages/$n/$v/$r/noarch/$n-selinux-$v-$r.noarch.rpm
 
-# 2024-10-31 FIXME! 1.18.1 is buggy, but .2 does not yet have koji builds
+# 2024-11-01 1.18.2 needed for pod checkpoint, and fix a device bug
 timebomb 20241111 "needed to test pod checkpoint/restore"
 n=crun
-v=1.18.1
+v=1.18.2
 bigto $SUDO dnf install -y  \
-      https://kojipkgs.fedoraproject.org/packages/$n/$v/$r/$arch/$n-$v-$r.$arch.rpm
+      https://kojipkgs.fedoraproject.org/packages/$n/$v/$r/$arch/$n-$v-$r.$arch.rpm \
+      https://kojipkgs.fedoraproject.org/packages/$n/$v/$r/$arch/$n-wasm-$v-$r.$arch.rpm
 
 
 msg "Downloading packages for optional installation at runtime, as needed."
