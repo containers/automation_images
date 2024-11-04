@@ -118,7 +118,7 @@ builders:
             architecture: 'x86_64'
             image-type: 'machine'
             is-public: 'true'
-            name: 'Fedora-Cloud-Base*-{{user `FEDORA_RELEASE`}}-*us-east-1*'
+            name: 'Fedora-Cloud-Base*-{{user `FEDORA_RELEASE`}}-*'
             root-device-type: 'ebs'
             state: 'available'
             virtualization-type: 'hvm'
