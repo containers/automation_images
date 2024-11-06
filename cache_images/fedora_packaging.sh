@@ -28,7 +28,7 @@ req_env_vars PACKER_BUILD_NAME
 if [[ "$PACKER_BUILD_NAME" == "fedora" ]] && [[ ! "$PACKER_BUILD_NAME" =~ "prior" ]]; then
     warn "Enabling updates-testing repository for $PACKER_BUILD_NAME"
     lilto ooe.sh $SUDO dnf install -y 'dnf-command(config-manager)'
-    lilto ooe.sh $SUDO dnf config-manager --set-enabled updates-testing
+    lilto ooe.sh $SUDO dnf config-manager setopt updates-testing.enabled=1
 else
     warn "NOT enabling updates-testing repository for $PACKER_BUILD_NAME"
 fi
