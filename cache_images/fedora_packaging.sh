@@ -112,6 +112,7 @@ INSTALL_PACKAGES=(\
     passt
     perl-Clone
     perl-FindBin
+    pigz
     pkgconfig
     podman
     pre-commit
@@ -145,12 +146,10 @@ INSTALL_PACKAGES=(\
 # Rawhide images don't need these packages
 if [[ "$PACKER_BUILD_NAME" =~ fedora ]]; then
     INSTALL_PACKAGES+=( \
-        docker-compose
         python-pip-wheel
         python-setuptools-wheel
         python-toml
         python-wheel-wheel
-        python2
         python3-PyYAML
         python3-coverage
         python3-dateutil
@@ -177,7 +176,9 @@ fi
 if ! ((CONTAINER)); then
     INSTALL_PACKAGES+=( \
         bpftrace
+        composefs
         container-selinux
+        fuse-overlayfs
         libguestfs-tools
         selinux-policy-devel
         policycoreutils
