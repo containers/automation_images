@@ -200,6 +200,18 @@ DOWNLOAD_PACKAGES=(\
 msg "Installing general build/test dependencies"
 bigto $SUDO dnf install -y "${INSTALL_PACKAGES[@]}"
 
+# 2024-11-07 not yet stable on f40
+timebomb 20241119 "pasta 20241030 desired for podman flake fix"
+if [[ "$OS_RELEASE_VER" -eq 40 ]]; then
+    arch=$(uname -m)
+    n=passt
+    v=0%5E20241030.gee7d0b6
+    r=1.fc$OS_RELEASE_VER
+    bigto $SUDO dnf install -y  \
+          https://kojipkgs.fedoraproject.org/packages/$n/$v/$r/$arch/$n-$v-$r.$arch.rpm \
+          https://kojipkgs.fedoraproject.org/packages/$n/$v/$r/noarch/$n-selinux-$v-$r.noarch.rpm
+fi
+
 msg "Downloading packages for optional installation at runtime, as needed."
 $SUDO mkdir -p "$PACKAGE_DOWNLOAD_DIR"
 cd "$PACKAGE_DOWNLOAD_DIR"
