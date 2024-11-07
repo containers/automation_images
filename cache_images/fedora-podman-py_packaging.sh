@@ -17,7 +17,7 @@ source "$REPO_DIRPATH/lib.sh"
 # shellcheck disable=SC2154
 warn "Enabling updates-testing repository for $PACKER_BUILD_NAME"
 lilto ooe.sh $SUDO dnf install -y 'dnf-command(config-manager)'
-lilto ooe.sh $SUDO dnf config-manager --set-enabled updates-testing
+lilto ooe.sh $SUDO dnf config-manager setopt updates-testing.enabled=1
 
 msg "Updating/Installing repos and packages for $OS_REL_VER"
 

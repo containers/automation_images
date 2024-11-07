@@ -28,7 +28,7 @@ req_env_vars PACKER_BUILD_NAME
 if [[ "$PACKER_BUILD_NAME" == "fedora" ]] && [[ ! "$PACKER_BUILD_NAME" =~ "prior" ]]; then
     warn "Enabling updates-testing repository for $PACKER_BUILD_NAME"
     lilto ooe.sh $SUDO dnf install -y 'dnf-command(config-manager)'
-    lilto ooe.sh $SUDO dnf config-manager --set-enabled updates-testing
+    lilto ooe.sh $SUDO dnf config-manager setopt updates-testing.enabled=1
 else
     warn "NOT enabling updates-testing repository for $PACKER_BUILD_NAME"
 fi
@@ -112,6 +112,7 @@ INSTALL_PACKAGES=(\
     passt
     perl-Clone
     perl-FindBin
+    pigz
     pkgconfig
     podman
     pre-commit
@@ -145,12 +146,10 @@ INSTALL_PACKAGES=(\
 # Rawhide images don't need these packages
 if [[ "$PACKER_BUILD_NAME" =~ fedora ]]; then
     INSTALL_PACKAGES+=( \
-        docker-compose
         python-pip-wheel
         python-setuptools-wheel
         python-toml
         python-wheel-wheel
-        python2
         python3-PyYAML
         python3-coverage
         python3-dateutil
@@ -177,7 +176,9 @@ fi
 if ! ((CONTAINER)); then
     INSTALL_PACKAGES+=( \
         bpftrace
+        composefs
         container-selinux
+        fuse-overlayfs
         libguestfs-tools
         selinux-policy-devel
         policycoreutils
