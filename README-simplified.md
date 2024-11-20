@@ -70,8 +70,8 @@ cases,
 [crun](https://github.com/containers/automation_images/pull/386/files) and
 [pasta](https://github.com/containers/automation_images/pull/383/files).
 Note the `timebomb` directives. Please use these: the time you save
-may be your own, one future day. And please use 2-6 week times. A
-timebomb that expires in a year is going to be hard to understand
+may be your own, one future day. And please use 2-6 week times.
+A timebomb that expires in a year is going to be hard to understand
 when it goes off.
 
 Bumping Distros
