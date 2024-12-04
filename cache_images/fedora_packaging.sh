@@ -115,6 +115,7 @@ INSTALL_PACKAGES=(\
     pigz
     pkgconfig
     podman
+    podman-remote
     pre-commit
     procps-ng
     protobuf
@@ -182,6 +183,16 @@ if ! ((CONTAINER)); then
         libguestfs-tools
         selinux-policy-devel
         policycoreutils
+    )
+
+    # Extra packages needed by podman-machine-os
+    INSTALL_PACKAGES+=( \
+        podman-machine
+        osbuild
+        osbuild-tools
+        osbuild-ostree
+        xfsprogs
+        e2fsprogs
     )
 fi
 
