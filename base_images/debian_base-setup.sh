@@ -57,8 +57,8 @@ source "$REPO_DIRPATH/lib.sh"
 #     https://github.com/containers/podman/issues/19407
 #     https://bugzilla.redhat.com/show_bug.cgi?id=2230127
 # 2024-01-25 dfsg-3 also has the bug
-# 2024-09-06 trixy still has 1.35+dfsg-3 (https://packages.debian.org/trixie/tar)
-timebomb 20241201 "prevent us from getting broken tar-1.35+dfsg-3"
+# 2024-12-04 trixy still has 1.35+dfsg-3 (https://packages.debian.org/trixie/tar)
+timebomb 20250201 "prevent us from getting broken tar-1.35+dfsg-3"
 $SUDO tee /etc/apt/preferences.d/$(date +%Y%m%d)-tar <<EOF
 Package: tar
 Pin: version 1.35+dfsg-[23]
