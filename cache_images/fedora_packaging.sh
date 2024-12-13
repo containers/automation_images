@@ -115,6 +115,7 @@ INSTALL_PACKAGES=(\
     pigz
     pkgconfig
     podman
+    podman-remote
     pre-commit
     procps-ng
     protobuf
@@ -183,6 +184,16 @@ if ! ((CONTAINER)); then
         selinux-policy-devel
         policycoreutils
     )
+
+    # Extra packages needed by podman-machine-os
+    INSTALL_PACKAGES+=( \
+        podman-machine
+        osbuild
+        osbuild-tools
+        osbuild-ostree
+        xfsprogs
+        e2fsprogs
+    )
 fi
 
 
@@ -200,12 +211,12 @@ DOWNLOAD_PACKAGES=(\
 msg "Installing general build/test dependencies"
 bigto $SUDO dnf install -y "${INSTALL_PACKAGES[@]}"
 
-# 2024-11-07 not yet stable on f40
-timebomb 20241119 "pasta 20241030 desired for podman flake fix"
-if [[ "$OS_RELEASE_VER" -eq 40 ]]; then
+# 2024-12-11 not yet stable on f42
+timebomb 20250101 "pasta 2024_12_11.g09478d5 required fix pasta/glibc regression https://github.com/containers/podman/issues/24804"
+if [[ "$OS_RELEASE_VER" -eq 42 ]]; then
     arch=$(uname -m)
     n=passt
-    v=0%5E20241030.gee7d0b6
+    v=0%5E20241211.g09478d5
     r=1.fc$OS_RELEASE_VER
     bigto $SUDO dnf install -y  \
           https://kojipkgs.fedoraproject.org/packages/$n/$v/$r/$arch/$n-$v-$r.$arch.rpm \
