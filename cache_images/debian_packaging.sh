@@ -44,7 +44,7 @@ INSTALL_PACKAGES=(\
     fuse-overlayfs
     gcc
     gettext
-    git-daemon-run
+    git
     gnupg2
     go-md2man
     golang
