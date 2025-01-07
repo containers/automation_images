@@ -211,18 +211,6 @@ DOWNLOAD_PACKAGES=(\
 msg "Installing general build/test dependencies"
 bigto $SUDO dnf install -y "${INSTALL_PACKAGES[@]}"
 
-# 2024-12-11 not yet stable on f42
-timebomb 20250101 "pasta 2024_12_11.g09478d5 required fix pasta/glibc regression https://github.com/containers/podman/issues/24804"
-if [[ "$OS_RELEASE_VER" -eq 42 ]]; then
-    arch=$(uname -m)
-    n=passt
-    v=0%5E20241211.g09478d5
-    r=1.fc$OS_RELEASE_VER
-    bigto $SUDO dnf install -y  \
-          https://kojipkgs.fedoraproject.org/packages/$n/$v/$r/$arch/$n-$v-$r.$arch.rpm \
-          https://kojipkgs.fedoraproject.org/packages/$n/$v/$r/noarch/$n-selinux-$v-$r.noarch.rpm
-fi
-
 msg "Downloading packages for optional installation at runtime, as needed."
 $SUDO mkdir -p "$PACKAGE_DOWNLOAD_DIR"
 cd "$PACKAGE_DOWNLOAD_DIR"
