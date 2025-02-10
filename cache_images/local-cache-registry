@@ -76,6 +76,10 @@ declare -a IMAGELIST=(
     registry:2.8.2
     registry:volume_omitted
     systemd-image:20240124
+    testartifact:20250206-single
+    testartifact:20250206-multi
+    testartifact:20250206-multi-no-title
+    testartifact:20250206-evil
     testdigest_v2s2
     testdigest_v2s2:20200210
     testimage:00000000
