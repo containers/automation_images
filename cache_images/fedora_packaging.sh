@@ -81,6 +81,7 @@ INSTALL_PACKAGES=(\
     iproute
     iptables
     jq
+    koji
     krb5-workstation
     libassuan
     libassuan-devel
@@ -122,6 +123,8 @@ INSTALL_PACKAGES=(\
     protobuf-c
     protobuf-c-devel
     protobuf-devel
+    python3-fedora-distro-aliases
+    python3-koji-cli-plugins
     redhat-rpm-config
     rpcbind
     rsync
