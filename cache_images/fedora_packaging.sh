@@ -134,6 +134,8 @@ INSTALL_PACKAGES=(\
     skopeo
     slirp4netns
     socat
+    sqlite-libs
+    sqlite-devel
     squashfs-tools
     tar
     time
