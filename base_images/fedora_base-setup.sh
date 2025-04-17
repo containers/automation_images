@@ -90,7 +90,9 @@ if ! ((CONTAINER)); then
         # This is necessary to prevent permission-denied errors on service-start
         # and also on the off-chance the package gets updated and context reset.
         $SUDO semanage fcontext --add --type bin_t /usr/bin/cloud-init
-        $SUDO restorecon -v /usr/bin/cloud-init
+        # This used restorecon before so we don't have to specify the file_contexts.local
+        # manually, however with f42 that stopped working: https://bugzilla.redhat.com/show_bug.cgi?id=2360183
+        $SUDO setfiles -v /etc/selinux/targeted/contexts/files/file_contexts.local /usr/bin/cloud-init
     else  # GCP Image
         echo "Setting GCP startup service (for Cirrus-CI agent) SELinux unconfined"
         # ref: https://cloud.google.com/compute/docs/startupscript

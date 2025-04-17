@@ -72,7 +72,6 @@ INSTALL_PACKAGES=(\
     python3-requests-mock
     python3-virtualenv
     python3.6
-    python3.8
     python3.9
     python3.10
     python3.11

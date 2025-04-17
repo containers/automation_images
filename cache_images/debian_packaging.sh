@@ -103,6 +103,8 @@ INSTALL_PACKAGES=(\
     skopeo
     slirp4netns
     socat
+    libsqlite3-0
+    libsqlite3-dev
     systemd-container
     sudo
     time
