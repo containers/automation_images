@@ -35,6 +35,14 @@ if [[ -n "$AWS_INI" ]]; then
     set_aws_filepath
 fi
 
+id
+# FIXME: ssh-keygen seems to fail to create keys with Permission denied
+# in the base_images make target, I have no idea why but all CI jobs are
+# broken because of this. Let's try without selinux.
+if [[ "$(getenforce)" == "Enforcing" ]]; then
+    setenforce 0
+fi
+
 set -x
 cd "$REPO_DIRPATH"
 export IMG_SFX=$IMG_SFX

@@ -132,12 +132,10 @@ jobs:
 
             - if: steps.manifests.outputs.count > 0
               name: Post PR comment with image name/id table
-              uses: jungwinter/comment@v1.1.0
+              uses: thollander/actions-comment-pull-request@v3
               with:
-                  issue_number: '${{ steps.retro.outputs.prn }}'
-                  type: 'create'
-                  token: '${{ secrets.GITHUB_TOKEN }}'
-                  body: |
+                  pr-number: '${{ steps.retro.outputs.prn }}'
+                  message: |
                     ${{ env.IMAGE_TABLE }}
 
             # Ref: https://github.com/marketplace/actions/deploy-to-gist

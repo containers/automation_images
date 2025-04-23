@@ -47,6 +47,11 @@ req_env_vars PACKER_BUILD_NAME
 
 bash $SCRIPT_DIRPATH/debian_packaging.sh
 
+# dnsmasq is set to bind 0.0.0.0:53, that will conflict with our dns tests.
+# We don't need a local resolver.
+$SUDO systemctl disable dnsmasq.service
+$SUDO systemctl mask dnsmasq.service
+
 if ! ((CONTAINER)); then
     warn "Making Debian kernel enable cgroup swap accounting"
     SEDCMD='s/^GRUB_CMDLINE_LINUX="(.*)"/GRUB_CMDLINE_LINUX="\1 cgroup_enable=memory swapaccount=1"/'

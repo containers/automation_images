@@ -81,6 +81,7 @@ INSTALL_PACKAGES=(\
     iproute
     iptables
     jq
+    koji
     krb5-workstation
     libassuan
     libassuan-devel
@@ -122,6 +123,8 @@ INSTALL_PACKAGES=(\
     protobuf-c
     protobuf-c-devel
     protobuf-devel
+    python3-fedora-distro-aliases
+    python3-koji-cli-plugins
     redhat-rpm-config
     rpcbind
     rsync
@@ -131,6 +134,8 @@ INSTALL_PACKAGES=(\
     skopeo
     slirp4netns
     socat
+    sqlite-libs
+    sqlite-devel
     squashfs-tools
     tar
     time
@@ -210,6 +215,12 @@ DOWNLOAD_PACKAGES=(\
 
 msg "Installing general build/test dependencies"
 bigto $SUDO dnf install -y "${INSTALL_PACKAGES[@]}"
+
+# https://bodhi.fedoraproject.org/updates/FEDORA-2025-55ce2ca9f0
+timebomb 20250423 "criu-4.0 is broken, force 4.1 update from updates-testing"
+if [[ "$OS_RELEASE_VER" -eq 42 ]]; then
+    $SUDO dnf upgrade -y --enablerepo=updates-testing --refresh --advisory=FEDORA-2025-d374d8ce17
+fi
 
 msg "Downloading packages for optional installation at runtime, as needed."
 $SUDO mkdir -p "$PACKAGE_DOWNLOAD_DIR"
