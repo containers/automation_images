@@ -22,8 +22,9 @@ Invoke-WebRequest -Uri https://dotnet.microsoft.com/download/dotnet/scripts/v1/d
 # Configure NuGet sources for dotnet to fetch wix (and other packages) from
 & 'C:\Program Files\dotnet\dotnet.exe' nuget add source https://api.nuget.org/v3/index.json -n nuget.org
 
-# Install wix
-& 'C:\Program Files\dotnet\dotnet.exe' tool install --global wix
+# Install wix. Version should match the one in
+#   https://github.com/containers/podman/blob/main/contrib/win-installer/podman.wixproj
+& 'C:\Program Files\dotnet\dotnet.exe' tool install --global wix --version 5.0.2
 
 # Install Hyper-V
 Enable-WindowsOptionalFeature -Online -FeatureName Microsoft-Hyper-V -All -NoRestart
