@@ -64,6 +64,7 @@ INSTALL_PACKAGES=(\
     fuse3
     fuse3-devel
     gcc
+    gh
     git
     git-daemon
     glib2-devel
@@ -215,12 +216,6 @@ DOWNLOAD_PACKAGES=(\
 
 msg "Installing general build/test dependencies"
 bigto $SUDO dnf install -y "${INSTALL_PACKAGES[@]}"
-
-# https://bodhi.fedoraproject.org/updates/FEDORA-2025-55ce2ca9f0
-timebomb 20250423 "criu-4.0 is broken, force 4.1 update from updates-testing"
-if [[ "$OS_RELEASE_VER" -eq 42 ]]; then
-    $SUDO dnf upgrade -y --enablerepo=updates-testing --refresh --advisory=FEDORA-2025-d374d8ce17
-fi
 
 msg "Downloading packages for optional installation at runtime, as needed."
 $SUDO mkdir -p "$PACKAGE_DOWNLOAD_DIR"
