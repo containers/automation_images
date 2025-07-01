@@ -30,8 +30,6 @@ req_env_vars PACKER_BUILD_NAME
 # shellcheck disable=SC2154
 if [[ "$PACKER_BUILD_NAME" =~ "netavark" ]]; then
     bash $SCRIPT_DIRPATH/fedora-netavark_packaging.sh
-elif [[ "$PACKER_BUILD_NAME" =~ "podman-py" ]]; then
-    bash $SCRIPT_DIRPATH/fedora-podman-py_packaging.sh
 elif [[ "$PACKER_BUILD_NAME" =~ "build-push" ]]; then
     bash $SCRIPT_DIRPATH/build-push_packaging.sh
     # Registers qemu emulation for non-native execution

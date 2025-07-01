@@ -235,9 +235,6 @@ cache_images_task:
             PACKER_BUILDS: "fedora-netavark"
         - <<: *cache_image
           env:
-            PACKER_BUILDS: "fedora-podman-py"
-        - <<: *cache_image
-          env:
             PACKER_BUILDS: "fedora-aws"
         - <<: *cache_image
           env:
@@ -340,7 +337,6 @@ test_imgts_task: &imgts
             fedora-c${IMG_SFX}
             prior-fedora-c${IMG_SFX}
             fedora-netavark-c${IMG_SFX}
-            fedora-podman-py-c${IMG_SFX}
             rawhide-c${IMG_SFX}
             debian-c${IMG_SFX}
             build-push-c${IMG_SFX}

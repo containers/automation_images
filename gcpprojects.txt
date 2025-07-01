@@ -8,7 +8,6 @@ containers-build-source-image
 libpod-218412
 netavark-2021
 oci-seccomp-bpf-hook
-podman-py
 skopeo
 storage-240716
 udica-247612

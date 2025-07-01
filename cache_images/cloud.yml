@@ -76,9 +76,6 @@ builders:
       labels: *fedora_gce_labels
 
     - <<: *aux_fed_img
-      name: 'fedora-podman-py'
-
-    - <<: *aux_fed_img
       name: 'fedora-netavark'
 
     # ref: https://www.packer.io/plugins/builders/amazon/ebs
