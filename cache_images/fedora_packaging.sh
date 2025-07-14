@@ -77,6 +77,7 @@ INSTALL_PACKAGES=(\
     golang
     golang-google-grpc
     golang-google-protobuf
+    golang-gvisor
     gpgme
     gpgme-devel
     grubby
