@@ -74,6 +74,7 @@ INSTALL_PACKAGES=(\
     gnupg
     go-md2man
     golang
+    golang-gvisor
     gpgme
     gpgme-devel
     grubby
