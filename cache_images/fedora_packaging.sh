@@ -56,6 +56,7 @@ INSTALL_PACKAGES=(\
     curl
     device-mapper-devel
     dnsmasq
+    docker-distribution
     e2fsprogs-devel
     emacs-nox
     fakeroot
