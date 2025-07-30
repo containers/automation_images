@@ -174,6 +174,11 @@ if [[ "$PACKER_BUILD_NAME" =~ fedora ]]; then
         python3-requests
         python3-requests-mock
     )
+else # podman-sequoia is only available in Rawhide
+    timebomb 20251101 "Also install the package in future Fedora releases, and enable Sequoia support in users of the images."
+    INSTALL_PACKAGES+=( \
+        podman-sequoia
+    )
 fi
 
 # When installing during a container-build, having this present
