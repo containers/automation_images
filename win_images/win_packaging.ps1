@@ -33,4 +33,7 @@ Enable-WindowsOptionalFeature -Online -FeatureName Microsoft-Hyper-V-Management-
 # Install WSL, and capture text output which is not normally visible
 $x = wsl --install; Check-Exit 0 1 # wsl returns 1 on reboot required
 Write-Host $x
+
+# Install make (required by libhvee)
+choco install make
 Exit 0
