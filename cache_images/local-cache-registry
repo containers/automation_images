@@ -9,7 +9,7 @@
 # will start the registry at boot.
 #
 # We also populate that registry with a (hardcoded) list of container
-# images used in CI tests. That way a CI VM comes up alreay ready,
+# images used in CI tests. That way a CI VM comes up already ready,
 # and CI tests do not need to do remote pulls. The image list is
 # hardcoded right here in this script file, in the automation_images
 # repo. See below for reasons.
@@ -222,7 +222,7 @@ function cache_image() {
 
     for retry in 1 2 3 0;do
         skopeo --registries-conf /dev/null \
-               copy --all --dest-tls-verify=false \
+               copy --all \
                docker://$registry/$img \
                docker://127.0.0.1:${REGISTRY_PORT}/$img \
             && return
@@ -286,9 +286,17 @@ function do_initialize() {
     # ...and copy the config, making a few adjustments to it.
     sed -e "s;/var/lib/registry;${PODMAN_REGISTRY_WORKDIR};" \
         -e "s;:5000;127.0.0.1:${REGISTRY_PORT};" \
+        -e '/^http:$/a\  tls:\n    key: /etc/local-registry/localhost.key\n    certificate: /etc/local-registry/localhost.crt' \
         < ${registry_root}/etc/docker/registry/config.yml \
         > /etc/local-registry.yml
     podman image umount -a
+
+    # Generate that key and certificate that we just configured the
+    # registry to use.
+    mkdir -p /etc/local-registry && chmod 700 /etc/local-registry
+    must_pass openssl req -newkey rsa:4096 -nodes -sha256 -keyout /etc/local-registry/localhost.key -x509 -days 36525 -addext "subjectAltName = DNS:localhost, IP:127.0.0.1" -out /etc/local-registry/localhost.crt -subj "/CN=localhost"
+    mkdir -p /etc/containers/certs.d/127.0.0.1:${REGISTRY_PORT}
+    cp /etc/local-registry/localhost.crt /etc/containers/certs.d/127.0.0.1:${REGISTRY_PORT}/ca.crt
 
     # Create a systemd unit file. Enable it (so it starts at boot)
     # and also start it --now.
