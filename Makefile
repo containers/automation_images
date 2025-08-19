@@ -132,17 +132,17 @@ help: ## Default target, parses special in-line comments as documentation.
 # names and a max-length of 63.
 .PHONY: IMG_SFX
 IMG_SFX:  timebomb-check ## Generate a new date-based image suffix, store in the file IMG_SFX
-	$(file >$@,$(shell date --utc +%Y%m%dt%H%M%Sz)-f$(FEDORA_RELEASE)f$(PRIOR_FEDORA_RELEASE)d$(subst .,,$(DEBIAN_RELEASE)))
-	@echo "$(file <IMG_SFX)"
+	@echo "$$(date -u +%Y%m%dt%H%M%Sz)-f$(FEDORA_RELEASE)f$(PRIOR_FEDORA_RELEASE)d$(subst .,,$(DEBIAN_RELEASE))" > "$@"
+	@cat IMG_SFX
 
 # Prevent us from wasting CI time when we have expired timebombs
 .PHONY: timebomb-check
 timebomb-check:
-	@now=$$(date --utc +%Y%m%d); \
+	@now=$$(date -u +%Y%m%d); \
 	    found=; \
 	    while read -r bomb; do \
-	        when=$$(echo "$$bomb" | sed -e 's/^.*timebomb \([0-9]\+\).*/\1/'); \
-	        if [ $$when -le $$now ]; then \
+	        when=$$(echo "$$bomb" | sed -E -e 's/^.*timebomb ([0-9]+).*/\1/'); \
+	        if [ "$$when" -le "$$now" ]; then \
 	            echo "$$bomb"; \
 	            found=found; \
 	        fi; \
