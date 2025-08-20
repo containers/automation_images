@@ -99,6 +99,7 @@ INSTALL_PACKAGES=(\
     python3-setuptools
     rsync
     runc
+    runsc
     scons
     skopeo
     slirp4netns
