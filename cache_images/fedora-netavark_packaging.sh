@@ -55,7 +55,7 @@ INSTALL_PACKAGES=(\
     protobuf-devel
     rsync
     sed
-    slirp4netns
+    socat
     systemd-devel
     tar
     time
