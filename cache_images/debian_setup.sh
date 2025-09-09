@@ -57,6 +57,11 @@ if ! ((CONTAINER)); then
     SEDCMD='s/^GRUB_CMDLINE_LINUX="(.*)"/GRUB_CMDLINE_LINUX="\1 cgroup_enable=memory swapaccount=1"/'
     ooe.sh $SUDO sed -re "$SEDCMD" -i /etc/default/grub.d/*
     ooe.sh $SUDO sed -re "$SEDCMD" -i /etc/default/grub
+    # https://github.com/containers/podman/pull/27030#issuecomment-3271357228
+    # Current 6.16.3 kernel here has a bad memory leak that causes a lot of failure sin podman CI.
+    # Work around by using the stock kernel from this image for now.
+    timebomb 20251001 "Remove kernel bug workaround"
+    ooe.sh $SUDO sed -i 's|GRUB_DEFAULT=0|GRUB_DEFAULT="Advanced options for Debian GNU/Linux>Debian GNU/Linux, with Linux 6.1.0-37-cloud-amd64"|' /etc/default/grub
     ooe.sh $SUDO update-grub
 fi
 
