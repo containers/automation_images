@@ -64,17 +64,6 @@ if ! ((CONTAINER)); then
     # Be kind to humans, indicate where generated files came from
     sourcemsg="### File generated during VM Image build by $(basename $SCRIPT_FILEPATH)"
 
-    if ((OS_RELEASE_VER<35)); then
-        echo "Overriding cloud-init service file"
-        # The packaged cloud-init.service unit has a dependency loop
-        # vs google-network-daemon.service.  Fix this with a custom
-        # cloud-init service file.
-        CLOUD_SERVICE_PATH="systemd/system/cloud-init.service"
-        echo -e "$sourcemsg" | $SUDO tee /etc/$CLOUD_SERVICE_PATH
-        cat $SCRIPT_DIRPATH/fedora-cloud-init.service | \
-            $SUDO tee -a /etc/$CLOUD_SERVICE_PATH
-    fi
-
     # The mechanism used by Cirrus-CI to execute tasks on the system is through an
     # "agent" process launched as a GCP VM startup-script (from 'user-data').
     # This agent is responsible for cloning the repository and executing all task
