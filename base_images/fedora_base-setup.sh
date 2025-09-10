@@ -64,17 +64,6 @@ if ! ((CONTAINER)); then
     # Be kind to humans, indicate where generated files came from
     sourcemsg="### File generated during VM Image build by $(basename $SCRIPT_FILEPATH)"
 
-    if ((OS_RELEASE_VER<35)); then
-        echo "Overriding cloud-init service file"
-        # The packaged cloud-init.service unit has a dependency loop
-        # vs google-network-daemon.service.  Fix this with a custom
-        # cloud-init service file.
-        CLOUD_SERVICE_PATH="systemd/system/cloud-init.service"
-        echo -e "$sourcemsg" | $SUDO tee /etc/$CLOUD_SERVICE_PATH
-        cat $SCRIPT_DIRPATH/fedora-cloud-init.service | \
-            $SUDO tee -a /etc/$CLOUD_SERVICE_PATH
-    fi
-
     # The mechanism used by Cirrus-CI to execute tasks on the system is through an
     # "agent" process launched as a GCP VM startup-script (from 'user-data').
     # This agent is responsible for cloning the repository and executing all task
@@ -97,6 +86,24 @@ if ! ((CONTAINER)); then
         echo "Setting GCP startup service (for Cirrus-CI agent) SELinux unconfined"
         # ref: https://cloud.google.com/compute/docs/startupscript
         METADATA_SERVICE_PATH=systemd/system/google-startup-scripts.service
+
+        # https://bugzilla.redhat.com/show_bug.cgi?id=2394063
+        # google-guest-agent is missing a script in its package
+        timebomb 20251101 "remove work around if bug was fixed"
+        $SUDO cat > /usr/bin/google_metadata_script_runner_adapt <<EOF
+#!/bin/env bash
+#
+# This script wraps compatibility logic of guest agent's startup script
+# runner. If compat manager is present run it, otherwise launch the
+# known service binary.
+#
+if [ -e /usr/bin/gce_compat_metadata_script_runner ]; then
+  /usr/bin/gce_compat_metadata_script_runner startup
+else
+  /usr/bin/google_metadata_script_runner startup
+fi
+EOF
+        $SUDO chmod 755 /usr/bin/google_metadata_script_runner_adapt
     fi
     echo "$sourcemsg" | $SUDO tee -a /etc/$METADATA_SERVICE_PATH
     sed -r -e \
