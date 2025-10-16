@@ -1,4 +1,5 @@
 # general deps
+docker-distribution
 git
 golang
 golang-github-cpuguy83-md2man
