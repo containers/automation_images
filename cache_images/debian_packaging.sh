@@ -86,6 +86,8 @@ INSTALL_PACKAGES=(\
     podman
     protobuf-c-compiler
     protobuf-compiler
+    protoc-gen-go
+    protoc-gen-go-grpc
     python-is-python3
     python3-dateutil
     python3-dateutil
