@@ -192,7 +192,7 @@ base_images_task:
             PACKER_BUILDS: "debian"
     env:
       GAC_JSON: &gac_json ENCRYPTED[7fba7fb26ab568ae39f799ab58a476123206576b0135b3d1019117c6d682391370c801e149f29324ff4b50133012aed9]
-      AWS_INI: &aws_ini ENCRYPTED[4cd69097cd29a9899e51acf3bbacceeb83cb5c907d272ca1e2a8ccd515b03f2368a0680870c0d120fc32bc578bb0a930]
+      AWS_INI: &aws_ini ENCRYPTED[91471717db1672830917d66949f11b610aaf44a80933a35aa410a35cf3bae7554d53ba917c9ffeb17bc505e96869fd5d]
       AWS_MAX_ATTEMPTS: 300
       AWS_TIMEOUT_SECONDS: 3000
     script: "ci/make.sh base_images"
@@ -370,7 +370,7 @@ imgts_task:
         GCPJSON: ENCRYPTED[112c55192dba9a7edd1889a7e704aa1e6ae40730b97ad8ebcbae2bb5f4ff84c7e9ca5b955baaf1f69e7b9e5c5a14a4d3]
         GCPNAME: ENCRYPTED[93cad237544dbbd663874e6896cd9c50a708e87d2cd40724c8b6c18237f4e2d40fd5e3c4a1fdbf7dafac3ceadf69a1c1]
         GCPPROJECT: 'libpod-218412'
-        AWSINI: ENCRYPTED[406795b7eee55fcedde37e0b4d7a5070f447f7dc9d8d6c4a1eec0d2592aa94b019b45b730ba1a2acb1a1ef0040561e2b]
+        AWSINI: ENCRYPTED[7837b1227a72c231ebee5270441a2ebf876fd2b8b66931cb97472b85edef4d15ea81a8c287651cde744748c4c9064f98]
 
 
 test_imgobsolete_task: &lifecycle_test
@@ -389,7 +389,7 @@ test_imgobsolete_task: &lifecycle_test
         GCPJSON: ENCRYPTED[a0482ce379d4fa3ea84b3fd6199cce75294262a65250c08ec9a5c454cbba06b7b55c8cdb43bbab2f6a81f3419096200e]
         GCPNAME: ENCRYPTED[57b2c60b8168a2dc6f281a31a051ffab069b3c05bd495f38c0d5178fdcfb9ac7e1295460d8c4beb979c88d88061fa463]
         GCPPROJECT: 'libpod-218412'
-        AWSINI: ENCRYPTED[0215d4bb3572d35351ddcffeee5f4103ee1baa07ef0de95a7cd92dae27c4a655dd7116f8f710c8e1820c704b6a7e9179]
+        AWSINI: ENCRYPTED[02c133d518b886de9f50f3a6f18f929a0a2e30a73c096a6a92a8b088753ab7362ebcded916017607c4d403b11e906384]
         DRY_RUN: 1
     clone_script: *noop
     script:  /usr/local/bin/entrypoint.sh
@@ -410,7 +410,7 @@ test_orphanvms_task:
         GCPNAME: ENCRYPTED[cfb1c7fc976ab83c8d9b32ca3fbcdf4c5bd7b11dd43ff2b8ad91685bed846e8a5502ba857a35f8128a9fba22a85384aa]
         GCPPROJECT: 'libpod-218412'
         GCPPROJECTS: 'libpod-218412' # value for testing, otherwise see gcpprojects.txt
-        AWSINI: ENCRYPTED[1ab89ff7bc1515dc964efe7ef6e094e01164ba8dd2e11c9a01259c6af3b3968ab841dbe473fe4ab5b573f2f5fa3653e8]
+        AWSINI: ENCRYPTED[1b5c88a8b534f3c56ad85833ff393ce02a0a986110f88c4d14cb42bb5fb892de2468a96795e4e0853a3377bab2995e2b]
         DRY_RUN: 1
         EVERYTHING: 1  # Alter age-limit from 3-days -> 3 seconds for a test-run.
     script: /usr/local/bin/entrypoint.sh

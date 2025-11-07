@@ -89,7 +89,7 @@ if ! ((CONTAINER)); then
 
         # https://bugzilla.redhat.com/show_bug.cgi?id=2394063
         # google-guest-agent is missing a script in its package
-        timebomb 20251101 "remove work around if bug was fixed"
+        timebomb 20251201 "remove work around if bug was fixed"
         $SUDO cat > /usr/bin/google_metadata_script_runner_adapt <<EOF
 #!/bin/env bash
 #
