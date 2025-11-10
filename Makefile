@@ -30,8 +30,8 @@ export RAWHIDE_RELEASE = 43
 
 # Automation assumes the actual release number (after SID upgrade)
 # is always one-greater than the latest DEBIAN_BASE_FAMILY (GCE image).
-export DEBIAN_RELEASE = 13
-export DEBIAN_BASE_FAMILY = debian-12
+export DEBIAN_RELEASE = 14
+export DEBIAN_BASE_FAMILY = debian-13
 
 IMPORT_FORMAT = vhdx
 
