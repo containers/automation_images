@@ -92,7 +92,9 @@ declare -a IMAGELIST=(
     testdigest_v2s2@sha256:755f4d90b3716e2bf57060d249e2cd61c9ac089b1233465c5c2cb2d7ee550fdb
     volume-plugin-test-img:20220623
     podman/stable:v4.3.1
-    podman/stable:v4.8.0
+    podman/stable:v4.8.0 # this line can be removed when https://github.com/containers/podman/pull/27555 get merged
+    podman/stable:v5.3.1
+    podman/stable:v5.6.2
     skopeo/stable:latest
     ubuntu:latest
 )
