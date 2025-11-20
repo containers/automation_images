@@ -25,6 +25,7 @@ INSTALL_PACKAGES=(\
     bridge-utils
     btrfs-progs-devel
     bzip2
+    conntrack-tools
     curl
     dbus-daemon
     dnsmasq
