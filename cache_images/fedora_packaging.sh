@@ -159,7 +159,7 @@ if [[ "$PACKER_BUILD_NAME" =~ fedora ]]; then
         python-pip-wheel
         python-setuptools-wheel
         python-toml
-        python-wheel-wheel
+        python3-wheel
         python3-PyYAML
         python3-coverage
         python3-dateutil
