@@ -153,13 +153,17 @@ INSTALL_PACKAGES=(\
     zstd
 )
 
+if [[ "$PACKER_BUILD_NAME" =~ fedora ]] && [[ "$OS_REL_VER" -ge 43 ]]; then
+    INSTALL_PACKAGES+=( \
+        podman-sequoia
+    ) 
 # Rawhide images don't need these packages
-if [[ "$PACKER_BUILD_NAME" =~ fedora ]]; then
+elif [[ "$PACKER_BUILD_NAME" =~ fedora ]]; then
     INSTALL_PACKAGES+=( \
         python-pip-wheel
         python-setuptools-wheel
         python-toml
-        python-wheel-wheel
+        python3-wheel
         python3-PyYAML
         python3-coverage
         python3-dateutil
@@ -175,11 +179,6 @@ if [[ "$PACKER_BUILD_NAME" =~ fedora ]]; then
         python3-pyxdg
         python3-requests
         python3-requests-mock
-    )
-else # podman-sequoia is only available in Rawhide
-    timebomb 20251201 "Also install the package in future Fedora releases, and enable Sequoia support in users of the images."
-    INSTALL_PACKAGES+=( \
-        podman-sequoia
     )
 fi
 

@@ -22,11 +22,11 @@ export CENTOS_STREAM_RELEASE = 9
 
 # Warning: Beta Fedora releases are not supported.  Verifiy EC2 AMI availability
 # here: https://fedoraproject.org/cloud/download
-export FEDORA_RELEASE = 42
-export PRIOR_FEDORA_RELEASE = 41
+export FEDORA_RELEASE = 43
+export PRIOR_FEDORA_RELEASE = 42
 
 # This should always be one-greater than $FEDORA_RELEASE (assuming it's actually the latest)
-export RAWHIDE_RELEASE = 43
+export RAWHIDE_RELEASE = 44
 
 # Automation assumes the actual release number (after SID upgrade)
 # is always one-greater than the latest DEBIAN_BASE_FAMILY (GCE image).
