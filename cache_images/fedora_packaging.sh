@@ -136,7 +136,6 @@ INSTALL_PACKAGES=(\
     sed
     ShellCheck
     skopeo
-    slirp4netns
     socat
     sqlite-libs
     sqlite-devel

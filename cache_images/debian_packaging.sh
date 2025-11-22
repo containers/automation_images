@@ -103,7 +103,6 @@ INSTALL_PACKAGES=(\
     runc
     scons
     skopeo
-    slirp4netns
     socat
     libsqlite3-0
     libsqlite3-dev
