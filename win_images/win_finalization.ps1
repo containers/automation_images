@@ -32,6 +32,21 @@ Set-ItemProperty `
     -Name LockScreen -Value "rundll32.exe user32.dll,LockWorkStation" `
     -Type String
 
+# The privileged-user is used to execute the few commands that require elevated
+# privileges such as machine-scope installation tests and Hyper-V machine init
+# and rm.
+New-LocalUser -Name "privileged-user" -Password $encPass
+Add-LocalGroupMember -Group "Administrators" -Member "privileged-user"
+
+# The hyperv-admin-user is used to manage Hyper-V machines (podman machine
+# start, stop, etc).
+New-LocalUser -Name "hyperv-admin-user" -Password $encPass
+Add-LocalGroupMember -Group "Hyper-V Administrators" -Member "hyperv-admin-user"
+
+# The unprivileged user is the default user for running Podman e2e and
+# installation tests.
+New-LocalUser -Name "unprivileged-user" -Password $encPass
+
 # NOTE: For now, we do not run sysprep, since initialization with reboots
 # are exceptionally slow on metal nodes, which these target to run. This
 # will lead to a duplicate machine id, which is not ideal, but allows
