@@ -86,24 +86,6 @@ if ! ((CONTAINER)); then
         echo "Setting GCP startup service (for Cirrus-CI agent) SELinux unconfined"
         # ref: https://cloud.google.com/compute/docs/startupscript
         METADATA_SERVICE_PATH=systemd/system/google-startup-scripts.service
-
-        # https://bugzilla.redhat.com/show_bug.cgi?id=2394063
-        # google-guest-agent is missing a script in its package
-        timebomb 20251201 "remove work around if bug was fixed"
-        $SUDO cat > /usr/bin/google_metadata_script_runner_adapt <<EOF
-#!/bin/env bash
-#
-# This script wraps compatibility logic of guest agent's startup script
-# runner. If compat manager is present run it, otherwise launch the
-# known service binary.
-#
-if [ -e /usr/bin/gce_compat_metadata_script_runner ]; then
-  /usr/bin/gce_compat_metadata_script_runner startup
-else
-  /usr/bin/google_metadata_script_runner startup
-fi
-EOF
-        $SUDO chmod 755 /usr/bin/google_metadata_script_runner_adapt
     fi
     echo "$sourcemsg" | $SUDO tee -a /etc/$METADATA_SERVICE_PATH
     sed -r -e \
