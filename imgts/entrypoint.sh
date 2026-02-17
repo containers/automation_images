@@ -144,7 +144,11 @@ done
 # EC2IMGNAMES and AWSINI are set.
 if [[ -n "$EC2IMGNAMES" ]]; then
     msg "---"
-    req_env_vars AWSINI BUILDID REPOREF
+    # Support both AWSINI (legacy) and OIDC (AWS_ROLE_ARN) authentication
+    if [[ -z "$AWSINI" ]] && [[ -z "$AWS_ROLE_ARN" ]]; then
+        die 1 "entrypoint.sh requires either \$AWSINI or \$AWS_ROLE_ARN to be set."
+    fi
+    req_env_vars BUILDID REPOREF
 
     if ! ((DRY_RUN)); then
         aws_init
