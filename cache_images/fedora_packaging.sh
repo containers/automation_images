@@ -75,7 +75,6 @@ INSTALL_PACKAGES=(\
     gnupg
     go-md2man
     golang
-    golang-google-grpc
     golang-google-protobuf
     gpgme
     gpgme-devel
