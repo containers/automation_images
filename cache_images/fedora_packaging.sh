@@ -115,6 +115,7 @@ INSTALL_PACKAGES=(\
     pandoc
     parallel
     passt
+    patch
     perl-Clone
     perl-FindBin
     pigz
