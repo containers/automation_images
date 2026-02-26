@@ -70,6 +70,7 @@ declare -a IMAGELIST=(
     cirros:latest
     fedora/python-311:latest
     healthcheck:config-only
+    hummingbird/git:latest
     k8s-pause:3.5
     podman_python:latest
     redis:alpine
