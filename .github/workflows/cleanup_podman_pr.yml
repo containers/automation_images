@@ -1,0 +1,53 @@
+---
+
+# When an automation_images PR is closed without merging, automatically
+# close the corresponding downstream podman PR to prevent stale PRs.
+
+on:
+    pull_request:
+        types:
+            - closed
+
+jobs:
+    cleanup:
+        # Only act on PRs closed without merging that have podman-pr labels
+        if: github.event.pull_request.merged == false
+        runs-on: ubuntu-latest
+        steps:
+            - name: Check for podman-pr label
+              id: check-label
+              run: |
+                  podman_prn=$(echo '${{ toJSON(github.event.pull_request.labels) }}' | \
+                      jq -r '[.[].name | select(startswith("podman-pr:"))] | .[0] // empty' | \
+                      sed 's/podman-pr://')
+
+                  if [[ -n "$podman_prn" ]]; then
+                      echo "number=${podman_prn}" >> $GITHUB_OUTPUT
+                      echo "found=true" >> $GITHUB_OUTPUT
+                      echo "Found podman PR label: #${podman_prn}"
+                  else
+                      echo "found=false" >> $GITHUB_OUTPUT
+                      echo "No podman-pr label found"
+                  fi
+
+            - if: steps.check-label.outputs.found == 'true'
+              name: Close downstream podman PR
+              env:
+                  GITHUB_TOKEN: ${{ secrets.BOT_PAT }}
+              run: |
+                  ai_prn=${{ github.event.pull_request.number }}
+                  podman_prn=${{ steps.check-label.outputs.number }}
+
+                  # Check if podman PR is still open before closing
+                  state=$(gh pr view "$podman_prn" \
+                      --repo containers/podman \
+                      --json state \
+                      --jq '.state')
+
+                  if [[ "$state" == "OPEN" ]]; then
+                      gh pr close "$podman_prn" \
+                          --repo containers/podman
+                      echo "Closed podman PR #${podman_prn}"
+                  else
+                      echo "Podman PR #${podman_prn} is already ${state}, skipping"
+                  fi

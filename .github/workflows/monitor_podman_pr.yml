@@ -1,0 +1,85 @@
+---
+
+# Poll the status of downstream podman PRs created by create_podman_pr.yml.
+# When a podman PR is merged, set the commit status on the corresponding
+# automation_images PR to success, unblocking its merge.
+
+on:
+    schedule:
+        - cron: '*/15 * * * *'
+    workflow_dispatch:
+
+jobs:
+    monitor:
+        runs-on: ubuntu-latest
+        steps:
+            - name: Generate GitHub App token
+              id: app-token
+              uses: actions/create-github-app-token@v1
+              with:
+                  app-id: ${{ secrets.CROSS_REPO_APP_ID }}
+                  private-key: ${{ secrets.CROSS_REPO_APP_PRIVATE_KEY }}
+
+            - name: Check podman PR status for all labeled automation_images PRs
+              env:
+                  GH_TOKEN: ${{ steps.app-token.outputs.token }}
+                  BOT_PAT: ${{ secrets.BOT_PAT }}
+              run: |
+                  # Find all open PRs with podman-pr:* labels
+                  open_prs=$(gh pr list \
+                      --repo "${{ github.repository }}" \
+                      --state open \
+                      --json number,labels,headRefOid \
+                      --jq '.[] | select(.labels[].name | startswith("podman-pr:"))')
+
+                  if [[ -z "$open_prs" ]]; then
+                      echo "No open PRs with podman-pr labels found"
+                      exit 0
+                  fi
+
+                  echo "$open_prs" | jq -c '.' | while read -r pr; do
+                      ai_prn=$(echo "$pr" | jq -r '.number')
+                      ai_sha=$(echo "$pr" | jq -r '.headRefOid')
+                      podman_prn=$(echo "$pr" | jq -r \
+                          '[.labels[].name | select(startswith("podman-pr:"))] | .[0]' | \
+                          sed 's/podman-pr://')
+
+                      echo "Checking automation_images PR #${ai_prn} -> podman PR #${podman_prn}"
+
+                      # Query podman PR state using bot PAT
+                      podman_state=$(GH_TOKEN="$BOT_PAT" gh pr view "$podman_prn" \
+                          --repo containers/podman \
+                          --json state \
+                          --jq '.state')
+
+                      echo "  Podman PR #${podman_prn} state: ${podman_state}"
+
+                      case "$podman_state" in
+                          MERGED)
+                              echo "  Setting commit status to success"
+                              gh api \
+                                  "repos/${{ github.repository }}/statuses/${ai_sha}" \
+                                  --method POST \
+                                  --field state=success \
+                                  --field context=podman-image-update \
+                                  --field description="Podman PR #${podman_prn} merged" \
+                                  --field target_url="https://github.com/containers/podman/pull/${podman_prn}"
+                              ;;
+                          CLOSED)
+                              echo "  Setting commit status to failure"
+                              gh api \
+                                  "repos/${{ github.repository }}/statuses/${ai_sha}" \
+                                  --method POST \
+                                  --field state=failure \
+                                  --field context=podman-image-update \
+                                  --field description="Podman PR #${podman_prn} closed without merging" \
+                                  --field target_url="https://github.com/containers/podman/pull/${podman_prn}"
+                              ;;
+                          OPEN)
+                              echo "  Podman PR still open, no status change"
+                              ;;
+                          *)
+                              echo "  Unknown state: ${podman_state}"
+                              ;;
+                      esac
+                  done

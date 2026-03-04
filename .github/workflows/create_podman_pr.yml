@@ -1,0 +1,241 @@
+---
+
+# After Cirrus-CI completes on an automation_images PR, automatically create
+# a downstream podman PR that updates IMAGE_SUFFIX to the new value.
+# This gates the automation_images merge on the podman PR being merged.
+
+on:
+    check_suite:  # ALWAYS triggered from the default branch
+        types:
+            - completed
+
+jobs:
+    create_podman_pr:
+        # Only execute for Cirrus CI check suites
+        if: github.event.check_suite.app.name == 'Cirrus CI'
+        runs-on: ubuntu-latest
+        steps:
+            - name: Execute latest upstream cirrus-ci_retrospective
+              uses: docker://quay.io/libpod/cirrus-ci_retrospective:latest
+              env:
+                  GITHUB_TOKEN: ${{ github.token }}
+
+            - name: Debug cirrus-ci_retrospective JSON
+              run: jq --indent 4 --color-output . $GITHUB_WORKSPACE/cirrus-ci_retrospective.json
+
+            - name: Load JSON into github workflow output variables
+              id: retro
+              run: |
+                  ccirjson=$GITHUB_WORKSPACE/cirrus-ci_retrospective.json
+                  prn=$(jq --raw-output \
+                        '.[] | select(.name == "success") | .build.pullRequest' \
+                        "$ccirjson")
+                  bid=$(jq --raw-output \
+                        '.[] | select(.name == "success") | .build.id' \
+                        "$ccirjson")
+                  status=$(jq --raw-output \
+                        '.[] | select(.name == "success") | .status' \
+                        "$ccirjson")
+
+                  if [[ -n "$prn" ]] && \
+                     [[ "$prn" != "null" ]] && \
+                     [[ $prn -gt 0 ]] && \
+                     [[ "$status" == "COMPLETED" ]]
+                  then
+                      printf "prn=%s\n" "$prn" >> $GITHUB_OUTPUT
+                      printf "bid=%s\n" "$bid" >> $GITHUB_OUTPUT
+                      printf "is_pr=%s\n" "true" >> $GITHUB_OUTPUT
+                  else
+                      printf "prn=%s\n" "0" >> $GITHUB_OUTPUT
+                      printf "bid=%s\n" "0" >> $GITHUB_OUTPUT
+                      printf "is_pr=%s\n" "false" >> $GITHUB_OUTPUT
+                  fi
+
+            # Generate a GitHub App token for setting commit statuses
+            # and adding labels on this repo's PRs
+            - if: steps.retro.outputs.is_pr == 'true'
+              name: Generate GitHub App token
+              id: app-token
+              uses: actions/create-github-app-token@v1
+              with:
+                  app-id: ${{ secrets.CROSS_REPO_APP_ID }}
+                  private-key: ${{ secrets.CROSS_REPO_APP_PRIVATE_KEY }}
+
+            # Checkout the PR branch to read IMG_SFX
+            - if: steps.retro.outputs.is_pr == 'true'
+              name: Checkout automation_images PR branch
+              uses: actions/checkout@v6
+              with:
+                  ref: refs/pull/${{ steps.retro.outputs.prn }}/head
+                  persist-credentials: false
+
+            - if: steps.retro.outputs.is_pr == 'true'
+              name: Read IMG_SFX and set up variables
+              id: img-sfx
+              run: |
+                  img_sfx=$(cat IMG_SFX)
+                  echo "IMG_SFX=${img_sfx}" >> $GITHUB_OUTPUT
+                  echo "BRANCH=automation-image-update-${img_sfx}" >> $GITHUB_OUTPUT
+                  echo "Image suffix: ${img_sfx}"
+
+            # Check if a podman PR already exists for this IMG_SFX
+            - if: steps.retro.outputs.is_pr == 'true'
+              name: Check for existing podman PR
+              id: existing-pr
+              env:
+                  GITHUB_TOKEN: ${{ secrets.BOT_PAT }}
+              run: |
+                  existing=$(gh pr list \
+                      --repo containers/podman \
+                      --head "${{ secrets.BOT_FORK_OWNER }}:${{ steps.img-sfx.outputs.BRANCH }}" \
+                      --state open \
+                      --json number \
+                      --jq '.[0].number // empty')
+                  if [[ -n "$existing" ]]; then
+                      echo "exists=true" >> $GITHUB_OUTPUT
+                      echo "number=${existing}" >> $GITHUB_OUTPUT
+                      echo "Podman PR #${existing} already exists"
+                  else
+                      echo "exists=false" >> $GITHUB_OUTPUT
+                      echo "No existing podman PR found"
+                  fi
+
+            # Clone bot's podman fork, create branch, update IMAGE_SUFFIX
+            - if: >-
+                steps.retro.outputs.is_pr == 'true' &&
+                steps.existing-pr.outputs.exists == 'false'
+              name: Clone podman fork and create update branch
+              env:
+                  BOT_PAT: ${{ secrets.BOT_PAT }}
+                  BOT_FORK: ${{ secrets.BOT_FORK }}
+                  IMG_SFX: ${{ steps.img-sfx.outputs.IMG_SFX }}
+                  BRANCH: ${{ steps.img-sfx.outputs.BRANCH }}
+              run: |
+                  git clone --depth=1 \
+                      "https://x-access-token:${BOT_PAT}@github.com/${BOT_FORK}.git" \
+                      podman
+                  cd podman
+                  git remote add upstream https://github.com/containers/podman.git
+                  git fetch --depth=1 upstream main
+                  git checkout -b "${BRANCH}" upstream/main
+
+                  # Update IMAGE_SUFFIX in .cirrus.yml
+                  sed -i 's/IMAGE_SUFFIX: "c[^"]*"/IMAGE_SUFFIX: "c'"${IMG_SFX}"'"/' .cirrus.yml
+
+                  # Verify the change was made
+                  grep "IMAGE_SUFFIX:" .cirrus.yml
+
+                  # Commit with sign-off
+                  prn=${{ steps.retro.outputs.prn }}
+                  git -c user.name="containerautomation" \
+                      -c user.email="containerautoamtion@gmail.com" \
+                      commit -s -a \
+                      -m "update image sfx from automation_images#${prn}"
+
+                  # Push to bot fork (force in case branch exists from a previous failed run)
+                  git push --force origin "${BRANCH}"
+
+            - if: >-
+                steps.retro.outputs.is_pr == 'true' &&
+                steps.existing-pr.outputs.exists == 'false'
+              name: Create podman PR
+              id: create-pr
+              env:
+                  GITHUB_TOKEN: ${{ secrets.BOT_PAT }}
+                  BOT_FORK_OWNER: ${{ secrets.BOT_FORK_OWNER }}
+                  BRANCH: ${{ steps.img-sfx.outputs.BRANCH }}
+                  PRN: ${{ steps.retro.outputs.prn }}
+              run: |
+                  # Write PR body to a file to avoid shell quoting issues
+                  cat > /tmp/pr_body.md <<EOF
+                  #### Checklist
+
+                  - [x] Signed-off commits
+                  - [x] Referenced issues (N/A)
+                  - [x] Tests added/updated (N/A)
+                  - [x] Documentation updated (N/A)
+                  - [x] All commits pass \`make validatepr\`
+                  - [x] Release note entered
+
+                  #### Does this PR introduce a user-facing change?
+
+                  \`\`\`release-note
+                  None
+                  \`\`\`
+
+                  From automation_images PR:
+                  https://github.com/containers/automation_images/pull/${PRN}
+                  EOF
+
+                  pr_url=$(gh pr create \
+                      --repo containers/podman \
+                      --head "${BOT_FORK_OWNER}:${BRANCH}" \
+                      --base main \
+                      --title "update image sfx from automation_images#${PRN}" \
+                      --body-file /tmp/pr_body.md)
+
+                  podman_pr_number=$(echo "$pr_url" | grep -o '[0-9]*$')
+                  echo "number=${podman_pr_number}" >> $GITHUB_OUTPUT
+                  echo "url=${pr_url}" >> $GITHUB_OUTPUT
+                  echo "Created podman PR: ${pr_url}"
+
+            # Add labels to the podman PR
+            - if: >-
+                steps.retro.outputs.is_pr == 'true' &&
+                steps.existing-pr.outputs.exists == 'false'
+              name: Label podman PR
+              env:
+                  GITHUB_TOKEN: ${{ secrets.BOT_PAT }}
+              continue-on-error: true
+              run: |
+                  gh pr edit "${{ steps.create-pr.outputs.number }}" \
+                      --repo containers/podman \
+                      --add-label "release-note-none"
+
+            # Use the podman PR number from either new or existing PR
+            - if: steps.retro.outputs.is_pr == 'true'
+              name: Determine podman PR number
+              id: podman-pr
+              run: |
+                  if [[ "${{ steps.existing-pr.outputs.exists }}" == "true" ]]; then
+                      echo "number=${{ steps.existing-pr.outputs.number }}" >> $GITHUB_OUTPUT
+                  else
+                      echo "number=${{ steps.create-pr.outputs.number }}" >> $GITHUB_OUTPUT
+                  fi
+
+            # Set pending commit status on automation_images PR
+            - if: steps.retro.outputs.is_pr == 'true'
+              name: Set pending commit status on automation_images PR
+              env:
+                  GITHUB_TOKEN: ${{ steps.app-token.outputs.token }}
+              run: |
+                  pr_sha=$(gh api \
+                      "repos/${{ github.repository }}/pulls/${{ steps.retro.outputs.prn }}" \
+                      --jq '.head.sha')
+                  podman_prn=${{ steps.podman-pr.outputs.number }}
+                  gh api \
+                      "repos/${{ github.repository }}/statuses/${pr_sha}" \
+                      --method POST \
+                      --field state=pending \
+                      --field context=podman-image-update \
+                      --field description="Waiting for podman PR #${podman_prn} to merge" \
+                      --field target_url="https://github.com/containers/podman/pull/${podman_prn}"
+
+            # Add label to automation_images PR
+            - if: steps.retro.outputs.is_pr == 'true'
+              name: Label automation_images PR with podman PR number
+              env:
+                  GITHUB_TOKEN: ${{ steps.app-token.outputs.token }}
+              run: |
+                  podman_prn=${{ steps.podman-pr.outputs.number }}
+
+                  # Create label if it doesn't exist
+                  gh label create "podman-pr:${podman_prn}" \
+                      --repo "${{ github.repository }}" \
+                      --color "1d76db" \
+                      --description "Linked podman PR" \
+                      --force
+
+                  gh pr edit "${{ steps.retro.outputs.prn }}" \
+                      --repo "${{ github.repository }}" \
+                      --add-label "podman-pr:${podman_prn}"
