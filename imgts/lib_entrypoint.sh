@@ -71,6 +71,12 @@ gcloud_init() {
 }
 
 aws_init() {
+    # If OIDC role is configured, AWS CLI handles credential exchange automatically
+    if [[ -n "$AWS_ROLE_ARN" ]]; then
+        msg "Using OIDC credentials (role: $AWS_ROLE_ARN)"
+        return 0
+    fi
+
     req_env_vars AWSINI
     set +xe
     if [[ -n "$1" ]] && [[ -r "$1" ]]
