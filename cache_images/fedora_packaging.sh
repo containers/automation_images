@@ -75,7 +75,6 @@ INSTALL_PACKAGES=(\
     gnupg
     go-md2man
     golang
-    golang-google-grpc
     golang-google-protobuf
     gpgme
     gpgme-devel
@@ -115,6 +114,7 @@ INSTALL_PACKAGES=(\
     pandoc
     parallel
     passt
+    patch
     perl-Clone
     perl-FindBin
     pigz
@@ -156,7 +156,7 @@ INSTALL_PACKAGES=(\
 if [[ "$PACKER_BUILD_NAME" =~ fedora ]] && [[ "$OS_REL_VER" -ge 43 ]]; then
     INSTALL_PACKAGES+=( \
         podman-sequoia
-    ) 
+    )
 # Rawhide images don't need these packages
 elif [[ "$PACKER_BUILD_NAME" =~ fedora ]]; then
     INSTALL_PACKAGES+=( \
@@ -180,6 +180,18 @@ elif [[ "$PACKER_BUILD_NAME" =~ fedora ]]; then
         python3-requests
         python3-requests-mock
     )
+
+    if ! ((CONTAINER)); then
+        # Extra packages needed by podman-machine-os
+        INSTALL_PACKAGES+=( \
+            podman-machine
+            osbuild
+            osbuild-tools
+            osbuild-ostree
+            xfsprogs
+            e2fsprogs
+        )
+    fi
 fi
 
 # When installing during a container-build, having this present
@@ -196,16 +208,6 @@ if ! ((CONTAINER)); then
         libguestfs-tools
         selinux-policy-devel
         policycoreutils
-    )
-
-    # Extra packages needed by podman-machine-os
-    INSTALL_PACKAGES+=( \
-        podman-machine
-        osbuild
-        osbuild-tools
-        osbuild-ostree
-        xfsprogs
-        e2fsprogs
     )
 fi
 
