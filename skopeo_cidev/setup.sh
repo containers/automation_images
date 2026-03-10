@@ -9,7 +9,8 @@ set -e
 declare -a req_vars
 req_vars=(\
     REG_REPO
-    REG_COMMIT_SCHEMA1
+    REG_COMMIT_SCHEMA1_ONLY
+    REG_COMMIT_SCHEMA1_SUPPORTED
     OSO_REPO
     OSO_TAG
 )
@@ -44,8 +45,17 @@ cd "$REG_GOSRC"
     export GOPATH="$PWD/Godeps/_workspace:$GOPATH"
     # This comes in from the Containerfile
     # shellcheck disable=SC2154
-    git checkout -q "$REG_COMMIT_SCHEMA1"
-    go build -o /usr/local/bin/registry-v2-schema1 \
+    git checkout -q "$REG_COMMIT_SCHEMA1_ONLY"
+    go build -o /usr/local/bin/registry-v2-schema1-only \
+        github.com/docker/distribution/cmd/registry
+)
+
+(
+    export GOPATH
+    # This comes in from the Containerfile
+    # shellcheck disable=SC2154
+    git checkout -q "$REG_COMMIT_SCHEMA1_SUPPORTED"
+    go build -o /usr/local/bin/registry-v2-schema1-supported \
         github.com/docker/distribution/cmd/registry
 )
 
