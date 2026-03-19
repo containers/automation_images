@@ -61,6 +61,7 @@ if ! ((CONTAINER)); then
 fi
 
 nm_ignore_cni
+install_netavark_v2
 
 if ! ((CONTAINER)); then
     initialize_local_cache_registry

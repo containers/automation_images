@@ -286,6 +286,25 @@ unmanaged-devices=interface-name:*podman*;interface-name:veth*
 EOF
 }
 
+# For Podman 6 we need to test the upstream main code with netavark v2 which is not yet packaged.
+# Get the cirrus artifact builds from main.
+install_netavark_v2() {
+    echo "Installing custom netavark v2 binary from upstream directly"
+    local url="https://api.cirrus-ci.com/v1/artifact/github/containers/netavark/success/binary.zip"
+    curl --fail --location --output /tmp/netavark.zip "$url"
+    unzip /tmp/netavark.zip -d /tmp/netavark
+
+    local file="/tmp/netavark/netavark"
+    if [[ "$(arch)" == "aarch64" ]]; then
+        file="/tmp/netavark/netavark.aarch64-unknown-linux-gnu"
+    fi
+    $SUDO mkdir -p /usr/local/libexec/podman
+    $SUDO cp "$file" /usr/local/libexec/podman/netavark
+    $SUDO chmod +x /usr/local/libexec/podman/netavark
+
+    rm -rf /tmp/netavark
+}
+
 # Create a local registry, seed it with remote images
 initialize_local_cache_registry() {
     msg "Initializing local cache registry"
