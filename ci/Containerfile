@@ -38,8 +38,6 @@ RUN dnf update -y && \
         util-linux \
         unzip \
         && \
-    dnf -y mark user dnf sudo $_ && \
-    dnf autoremove -y && \
     dnf clean all
 
 ADD /lib.sh /tmp/lib.sh
