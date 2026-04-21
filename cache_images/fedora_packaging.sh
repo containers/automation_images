@@ -226,6 +226,15 @@ DOWNLOAD_PACKAGES=(\
 msg "Installing general build/test dependencies"
 bigto $SUDO dnf install -y "${INSTALL_PACKAGES[@]}"
 
+timebomb 20260520 "crun 1.27.1 should be stable by now"
+arch=$(uname -m)
+n=crun
+v=1.27.1
+r=1.fc$OS_RELEASE_VER
+bigto $SUDO dnf install -y  \
+      https://kojipkgs.fedoraproject.org/packages/$n/$v/$r/$arch/$n-$v-$r.$arch.rpm \
+      https://kojipkgs.fedoraproject.org/packages/$n/$v/$r/$arch/$n-wasm-$v-$r.$arch.rpm
+
 msg "Downloading packages for optional installation at runtime, as needed."
 $SUDO mkdir -p "$PACKAGE_DOWNLOAD_DIR"
 cd "$PACKAGE_DOWNLOAD_DIR"
