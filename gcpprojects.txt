@@ -10,4 +10,3 @@ netavark-2021
 oci-seccomp-bpf-hook
 skopeo
 storage-240716
-udica-247612
