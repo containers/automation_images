@@ -58,7 +58,7 @@ jobs:
                   fi
 
             - if: steps.retro.outputs.is_pr == 'true'
-              uses: actions/checkout@v6
+              uses: actions/checkout@v7
               with:
                   persist-credentials: false
 
