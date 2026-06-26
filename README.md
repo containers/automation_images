@@ -1,3 +1,9 @@
+# Deprecated
+
+This repo is no longer being maintained, parts of it where moved into
+github.com/podman-container-tools/automation/ which now hold the new
+automation for the podman CNCF repos.
+
 # README.md
 
 This repository holds the configuration for automation-related VM and
